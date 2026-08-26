@@ -43,7 +43,7 @@ export default function PLOAchievement() {
       if (err.response?.status === 404) {
         setError(`ไม่พบนักศึกษารหัส "${trimmed}"`);
       } else {
-        setError("เกิดข้อผิดพลาดในการดึงข้อมูล กรุณาตรวจสอบว่า backend กำลังทำงานอยู่");
+        setError("ดึงข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
       }
     } finally {
       setLoading(false);
@@ -117,14 +117,16 @@ export default function PLOAchievement() {
             ))}
           </div>
 
-          {user?.role === "admin" && (
+          {(user?.role === "admin" || user?.role === "instructor") && (
             <div className="plo-admin-actions">
               <Link to={`/scores?student_id=${studentId}`} className="button-secondary">
                 แก้ไขคะแนนนักศึกษาคนนี้
               </Link>
-              <Link to="/admin/students" className="button-secondary">
-                แก้ไขข้อมูลนักศึกษา
-              </Link>
+              {user?.role === "admin" && (
+                <Link to="/admin/students" className="button-secondary">
+                  แก้ไขข้อมูลนักศึกษา
+                </Link>
+              )}
             </div>
           )}
         </div>
