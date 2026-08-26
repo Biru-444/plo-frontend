@@ -1,8 +1,17 @@
+const KEYWORD_MAX_LENGTH = 60;
+
+function truncate(text, max) {
+  if (!text) return "";
+  return text.length > max ? `${text.slice(0, max).trim()}…` : text;
+}
+
 /**
- * Horizontal bar showing average_achieved_percent (0-100) for one PLO across
+ * Compact card showing average_achieved_percent (0-100) for one PLO across
  * a whole curriculum cohort, plus how many students actually achieved it.
- * Green when isAchieved, amber otherwise. Clickable when isExpandable to
- * toggle a per-student breakdown table (rendered by the caller).
+ * Green when isAchieved, warm red otherwise. Clickable when isExpandable to
+ * toggle a per-student breakdown table (rendered by the caller). Full
+ * description is on a hover tooltip - only a short excerpt shows inline so
+ * the card stays scannable.
  */
 export default function PLOCohortBar({
   code,
@@ -37,7 +46,7 @@ export default function PLOCohortBar({
 
   return (
     <div
-      className={`plo-bar-row ${isExpandable ? "expandable" : ""} ${expectationClass}`}
+      className={`plo-bar-row ${isAchieved ? "at-goal" : "at-risk"} ${isExpandable ? "expandable" : ""} ${expectationClass}`}
       onClick={isExpandable ? onToggle : undefined}
       onKeyDown={handleKeyDown}
       role={isExpandable ? "button" : undefined}
@@ -49,12 +58,14 @@ export default function PLOCohortBar({
           <span className={`expand-icon ${isExpanded ? "expanded" : ""}`}>▸</span>
         )}
         <span className="plo-code">{code}</span>
-        <span className="plo-description">{description}</span>
-        {isExpectedThisYear && <span className="plo-year-target-badge">เป้าหมายปีนี้</span>}
         <span className={`plo-badge ${isAchieved ? "achieved" : "not-achieved"}`}>
           {isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
         </span>
+        {isExpectedThisYear && <span className="plo-year-target-badge">เป้าหมายปีนี้</span>}
       </div>
+      <p className="plo-keyword" title={description}>
+        {truncate(description, KEYWORD_MAX_LENGTH)}
+      </p>
       <div className="plo-bar-track">
         <div
           className={`plo-bar-fill ${isAchieved ? "achieved" : "not-achieved"}`}

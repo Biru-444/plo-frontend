@@ -1,3 +1,5 @@
+import PLODonut from "./PLODonut.jsx";
+
 const PASS_THRESHOLD = 60;
 
 export default function PLOSummaryStats({ achievements }) {
@@ -14,9 +16,12 @@ export default function PLOSummaryStats({ achievements }) {
         </span>
         <span className="stat-label">PLO ที่บรรลุ (เกณฑ์ {PASS_THRESHOLD}%)</span>
       </div>
-      <div className="stat-tile">
-        <span className="stat-value">{avgPercent.toFixed(1)}%</span>
-        <span className="stat-label">ค่าเฉลี่ยรวมทุก PLO</span>
+      <div className="stat-tile stat-tile-donut">
+        <PLODonut percent={total === 0 ? null : avgPercent} threshold={PASS_THRESHOLD} size={52} />
+        <div>
+          <span className="stat-value">{avgPercent.toFixed(1)}%</span>
+          <span className="stat-label">ค่าเฉลี่ยรวมทุก PLO</span>
+        </div>
       </div>
     </div>
   );

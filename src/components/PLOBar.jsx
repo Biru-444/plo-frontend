@@ -6,7 +6,7 @@ export default function PLOBar({ code, description, achievedPercent, isAchieved 
   const pct = Math.max(0, Math.min(100, achievedPercent));
 
   return (
-    <div className="plo-bar-row">
+    <div className={`plo-bar-row ${isAchieved ? "at-goal" : "at-risk"}`}>
       <div className="plo-bar-header">
         <span className="plo-code">{code}</span>
         <span className="plo-description">{description}</span>
