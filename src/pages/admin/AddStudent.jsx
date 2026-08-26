@@ -39,8 +39,8 @@ export default function AddStudent() {
         { value: "จบการศึกษา", label: "จบการศึกษา" },
       ],
     },
-    { key: "cohort_year", label: "ปีที่เข้าศึกษา (cohort year)", type: "number", required: true },
-    { key: "current_year_level", label: "ชั้นปีปัจจุบัน", type: "number", required: true },
+    { key: "cohort_year", label: "ปีที่เข้าศึกษา (cohort year)", type: "number", required: true, filterable: true },
+    { key: "current_year_level", label: "ชั้นปีปัจจุบัน", type: "number", required: true, filterable: true },
   ];
 
   return (

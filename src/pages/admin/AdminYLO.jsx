@@ -13,7 +13,7 @@ export default function AdminYLO() {
 
   const columns = [
     { key: "curriculum_id", label: "หลักสูตร", type: "select", options: curriculumOptions, required: true },
-    { key: "year_level", label: "ชั้นปี (year_level)", type: "number", required: true },
+    { key: "year_level", label: "ชั้นปี (year_level)", type: "number", required: true, filterable: true },
     { key: "description", label: "คำอธิบาย", type: "text", required: true },
   ];
 
