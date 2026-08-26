@@ -23,7 +23,7 @@ export default function Login() {
       if (err.response?.status === 401) {
         setError("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
       } else {
-        setError("เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาตรวจสอบว่า backend กำลังทำงานอยู่");
+        setError("เข้าสู่ระบบไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
       }
     } finally {
       setLoading(false);

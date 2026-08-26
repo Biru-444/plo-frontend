@@ -57,7 +57,7 @@ export default function ScoreManagement() {
       });
       setEditValues(initialEdits);
     } catch {
-      setError("เกิดข้อผิดพลาดในการดึงข้อมูล กรุณาตรวจสอบว่า backend กำลังทำงานอยู่");
+      setError("ดึงข้อมูลคะแนนไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
     } finally {
       setLoading(false);
     }

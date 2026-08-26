@@ -23,7 +23,7 @@ export default function CurriculumCourses() {
       })
       .catch(() => {
         if (!cancelled) {
-          setError("เกิดข้อผิดพลาดในการดึงข้อมูล กรุณาตรวจสอบว่า backend กำลังทำงานอยู่");
+          setError("ดึงข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
         }
       })
       .finally(() => {

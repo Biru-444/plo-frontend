@@ -3,6 +3,7 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import {
   listCLO,
   listPLO,
+  listCourses,
   listCLOPLOMapping,
   createCLOPLOMapping,
   updateCLOPLOMapping,
@@ -14,21 +15,29 @@ export default function AdminCLOPLOMapping() {
   const [ploOptions, setPloOptions] = useState([]);
 
   useEffect(() => {
-    listCLO().then((data) =>
-      setCloOptions(data.map((c) => ({ value: c.id, label: `${c.code} - ${c.course_id}` })))
-    );
+    Promise.all([listCLO(), listCourses()]).then(([clos, courses]) => {
+      const courseById = {};
+      courses.forEach((c) => (courseById[c.id] = c));
+      setCloOptions(
+        clos.map((c) => {
+          const course = courseById[c.course_id];
+          const courseLabel = course ? `${course.course_code} ${course.name_th}` : `วิชา #${c.course_id}`;
+          return { value: c.id, label: `${c.code} - ${courseLabel}` };
+        })
+      );
+    });
     listPLO().then((data) => setPloOptions(data.map((p) => ({ value: p.id, label: p.code }))));
   }, []);
 
   const columns = [
-    { key: "clo_id", label: "CLO", type: "select", options: cloOptions, required: true },
-    { key: "plo_id", label: "PLO", type: "select", options: ploOptions, required: true },
+    { key: "clo_id", label: "CLO (ผลลัพธ์ระดับรายวิชา)", type: "select", options: cloOptions, required: true },
+    { key: "plo_id", label: "PLO (ผลลัพธ์ระดับหลักสูตร)", type: "select", options: ploOptions, required: true },
     { key: "weight_percent", label: "น้ำหนัก (%)", type: "number", step: "0.01", required: true },
   ];
 
   return (
     <CrudManager
-      title="จัดการ CLO-PLO Mapping"
+      title="เชื่อมโยง CLO กับ PLO"
       columns={columns}
       api={{
         list: listCLOPLOMapping,

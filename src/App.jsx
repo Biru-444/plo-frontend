@@ -1,10 +1,14 @@
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout.jsx";
+import { useAuth } from "./context/AuthContext.jsx";
 import PLOAchievement from "./pages/PLOAchievement.jsx";
+import InstructorHome from "./pages/InstructorHome.jsx";
 import StudentList from "./pages/StudentList.jsx";
 import CurriculumCourses from "./pages/CurriculumCourses.jsx";
 import PLODashboard from "./pages/PLODashboard.jsx";
 import PLOYearProgress from "./pages/PLOYearProgress.jsx";
 import Login from "./pages/Login.jsx";
+import Profile from "./pages/Profile.jsx";
 import ScoreManagement from "./pages/ScoreManagement.jsx";
 import AddStudent from "./pages/admin/AddStudent.jsx";
 import AddCurriculum from "./pages/admin/AddCurriculum.jsx";
@@ -22,227 +26,279 @@ import AdminAssessmentItem from "./pages/admin/AdminAssessmentItem.jsx";
 import AdminItemCLO from "./pages/admin/AdminItemCLO.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminEnrollments from "./pages/admin/AdminEnrollments.jsx";
+import AdminRosterImport from "./pages/admin/AdminRosterImport.jsx";
+import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
-import { useAuth } from "./context/AuthContext.jsx";
 
 export default function App() {
-  const { user, token, isAdmin, logout } = useAuth();
-  const navigate = useNavigate();
-
-  function handleLogout() {
-    logout();
-    navigate("/login");
-  }
+  const { user } = useAuth();
 
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <h1 className="app-title">PLO Evaluation System</h1>
-        <nav>
-          {token ? (
-            <>
-              <Link to="/">ผลการบรรลุ PLO</Link>
-              <Link to="/students">รายชื่อนักศึกษา</Link>
-              <Link to="/curriculum">หลักสูตร/รายวิชา</Link>
-              <Link to="/dashboard">ภาพรวม PLO</Link>
-              <Link to="/plo-by-year">PLO ตามชั้นปี</Link>
-              <Link to="/scores">จัดการคะแนน</Link>
-              {isAdmin && <Link to="/admin">จัดการระบบ</Link>}
-              <span className="nav-user">
-                {user.first_name} {user.last_name}
-                <span className={`badge-role ${user.role}`}>{user.role}</span>
-              </span>
-              <button type="button" className="nav-logout" onClick={handleLogout}>
-                ออกจากระบบ
-              </button>
-            </>
-          ) : (
-            <Link to="/login">เข้าสู่ระบบ</Link>
-          )}
-        </nav>
-      </header>
-
-      <main>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <PLOAchievement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/students"
-            element={
-              <ProtectedRoute>
-                <StudentList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/curriculum"
-            element={
-              <ProtectedRoute>
-                <CurriculumCourses />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <PLODashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/plo-by-year"
-            element={
-              <ProtectedRoute>
-                <PLOYearProgress />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/scores"
-            element={
-              <ProtectedRoute>
-                <ScoreManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminHome />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/students"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AddStudent />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/curriculum"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AddCurriculum />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/plo"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminPLO />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/ylo"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminYLO />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/ylo-plo-mapping"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminYLOPLOMapping />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/course"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminCourse />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/course-plo"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminCoursePLO />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/study-plan"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminStudyPlan />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/course-offerings"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminCourseOffering />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/clo"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminCLO />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/clo-plo-mapping"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminCLOPLOMapping />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/assessment-items"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminAssessmentItem />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/item-clo"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminItemCLO />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminUsers />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/enrollments"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminEnrollments />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              {/* หน้าหลัก: instructor เห็นวิชาที่ตัวเองสอน, admin เห็นภาพรวม PLO ทั้งหลักสูตร (ไม่ใช้
+                  PLOAchievement เป็นหน้าแรกอีกต่อไป เพราะเป็นแค่ช่องค้นหาด้วยรหัสเปล่าๆ ไม่มีบริบท -
+                  ทางเข้าจริงของ PLOAchievement คือคลิกชื่อนักศึกษาจากหน้ารายชื่อ ที่ /student-plo) */}
+              {user?.role === "instructor" ? <InstructorHome /> : <PLODashboard />}
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/student-plo"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <PLOAchievement />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/students"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <StudentList />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/curriculum"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <CurriculumCourses />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/dashboard"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <PLODashboard />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/plo-by-year"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <PLOYearProgress />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/scores"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <ScoreManagement />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminHome />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/students"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AddStudent />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/curriculum"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AddCurriculum />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/plo"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminPLO />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/ylo"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminYLO />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/ylo-plo-mapping"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminYLOPLOMapping />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/course"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCourse />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/course-plo"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCoursePLO />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/study-plan"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminStudyPlan />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/course-offerings"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCourseOffering />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/clo"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCLO />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/clo-plo-mapping"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCLOPLOMapping />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/assessment-items"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminAssessmentItem />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/item-clo"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminItemCLO />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminUsers />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/enrollments"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminEnrollments />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/roster-import"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminRosterImport />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/course-workspace"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <CourseOfferingWorkspace />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+    </Routes>
   );
 }

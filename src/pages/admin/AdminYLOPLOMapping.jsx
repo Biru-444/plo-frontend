@@ -3,6 +3,7 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import {
   listYLO,
   listPLO,
+  listCurricula,
   listYLOPLOMapping,
   createYLOPLOMapping,
   deleteYLOPLOMapping,
@@ -13,22 +14,30 @@ export default function AdminYLOPLOMapping() {
   const [ploOptions, setPloOptions] = useState([]);
 
   useEffect(() => {
-    listYLO().then((data) =>
+    Promise.all([listYLO(), listCurricula()]).then(([ylos, curricula]) => {
+      const curriculumById = {};
+      curricula.forEach((c) => (curriculumById[c.id] = c));
       setYloOptions(
-        data.map((y) => ({ value: y.id, label: `ปีที่ ${y.year_level} (หลักสูตร #${y.curriculum_id})` }))
-      )
-    );
+        ylos.map((y) => {
+          const curriculum = curriculumById[y.curriculum_id];
+          const curriculumLabel = curriculum
+            ? `${curriculum.name} (${curriculum.year})`
+            : `หลักสูตร #${y.curriculum_id}`;
+          return { value: y.id, label: `ปีที่ ${y.year_level} - ${curriculumLabel}` };
+        })
+      );
+    });
     listPLO().then((data) => setPloOptions(data.map((p) => ({ value: p.id, label: p.code }))));
   }, []);
 
   const columns = [
-    { key: "ylo_id", label: "YLO", type: "select", options: yloOptions, required: true },
-    { key: "plo_id", label: "PLO", type: "select", options: ploOptions, required: true },
+    { key: "ylo_id", label: "YLO (ผลลัพธ์ระดับชั้นปี)", type: "select", options: yloOptions, required: true },
+    { key: "plo_id", label: "PLO (ผลลัพธ์ระดับหลักสูตร)", type: "select", options: ploOptions, required: true },
   ];
 
   return (
     <CrudManager
-      title="จัดการ YLO-PLO Mapping"
+      title="เชื่อมโยง YLO กับ PLO"
       columns={columns}
       api={{ list: listYLOPLOMapping, create: createYLOPLOMapping, remove: deleteYLOPLOMapping }}
     />

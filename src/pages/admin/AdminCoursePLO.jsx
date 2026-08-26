@@ -27,7 +27,7 @@ export default function AdminCoursePLO() {
 
   const columns = [
     { key: "course_id", label: "รายวิชา", type: "select", options: courseOptions, required: true },
-    { key: "plo_id", label: "PLO", type: "select", options: ploOptions, required: true },
+    { key: "plo_id", label: "PLO (ผลลัพธ์ระดับหลักสูตร)", type: "select", options: ploOptions, required: true },
     {
       key: "responsibility_level",
       label: "ระดับความรับผิดชอบ",
@@ -39,7 +39,7 @@ export default function AdminCoursePLO() {
 
   return (
     <CrudManager
-      title="จัดการ Course-PLO Mapping"
+      title="เชื่อมโยงรายวิชากับ PLO"
       columns={columns}
       api={{ list: listCoursePLO, create: createCoursePLO, update: updateCoursePLO, remove: deleteCoursePLO }}
     />

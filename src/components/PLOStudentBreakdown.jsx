@@ -39,7 +39,7 @@ export default function PLOStudentBreakdown({ ploId, students }) {
         {rows.map((row) => (
           <Link
             key={row.studentId}
-            to={`/?student_id=${encodeURIComponent(row.studentId)}`}
+            to={`/student-plo?student_id=${encodeURIComponent(row.studentId)}`}
             className="student-table-row"
           >
             <span className="student-table-cell">{row.studentId}</span>

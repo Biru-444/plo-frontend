@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { listStudents } from "../api/client.js";
+import { Search } from "lucide-react";
+import { listStudents, listCurricula } from "../api/client.js";
 
 const STATUS_BADGE_CLASS = {
   กำลังศึกษา: "status-active",
@@ -11,6 +12,7 @@ const STATUS_BADGE_CLASS = {
 
 export default function StudentList() {
   const [students, setStudents] = useState([]);
+  const [curriculumById, setCurriculumById] = useState({});
   const [query, setQuery] = useState("");
   const [selectedCohort, setSelectedCohort] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -19,17 +21,19 @@ export default function StudentList() {
   useEffect(() => {
     let cancelled = false;
 
-    listStudents()
-      .then((data) => {
-        if (!cancelled) {
-          setStudents(data);
-          const cohorts = [...new Set(data.map((s) => s.cohort_year))].sort((a, b) => a - b);
-          if (cohorts.length > 0) setSelectedCohort(cohorts[cohorts.length - 1]);
-        }
+    Promise.all([listStudents(), listCurricula()])
+      .then(([data, curricula]) => {
+        if (cancelled) return;
+        setStudents(data);
+        const byId = {};
+        curricula.forEach((c) => (byId[c.id] = c));
+        setCurriculumById(byId);
+        const cohorts = [...new Set(data.map((s) => s.cohort_year))].sort((a, b) => a - b);
+        if (cohorts.length > 0) setSelectedCohort(cohorts[cohorts.length - 1]);
       })
       .catch(() => {
         if (!cancelled) {
-          setError("เกิดข้อผิดพลาดในการดึงข้อมูล กรุณาตรวจสอบว่า backend กำลังทำงานอยู่");
+          setError("โหลดรายชื่อนักศึกษาไม่สำเร็จ ลองรีเฟรชหน้านี้อีกครั้ง หรือแจ้งผู้ดูแลระบบ");
         }
       })
       .finally(() => {
@@ -75,7 +79,8 @@ export default function StudentList() {
         </div>
       )}
 
-      <div className="student-list-toolbar">
+      <div className="toolbar-search student-list-toolbar">
+        <Search size={16} />
         <input
           type="text"
           value={query}
@@ -105,7 +110,7 @@ export default function StudentList() {
               {filteredStudents.map((student) => (
                 <Link
                   key={student.id}
-                  to={`/?student_id=${encodeURIComponent(student.id)}`}
+                  to={`/student-plo?student_id=${encodeURIComponent(student.id)}`}
                   className="student-table-row"
                 >
                   <span className="student-table-cell">{student.id}</span>
@@ -113,7 +118,9 @@ export default function StudentList() {
                     {student.title ? `${student.title} ` : ""}
                     {student.first_name} {student.last_name}
                   </span>
-                  <span className="student-table-cell">{student.curriculum_id}</span>
+                  <span className="student-table-cell">
+                    {curriculumById[student.curriculum_id]?.name ?? `#${student.curriculum_id}`}
+                  </span>
                   <span className="student-table-cell">{`ปี ${student.current_year_level}`}</span>
                   <span className="student-table-cell">
                     <span className={`status-badge ${STATUS_BADGE_CLASS[student.status] ?? ""}`}>
