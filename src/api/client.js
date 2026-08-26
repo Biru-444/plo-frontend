@@ -158,8 +158,10 @@ export async function deleteStudent(id) {
   await api.delete(`/students/${id}`);
 }
 
-export async function listEnrollments() {
-  const { data } = await api.get("/enrollments");
+export async function listEnrollments(offeringId) {
+  const { data } = await api.get("/enrollments", {
+    params: offeringId ? { offering_id: offeringId } : {},
+  });
   return data;
 }
 
@@ -177,8 +179,67 @@ export async function deleteEnrollment(id) {
   await api.delete(`/enrollments/${id}`);
 }
 
-export async function listAssessmentItems() {
-  const { data } = await api.get("/assessment-items");
+/**
+ * Enroll every student in one cohort_year (matching the offering's curriculum)
+ * into an offering at once. Backend: POST /enrollments/bulk-by-cohort
+ * Returns: { added_count, already_enrolled_count, added_students: [{id, first_name, last_name}],
+ *            already_in_other_section: [{student_id, section}] }
+ */
+export async function bulkEnrollByCohort(offeringId, cohortYear) {
+  const { data } = await api.post("/enrollments/bulk-by-cohort", {
+    offering_id: offeringId,
+    cohort_year: cohortYear,
+  });
+  return data;
+}
+
+/**
+ * Enroll a specific list of student IDs into an offering at once.
+ * Backend: POST /enrollments/bulk
+ * Returns: { added_count, already_enrolled: [...ids], not_found: [...ids], wrong_curriculum: [...ids],
+ *            already_in_other_section: [{student_id, section}] }
+ */
+export async function bulkEnrollStudents(offeringId, studentIds) {
+  const { data } = await api.post("/enrollments/bulk", {
+    offering_id: offeringId,
+    student_ids: studentIds,
+  });
+  return data;
+}
+
+/**
+ * Upload a .csv/.xlsx roster file to enroll students into an offering.
+ * Backend: POST /enrollments/bulk-upload (multipart/form-data)
+ * Returns: same shape as bulkEnrollStudents.
+ */
+export async function bulkEnrollUpload(offeringId, file) {
+  const formData = new FormData();
+  formData.append("offering_id", offeringId);
+  formData.append("file", file);
+  const { data } = await api.post("/enrollments/bulk-upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
+/**
+ * Which of a course's students are already enrolled in a *different* offering
+ * (section/หมู่) of the same course/term - used to keep multi-section courses
+ * (e.g. รุ่น 69 split into หมู่ 1/หมู่ 2) from being lumped together.
+ * Backend: GET /enrollments/sibling-sections?offering_id=...
+ * Returns: [{ student_id, section }]
+ */
+export async function getSiblingSectionEnrollments(offeringId) {
+  const { data } = await api.get("/enrollments/sibling-sections", {
+    params: { offering_id: offeringId },
+  });
+  return data;
+}
+
+export async function listAssessmentItems(offeringId) {
+  const { data } = await api.get("/assessment-items", {
+    params: offeringId ? { offering_id: offeringId } : {},
+  });
   return data;
 }
 
@@ -451,5 +512,46 @@ export async function updateStudentScore(scoreId, scoreObtained) {
 
 export async function createStudentScore(payload) {
   const { data } = await api.post("/student-scores", payload);
+  return data;
+}
+
+/**
+ * Fetch every recorded score for every student enrolled in one course offering.
+ * Backend: GET /student-scores?offering_id=...
+ */
+export async function getOfferingStudentScores(offeringId) {
+  const { data } = await api.get("/student-scores", {
+    params: { offering_id: offeringId },
+  });
+  return data;
+}
+
+/**
+ * Fetch per-CLO class achievement for one course offering.
+ * Backend: GET /clo-achievement?offering_id=...
+ */
+export async function getOfferingCLOAchievement(offeringId) {
+  const { data } = await api.get("/clo-achievement", {
+    params: { offering_id: offeringId },
+  });
+  return data;
+}
+
+// --- Roster Import (นำเข้ารายชื่อจากไฟล์ Excel ของมหาวิทยาลัย) ---
+
+/**
+ * นำเข้าไฟล์รายชื่อนักศึกษาที่มหาวิทยาลัยส่งให้อาจารย์ (.xls รูปแบบเก่า หรือ .xlsx) - อ่านวิชา/
+ * ภาคเรียน/ผู้สอน/รายชื่อนักศึกษาจากไฟล์เอง จับคู่หรือสร้าง course_offering, บัญชีผู้สอน, นักศึกษา,
+ * และการลงทะเบียนให้อัตโนมัติ Backend: POST /roster-import (multipart/form-data), admin เท่านั้น
+ * เรียกด้วย dryRun=true ก่อนเพื่อดูตัวอย่างผลลัพธ์ (ไม่บันทึกจริง) แล้วเรียกซ้ำด้วย dryRun=false
+ * ด้วยไฟล์เดิมเพื่อบันทึกจริง
+ */
+export async function importRoster(file, dryRun) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("dry_run", dryRun ? "true" : "false");
+  const { data } = await api.post("/roster-import", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return data;
 }
