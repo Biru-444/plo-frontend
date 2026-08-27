@@ -16,11 +16,14 @@ export default function PLOYearProgress() {
   const [expandedKey, setExpandedKey] = useState(null);
   // เลือกดูทีละชั้นปีแทนการเลื่อนดูทั้งหมด (เดิมต้องเลื่อนยาวมากกว่าจะถึงปี 4)
   const [selectedYearLevel, setSelectedYearLevel] = useState(null);
+  // กรองตามรุ่นที่เข้าเรียน - คนละมิติกับแท็บชั้นปีด้านบน ไม่ผูกกัน
+  const [selectedCohortYear, setSelectedCohortYear] = useState(null);
 
   function handleSelectCurriculum(curriculumId) {
     setSelectedCurriculumId(curriculumId);
     setExpandedKey(null);
     setSelectedYearLevel(null);
+    setSelectedCohortYear(null);
   }
 
   function handleSelectYear(yearLevel) {
@@ -64,11 +67,16 @@ export default function PLOYearProgress() {
     setLoadingProgress(true);
     setError(null);
 
-    getPLOAchievementByYear(selectedCurriculumId)
+    getPLOAchievementByYear(selectedCurriculumId, selectedCohortYear)
       .then((data) => {
         if (cancelled) return;
         setProgress(data);
-        if (data.years.length > 0) setSelectedYearLevel(data.years[0].year_level);
+        // เลือกชั้นปีแรกให้อัตโนมัติเฉพาะตอนที่ชั้นปีที่เลือกอยู่เดิมไม่มีอยู่ในข้อมูลชุดใหม่แล้ว
+        // (เช่น เพิ่งเปลี่ยนหลักสูตร) - เปลี่ยนแค่ "รุ่นที่เข้าเรียน" ไม่ควรรีเซ็ตแท็บชั้นปีที่เลือกอยู่
+        setSelectedYearLevel((prev) => {
+          if (data.years.some((year) => year.year_level === prev)) return prev;
+          return data.years.length > 0 ? data.years[0].year_level : prev;
+        });
       })
       .catch(() => {
         if (!cancelled) {
@@ -82,7 +90,7 @@ export default function PLOYearProgress() {
     return () => {
       cancelled = true;
     };
-  }, [selectedCurriculumId]);
+  }, [selectedCurriculumId, selectedCohortYear]);
 
   return (
     <div className="page">
@@ -102,6 +110,24 @@ export default function PLOYearProgress() {
               </option>
             ))}
           </select>
+
+          {progress && progress.available_cohort_years.length > 0 && (
+            <>
+              <label htmlFor="year-progress-cohort-select">รุ่นที่เข้าเรียน</label>
+              <select
+                id="year-progress-cohort-select"
+                value={selectedCohortYear ?? ""}
+                onChange={(e) => setSelectedCohortYear(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">ทุกรุ่น</option>
+                {progress.available_cohort_years.map((year) => (
+                  <option key={year} value={year}>
+                    รุ่น {year}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       )}
 

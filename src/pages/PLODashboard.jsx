@@ -21,11 +21,13 @@ export default function PLODashboard() {
   const [error, setError] = useState(null);
   const [expandedPloId, setExpandedPloId] = useState(null);
   const [filterMode, setFilterMode] = useState("all");
+  const [selectedCohortYear, setSelectedCohortYear] = useState(null);
 
   function handleSelectCurriculum(curriculumId) {
     setSelectedCurriculumId(curriculumId);
     setExpandedPloId(null);
     setFilterMode("all");
+    setSelectedCohortYear(null);
   }
 
   function toggleExpandedPlo(ploId) {
@@ -64,7 +66,7 @@ export default function PLODashboard() {
     setLoadingSummary(true);
     setError(null);
 
-    getCohortPLOAchievement(selectedCurriculumId)
+    getCohortPLOAchievement(selectedCurriculumId, selectedCohortYear)
       .then((data) => {
         if (!cancelled) setSummary(data);
       })
@@ -80,7 +82,7 @@ export default function PLODashboard() {
     return () => {
       cancelled = true;
     };
-  }, [selectedCurriculumId]);
+  }, [selectedCurriculumId, selectedCohortYear]);
 
   const allAchievedStats = useMemo(() => {
     if (!summary || summary.total_students === 0) return { count: 0, percent: null };
@@ -127,6 +129,24 @@ export default function PLODashboard() {
               </option>
             ))}
           </select>
+
+          {summary && summary.available_cohort_years.length > 0 && (
+            <>
+              <label htmlFor="cohort-year-select">รุ่นที่เข้าเรียน</label>
+              <select
+                id="cohort-year-select"
+                value={selectedCohortYear ?? ""}
+                onChange={(e) => setSelectedCohortYear(e.target.value ? Number(e.target.value) : null)}
+              >
+                <option value="">ทุกรุ่น</option>
+                {summary.available_cohort_years.map((year) => (
+                  <option key={year} value={year}>
+                    รุ่น {year}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       )}
 

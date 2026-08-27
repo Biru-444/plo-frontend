@@ -65,12 +65,14 @@ export async function getStudentPLOAchievement(studentId) {
 
 /**
  * Fetch PLO achievement summary for an entire curriculum cohort.
- * Backend: GET /plo/achievement/cohort?curriculum_id=...
- * Returns: { curriculum_id, curriculum_name, total_students, plo_summary: [...] }
+ * Backend: GET /plo/achievement/cohort?curriculum_id=...&cohort_year=...
+ * cohortYear is optional - omit (or pass a falsy value) to include every cohort.
+ * Returns: { curriculum_id, curriculum_name, total_students, plo_summary: [...],
+ *   available_cohort_years: [...] }
  */
-export async function getCohortPLOAchievement(curriculumId) {
+export async function getCohortPLOAchievement(curriculumId, cohortYear) {
   const { data } = await api.get("/plo/achievement/cohort", {
-    params: { curriculum_id: curriculumId },
+    params: { curriculum_id: curriculumId, ...(cohortYear ? { cohort_year: cohortYear } : {}) },
   });
   return data;
 }
@@ -78,13 +80,14 @@ export async function getCohortPLOAchievement(curriculumId) {
 /**
  * Fetch PLO achievement broken down by year_level (1-4), where each year only
  * counts scores from courses in that year's study_plan (not cumulative).
- * Backend: GET /plo/achievement/by-year?curriculum_id=...
+ * Backend: GET /plo/achievement/by-year?curriculum_id=...&cohort_year=...
+ * cohortYear is optional - omit (or pass a falsy value) to include every cohort.
  * Returns: { curriculum_id, curriculum_name, years: [{ year_level, ylo_description,
- *   course_count, plo_summary: [...], students: [...] }] }
+ *   course_count, plo_summary: [...], students: [...] }], available_cohort_years: [...] }
  */
-export async function getPLOAchievementByYear(curriculumId) {
+export async function getPLOAchievementByYear(curriculumId, cohortYear) {
   const { data } = await api.get("/plo/achievement/by-year", {
-    params: { curriculum_id: curriculumId },
+    params: { curriculum_id: curriculumId, ...(cohortYear ? { cohort_year: cohortYear } : {}) },
   });
   return data;
 }
