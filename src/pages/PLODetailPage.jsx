@@ -29,9 +29,6 @@ export default function PLODetailPage({ context }) {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // ตาราง "บรรลุ PLO" ซ่อนไว้ก่อนจนกว่าจะกดชิปวิชา - pattern เดิมจากตอนอยู่ในการ์ดที่หน้ารายการ
-  // ต่างจากเดิมตรงที่หน้านี้มี PLO เดียว จึงเป็น boolean เดียวพอ ไม่ต้องเป็น Set ของ ploId อีกต่อไป
-  const [interacted, setInteracted] = useState(false);
 
   useEffect(() => {
     if (!curriculumId) return;
@@ -94,9 +91,10 @@ export default function PLODetailPage({ context }) {
             <PLOCourseBreakdown
               ploId={plo.plo_id}
               cohortYear={cohortYear ? Number(cohortYear) : null}
-              onInteract={() => setInteracted(true)}
+              context={context}
+              curriculumId={curriculumId}
             />
-            {interacted && <PLOStudentBreakdown ploId={plo.plo_id} students={summary.students} />}
+            <PLOStudentBreakdown ploId={plo.plo_id} students={summary.students} />
           </div>
         </>
       )}

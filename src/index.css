@@ -1762,10 +1762,6 @@ tr.student-table-row.expandable:hover {
   transition: transform 0.15s ease;
 }
 
-.plo-course-chip.expanded .plo-course-chip-arrow {
-  transform: rotate(90deg);
-}
-
 .plo-course-chip-badge {
   flex-shrink: 0;
   font-size: 0.72rem;
@@ -1775,28 +1771,6 @@ tr.student-table-row.expandable:hover {
   border-radius: 999px;
   padding: 2px 9px;
   white-space: nowrap;
-}
-
-.plo-course-chip-panel {
-  flex-basis: 100%;
-  width: 100%;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-
-.plo-course-chip-panel-title {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #555;
-  margin-bottom: 6px;
-}
-
-.plo-course-chip-panel .plo-breakdown-table {
-  margin-top: 0;
-  margin-bottom: 0;
 }
 
 .ylo-description-box p {
