@@ -158,6 +158,8 @@ export default function PLODetailPage({ context }) {
             <PLOCourseBreakdown
               ploId={plo.plo_id}
               cohortYear={cohortYear ? Number(cohortYear) : null}
+              context={context}
+              curriculumId={curriculumId}
             />
 
             <div className="plo-student-list-toggle-row">
