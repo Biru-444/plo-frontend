@@ -295,9 +295,10 @@ export async function getStudentPLOCourseBreakdown(ploId, studentId) {
 }
 
 // นักศึกษาที่ลงทะเบียนวิชานี้จริง (ผ่าน enrollment) - คนละเรื่องกับ "ใครบรรลุ PLO"
-// ploId (optional): เมื่อส่งมา แต่ละ item ใน response จะมี clo_mastery_percent (float 0-100 หรือ
-// null) เพิ่มมาด้วย - % บรรลุ CLO ของนักศึกษาคนนั้นในวิชานี้ เทียบกับ PLO ข้อนี้โดยเฉพาะ (คำนวณฝั่ง
-// backend แบบ batch ทั้ง roster ไม่ query ทีละคน - ดู GET /courses/{id}/enrolled-students?plo_id=)
+// ploId (optional): เมื่อส่งมา แต่ละ item ใน response จะมี plo_achieved (true/false หรือ null) เพิ่ม
+// มาด้วย - ผ่าน/ไม่ผ่านวิชานี้ของนักศึกษาคนนั้น เทียบกับ PLO ข้อนี้โดยเฉพาะ (all-or-nothing ต่อ CLO,
+// คำนวณฝั่ง backend แบบ batch ทั้ง roster ไม่ query ทีละคน - ดู GET /courses/{id}/enrolled-students?plo_id=)
+// null = ยังไม่มีข้อมูลให้ประเมิน (ไม่มี CLO ผูกกับ PLO นี้ในวิชานี้เลย หรือยังไม่มีคะแนนบันทึกเลย)
 export async function getCourseEnrolledStudents(courseId, cohortYear, ploId) {
   const { data } = await api.get(`/courses/${courseId}/enrolled-students`, {
     params: {

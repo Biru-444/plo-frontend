@@ -5,17 +5,25 @@ import { getCourseEnrolledStudents, getPLOCoursePlan } from "../api/client.js";
 
 const RESPONSIBILITY_LABEL = { primary: "หลัก", secondary: "รอง" };
 
-// clo_mastery_percent เป็น null ตอนไม่มีข้อมูลคะแนนให้คำนวณเลย (คนละความหมายกับ "ได้ 0%" - ห้ามแสดง
-// เป็น 0% หรือค่าว่างเฉยๆ) แยกให้ชัดว่า "ไม่มีข้อมูล"
-function formatMasteryPercent(percent) {
-  if (percent === null || percent === undefined) return "—";
-  return `${percent.toFixed(1)}%`;
+// plo_achieved เป็น null ตอนไม่มีข้อมูลให้ประเมินเลย (ไม่มี CLO ผูกกับ PLO นี้ในวิชานี้เลย หรือนักศึกษา
+// ยังไม่มีคะแนนบันทึกเลยสักรายการ) - คนละความหมายกับ false (มีคะแนนแล้วแต่ไม่ถึงเกณฑ์) ห้ามแสดงเป็น
+// "ไม่ผ่าน" ตอนที่จริงๆ ยังไม่มีข้อมูล จึงต้องแยก badge ผ่าน/ไม่ผ่าน ออกจากเคส null ให้ชัด (โทนสีเดียวกับ
+// badge "บรรลุ"/"ไม่บรรลุ" ที่ .plo-badge.achieved/.not-achieved ใน index.css ใช้อยู่แล้ว)
+function PLOAchievedBadge({ achieved }) {
+  if (achieved === null || achieved === undefined) {
+    return <span className="plo-achieved-empty">—</span>;
+  }
+  return (
+    <span className={`plo-badge ${achieved ? "achieved" : "not-achieved"}`}>
+      {achieved ? "ผ่าน" : "ไม่ผ่าน"}
+    </span>
+  );
 }
 
 /**
  * ชิปวิชา 1 ใบ กดแล้วขยาย/พับได้อิสระต่อกัน โชว์รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้จริง (จาก enrollment
- * ผ่าน courseId+cohortYear) พร้อมผลการบรรลุ CLO ของนักศึกษาแต่ละคนเทียบกับ PLO ที่กำลังดูอยู่
- * (clo_mastery_percent จาก backend มาพร้อม roster response อยู่แล้ว ไม่ fetch แยก) - คนละเรื่องกับ
+ * ผ่าน courseId+cohortYear) พร้อมผลการบรรลุ PLO (ผ่าน/ไม่ผ่าน) ของนักศึกษาแต่ละคนเทียบกับ PLO ที่กำลังดูอยู่
+ * (plo_achieved จาก backend มาพร้อม roster response อยู่แล้ว ไม่ fetch แยก) - คนละเรื่องกับ
  * ตาราง "บรรลุ PLO" ที่อยู่ท้ายการ์ด PLO (ไม่เกี่ยวกัน ห้ามปน)
  */
 function CourseChip({ course, badge, isOpen, onToggle, enrolled, cohortPrefix }) {
@@ -78,7 +86,7 @@ function CourseChip({ course, badge, isOpen, onToggle, enrolled, cohortPrefix })
                         {s.first_name} {s.last_name}
                       </span>
                       <span className="student-table-cell">
-                        {formatMasteryPercent(s.clo_mastery_percent)}
+                        <PLOAchievedBadge achieved={s.plo_achieved} />
                       </span>
                       <span className="student-table-cell student-row-arrow-cell">
                         <ChevronRight size={16} className="plo-course-chip-arrow" />
