@@ -5,9 +5,18 @@ import { getCourseEnrolledStudents, getPLOCoursePlan } from "../api/client.js";
 
 const RESPONSIBILITY_LABEL = { primary: "หลัก", secondary: "รอง" };
 
+// clo_mastery_percent เป็น null ตอนไม่มีข้อมูลคะแนนให้คำนวณเลย (คนละความหมายกับ "ได้ 0%" - ห้ามแสดง
+// เป็น 0% หรือค่าว่างเฉยๆ) แยกให้ชัดว่า "ไม่มีข้อมูล"
+function formatMasteryPercent(percent) {
+  if (percent === null || percent === undefined) return "—";
+  return `${percent.toFixed(1)}%`;
+}
+
 /**
  * ชิปวิชา 1 ใบ กดแล้วขยาย/พับได้อิสระต่อกัน โชว์รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้จริง (จาก enrollment
- * ผ่าน courseId+cohortYear) - คนละเรื่องกับตาราง "บรรลุ PLO" ที่อยู่ท้ายการ์ด PLO (ไม่เกี่ยวกัน ห้ามปน)
+ * ผ่าน courseId+cohortYear) พร้อมผลการบรรลุ CLO ของนักศึกษาแต่ละคนเทียบกับ PLO ที่กำลังดูอยู่
+ * (clo_mastery_percent จาก backend มาพร้อม roster response อยู่แล้ว ไม่ fetch แยก) - คนละเรื่องกับ
+ * ตาราง "บรรลุ PLO" ที่อยู่ท้ายการ์ด PLO (ไม่เกี่ยวกัน ห้ามปน)
  */
 function CourseChip({ course, badge, isOpen, onToggle, enrolled, cohortPrefix }) {
   // กรอง "รุ่น" (เลข 2 หลักแรกของรหัสนักศึกษา) เพิ่มจากที่ backend ส่งมาแล้ว (ซึ่ง sort เรียบร้อย
@@ -52,6 +61,7 @@ function CourseChip({ course, badge, isOpen, onToggle, enrolled, cohortPrefix })
                   <tr>
                     <th>รหัสนักศึกษา</th>
                     <th>ชื่อ-นามสกุล</th>
+                    <th>ผลการบรรลุ</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -66,6 +76,9 @@ function CourseChip({ course, badge, isOpen, onToggle, enrolled, cohortPrefix })
                       <span className="student-table-cell">
                         {s.title ? `${s.title} ` : ""}
                         {s.first_name} {s.last_name}
+                      </span>
+                      <span className="student-table-cell">
+                        {formatMasteryPercent(s.clo_mastery_percent)}
                       </span>
                       <span className="student-table-cell student-row-arrow-cell">
                         <ChevronRight size={16} className="plo-course-chip-arrow" />
@@ -150,7 +163,7 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
     });
     if (!enrolledByCourseId[courseId]) {
       setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "loading", students: [] } }));
-      getCourseEnrolledStudents(courseId, cohortYear)
+      getCourseEnrolledStudents(courseId, cohortYear, ploId)
         .then((students) => {
           // เรียงตามรหัสนักศึกษาน้อยไปมากตามค่าตัวเลขจริงเสมอ (numeric ไม่ใช่ string/localeCompare -
           // string sort จะพังถ้ารหัสยาวไม่เท่ากัน เช่น "9" ไปอยู่หลัง "10") - backend endpoint นี้ไม่ได้
