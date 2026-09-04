@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Info } from "lucide-react";
 import { getCourseEnrolledStudents, getPLOCoursePlan, getPLOLinkedCourses } from "../api/client.js";
@@ -10,7 +10,14 @@ const RESPONSIBILITY_LABEL = { primary: "หลัก", secondary: "รอง" }
  * ผ่าน courseId+cohortYear) - คนละเรื่องกับตาราง "บรรลุ PLO" ที่อยู่ท้ายการ์ด PLO (ไม่เกี่ยวกัน ห้ามปน)
  * แคช enrolled students ไว้ต่อ courseId ใช้ร่วมกันได้ทั้ง 2 บล็อกถ้าวิชาเดียวกันโผล่ทั้งคู่
  */
-function CourseChip({ course, badge, isOpen, onToggle, enrolled }) {
+function CourseChip({ course, badge, isOpen, onToggle, enrolled, cohortPrefix }) {
+  // กรอง "รุ่น" (เลข 2 หลักแรกของรหัสนักศึกษา) เพิ่มจากที่ backend ส่งมาแล้ว (ซึ่ง sort เรียบร้อย
+  // ตาม numeric ID ที่ toggleChip ทำไว้ตอน fetch) - AND กับวิชาที่กำลังดู (chip ไหนกางอยู่) อยู่แล้ว
+  // โดยธรรมชาติ เพราะ enrolled ผูกกับวิชานั้นวิชาเดียว ไม่ต้อง AND เพิ่มเอง
+  const visibleStudents = cohortPrefix
+    ? (enrolled?.students ?? []).filter((s) => s.id.slice(0, 2) === cohortPrefix)
+    : enrolled?.students ?? [];
+
   return (
     <>
       <button
@@ -34,8 +41,12 @@ function CourseChip({ course, badge, isOpen, onToggle, enrolled }) {
             <p className="error-message">โหลดรายชื่อนักศึกษาไม่สำเร็จ ลองใหม่อีกครั้ง</p>
           )}
           {enrolled?.status === "ready" &&
-            (enrolled.students.length === 0 ? (
-              <p className="student-list-empty">ยังไม่มีนักศึกษาลงทะเบียนวิชานี้ในรุ่นที่เลือก</p>
+            (visibleStudents.length === 0 ? (
+              <p className="student-list-empty">
+                {cohortPrefix
+                  ? `ไม่มีนักศึกษารุ่น ${cohortPrefix} ลงทะเบียนวิชานี้`
+                  : "ยังไม่มีนักศึกษาลงทะเบียนวิชานี้ในรุ่นที่เลือก"}
+              </p>
             ) : (
               <table className="student-table plo-breakdown-table">
                 <thead>
@@ -46,7 +57,7 @@ function CourseChip({ course, badge, isOpen, onToggle, enrolled }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {enrolled.students.map((s) => (
+                  {visibleStudents.map((s) => (
                     <Link
                       key={s.id}
                       to={`/student-plo?student_id=${encodeURIComponent(s.id)}`}
@@ -88,6 +99,21 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
   const [openChipKeys, setOpenChipKeys] = useState(new Set());
   // { [course_id]: { status: 'loading'|'ready'|'error', students: [] } } - ใช้ร่วมกันทั้ง 2 บล็อก
   const [enrolledByCourseId, setEnrolledByCourseId] = useState({});
+  // filter "รุ่น" (เลข 2 หลักแรกของรหัสนักศึกษา เช่น 66, 67) เพิ่มจากตัวกรอง "รุ่นที่เข้าเรียน" ระดับหน้า
+  // (cohortYear prop ด้านบน ซึ่งกำหนดว่า fetch ข้อมูลของรุ่นไหนมาตั้งแต่แรก) - อันนี้เป็นตัวกรองฝั่ง
+  // client เพิ่มเติมสำหรับกรณีเลือก "ทุกรุ่น" ไว้ที่หน้ารายการ แล้วอยากดูรุ่นเดียวโดยไม่ต้องย้อนกลับไปเลือกใหม่
+  // - ใช้ร่วมกันทั้ง 2 ฝั่ง (มคอ.2 / CLO-linked) เพราะเป็น instance เดียวกันของ component นี้
+  const [selectedCohortPrefix, setSelectedCohortPrefix] = useState("");
+
+  // ตัวเลือก "รุ่น" สร้างจากรหัสนักศึกษาที่ fetch มาแล้วจริงเท่านั้น (dynamic ตามข้อมูลปัจจุบัน ไม่ hardcode)
+  // เรียงน้อยไปมาก
+  const availableCohortPrefixes = useMemo(() => {
+    const prefixes = new Set();
+    Object.values(enrolledByCourseId).forEach((entry) => {
+      (entry.students ?? []).forEach((s) => prefixes.add(s.id.slice(0, 2)));
+    });
+    return Array.from(prefixes).sort((a, b) => Number(a) - Number(b));
+  }, [enrolledByCourseId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +121,7 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
     setLinkedCourses({ status: "loading", courses: [] });
     setOpenChipKeys(new Set());
     setEnrolledByCourseId({});
+    setSelectedCohortPrefix("");
 
     getPLOCoursePlan(ploId)
       .then((courses) => {
@@ -120,6 +147,7 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
   // รุ่นที่เข้าเรียนที่หน้ากำลังเลือกเปลี่ยน -> รายชื่อนักศึกษาที่แคชไว้ไม่ตรงกับตัวกรองใหม่แล้ว ต้องเคลียร์
   useEffect(() => {
     setEnrolledByCourseId({});
+    setSelectedCohortPrefix("");
   }, [cohortYear]);
 
   function toggleChip(source, courseId) {
@@ -137,7 +165,11 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
       setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "loading", students: [] } }));
       getCourseEnrolledStudents(courseId, cohortYear)
         .then((students) => {
-          setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "ready", students } }));
+          // เรียงตามรหัสนักศึกษาน้อยไปมากตามค่าตัวเลขจริงเสมอ (numeric ไม่ใช่ string/localeCompare -
+          // string sort จะพังถ้ารหัสยาวไม่เท่ากัน เช่น "9" ไปอยู่หลัง "10") - backend endpoint นี้ไม่ได้
+          // sort ตามรหัสมาให้ (sort ตามชื่อ) จึงต้อง sort ใหม่ฝั่งนี้เสมอ ไม่พึ่งลำดับที่ backend ส่งมา
+          const sorted = [...students].sort((a, b) => Number(a.id) - Number(b.id));
+          setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "ready", students: sorted } }));
         })
         .catch(() => {
           setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "error", students: [] } }));
@@ -148,10 +180,27 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
   return (
     <div className="plo-course-breakdown">
       <div className="plo-linked-courses">
-        <span className="plo-course-breakdown-label">
-          วิชาตามแผนหลักสูตร (มคอ.2)
-          <Info size={13} strokeWidth={2} title="ข้อมูลจากแผนหลักสูตรตอนออกแบบ (course_plo) - คนละอันกับวิชาที่ผูกจริงตอนสอนด้านล่าง" />
-        </span>
+        <div className="plo-course-breakdown-header">
+          <span className="plo-course-breakdown-label">
+            วิชาตามแผนหลักสูตร (มคอ.2)
+            <Info size={13} strokeWidth={2} title="ข้อมูลจากแผนหลักสูตรตอนออกแบบ (course_plo) - คนละอันกับวิชาที่ผูกจริงตอนสอนด้านล่าง" />
+          </span>
+          <label className="plo-cohort-prefix-filter">
+            รุ่น
+            <select
+              value={selectedCohortPrefix}
+              onChange={(e) => setSelectedCohortPrefix(e.target.value)}
+              title="กรองตารางนักศึกษาที่ลงทะเบียนด้วยรุ่น (เลข 2 หลักแรกของรหัสนักศึกษา) - กรองร่วมกับวิชาที่กำลังดูอยู่"
+            >
+              <option value="">ทั้งหมด</option>
+              {availableCohortPrefixes.map((prefix) => (
+                <option key={prefix} value={prefix}>
+                  {prefix}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         {coursePlan.status === "loading" && <p className="loading-message">กำลังโหลดข้อมูล...</p>}
         {coursePlan.status === "error" && (
           <p className="error-message">โหลดรายชื่อวิชาไม่สำเร็จ ลองใหม่อีกครั้ง</p>
@@ -169,6 +218,7 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
                   isOpen={openChipKeys.has(`plan-${c.course_id}`)}
                   onToggle={() => toggleChip("plan", c.course_id)}
                   enrolled={enrolledByCourseId[c.course_id]}
+                  cohortPrefix={selectedCohortPrefix}
                 />
               ))}
             </div>
@@ -197,6 +247,7 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
                   isOpen={openChipKeys.has(`clo-${c.course_id}`)}
                   onToggle={() => toggleChip("clo", c.course_id)}
                   enrolled={enrolledByCourseId[c.course_id]}
+                  cohortPrefix={selectedCohortPrefix}
                 />
               ))}
             </div>

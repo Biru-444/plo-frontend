@@ -1677,6 +1677,15 @@ tr.student-table-row.expandable:hover {
   gap: 16px;
 }
 
+.plo-course-breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .plo-course-breakdown-label {
   display: inline-flex;
   align-items: center;
@@ -1685,12 +1694,30 @@ tr.student-table-row.expandable:hover {
   font-weight: 700;
   color: var(--color-purple-700);
   text-transform: uppercase;
-  margin-bottom: 4px;
 }
 
 .plo-course-breakdown-label svg {
   cursor: help;
   color: #999;
+}
+
+.plo-cohort-prefix-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-transform: none;
+}
+
+.plo-cohort-prefix-filter select {
+  font-size: 0.82rem;
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text);
 }
 
 .plo-course-chip-row {
