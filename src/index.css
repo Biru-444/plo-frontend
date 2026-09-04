@@ -200,6 +200,10 @@ body {
   color: var(--color-red-700);
 }
 
+.plo-achieved-empty {
+  color: #9CA3AF;
+}
+
 .plo-bar-track {
   background: #eef0f6;
   border-radius: 999px;
