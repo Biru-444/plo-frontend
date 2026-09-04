@@ -1665,16 +1665,15 @@ tr.student-table-row.expandable:hover {
   margin-bottom: 14px;
 }
 
-.plo-linked-courses .student-list-empty,
-.plo-linked-courses .loading-message,
-.plo-linked-courses .error-message {
+.plo-course-plan-block .student-list-empty,
+.plo-course-plan-block .loading-message,
+.plo-course-plan-block .error-message {
   margin: 4px 0 0;
 }
 
+/* เดิม 2 คอลัมน์ (มคอ.2 + CLO-linked) ตอนนี้เหลือบล็อกเดียว ให้เต็มความกว้าง ไม่ใช่ grid แล้ว */
 .plo-course-breakdown {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  display: block;
 }
 
 .plo-course-breakdown-header {

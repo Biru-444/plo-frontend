@@ -282,13 +282,7 @@ export async function listPLO() {
   return data;
 }
 
-export async function getPLOLinkedCourses(ploId) {
-  const { data } = await api.get(`/plo/${ploId}/courses`);
-  return data;
-}
-
-// วิชาตามแผนหลักสูตร (มคอ.2, course_plo) - คนละแหล่งข้อมูลกับ getPLOLinkedCourses ข้างบน
-// (clo_plo_mapping) ห้ามเอามาปนกัน
+// วิชาตามแผนหลักสูตร (มคอ.2, course_plo)
 export async function getPLOCoursePlan(ploId) {
   const { data } = await api.get(`/plo/${ploId}/course-plan`);
   return data;
