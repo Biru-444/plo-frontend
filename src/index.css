@@ -1669,6 +1669,13 @@ tr.student-table-row.expandable:hover {
   margin-bottom: 14px;
 }
 
+.plo-student-list-toggle-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .plo-course-plan-block .student-list-empty,
 .plo-course-plan-block .loading-message,
 .plo-course-plan-block .error-message {
