@@ -8,6 +8,7 @@ import CurriculumCourses from "./pages/CurriculumCourses.jsx";
 import PLODashboard from "./pages/PLODashboard.jsx";
 import PLOYearProgress from "./pages/PLOYearProgress.jsx";
 import PLODetailPage from "./pages/PLODetailPage.jsx";
+import PLOCourseDetailPage from "./pages/PLOCourseDetailPage.jsx";
 import YLOYearProgress from "./pages/YLOYearProgress.jsx";
 import Login from "./pages/Login.jsx";
 import Profile from "./pages/Profile.jsx";
@@ -117,6 +118,26 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute>
               <PLODetailPage context="cohort" />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/plo/overview/:ploId/course/:courseId"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <PLOCourseDetailPage context="overview" />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/plo/cohort/:ploId/course/:courseId"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <PLOCourseDetailPage context="cohort" />
             </ProtectedRoute>
           </AppLayout>
         }
