@@ -1,38 +1,35 @@
 import { useEffect, useState } from "react";
-import { getPLOAchievementByYear, listCurricula } from "../api/client.js";
-import PLOCohortBar from "../components/PLOCohortBar.jsx";
-import PLOStudentBreakdown from "../components/PLOStudentBreakdown.jsx";
+import { useSearchParams } from "react-router-dom";
+import { getCohortPLOAchievement, getPLOAchievementByYear, listCurricula } from "../api/client.js";
+import PLOSummaryCard from "../components/PLOSummaryCard.jsx";
 
 const COHORT_ACHIEVED_THRESHOLD = 50;
 
 export default function PLOYearProgress() {
+  // เหมือน PLODashboard - หลักสูตร/รุ่นอยู่ใน URL query param เสมอ ไม่ใช่ local state เฉยๆ กันไม่ให้
+  // filter หายตอนกดการ์ด PLO ไปหน้ารายละเอียดแล้วกด "กลับ" หรือ refresh หน้า
+  const [searchParams, setSearchParams] = useSearchParams();
   const [curricula, setCurricula] = useState([]);
-  const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
-  const [progress, setProgress] = useState(null);
+  // สูตรเดียวกับหน้า "ภาพรวม PLO" (PLODashboard) - PLO คือผลลัพธ์รวมทั้งหลักสูตร ไม่แยกปี ต่างจาก YLO
+  // ที่เป็นบันไดรายปีโดยตรง จึงใช้ endpoint เดียวกันแทนคำนวณเองใหม่ กันตัวเลขสองสูตร drift ไม่ตรงกัน
+  const [summary, setSummary] = useState(null);
+  const [totalCourseCount, setTotalCourseCount] = useState(0);
   const [loadingCurricula, setLoadingCurricula] = useState(true);
-  const [loadingProgress, setLoadingProgress] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState(null);
-  // key: `${year_level}-${plo_id}` -> เก็บว่าแถบไหนกางอยู่ (แยกกันคนละปี)
-  const [expandedKey, setExpandedKey] = useState(null);
-  // เลือกดูทีละชั้นปีแทนการเลื่อนดูทั้งหมด (เดิมต้องเลื่อนยาวมากกว่าจะถึงปี 4)
-  const [selectedYearLevel, setSelectedYearLevel] = useState(null);
-  // กรองตามรุ่นที่เข้าเรียน - คนละมิติกับแท็บชั้นปีด้านบน ไม่ผูกกัน
-  const [selectedCohortYear, setSelectedCohortYear] = useState(null);
+
+  const selectedCurriculumId = searchParams.get("curriculum") ? Number(searchParams.get("curriculum")) : null;
+  const selectedCohortYear = searchParams.get("cohort") ? Number(searchParams.get("cohort")) : null;
 
   function handleSelectCurriculum(curriculumId) {
-    setSelectedCurriculumId(curriculumId);
-    setExpandedKey(null);
-    setSelectedYearLevel(null);
-    setSelectedCohortYear(null);
+    setSearchParams({ curriculum: String(curriculumId) });
   }
 
-  function handleSelectYear(yearLevel) {
-    setSelectedYearLevel(yearLevel);
-    setExpandedKey(null);
-  }
-
-  function toggleExpanded(key) {
-    setExpandedKey((prev) => (prev === key ? null : key));
+  function handleSelectCohortYear(cohortYear) {
+    const next = new URLSearchParams(searchParams);
+    if (cohortYear) next.set("cohort", String(cohortYear));
+    else next.delete("cohort");
+    setSearchParams(next);
   }
 
   useEffect(() => {
@@ -42,8 +39,8 @@ export default function PLOYearProgress() {
       .then((data) => {
         if (cancelled) return;
         setCurricula(data);
-        if (data.length > 0) {
-          setSelectedCurriculumId(data[0].id);
+        if (data.length > 0 && !searchParams.get("curriculum")) {
+          setSearchParams({ curriculum: String(data[0].id) }, { replace: true });
         }
       })
       .catch(() => {
@@ -58,25 +55,27 @@ export default function PLOYearProgress() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (selectedCurriculumId == null) return;
 
     let cancelled = false;
-    setLoadingProgress(true);
+    setLoadingSummary(true);
     setError(null);
 
-    getPLOAchievementByYear(selectedCurriculumId, selectedCohortYear)
-      .then((data) => {
+    Promise.all([
+      getCohortPLOAchievement(selectedCurriculumId, selectedCohortYear),
+      // เอาแค่ course_count มารวมทุกปีสำหรับป้าย "N วิชาที่ใช้คำนวณ" - StudyPlan unique constraint คือ
+      // (curriculum_id, course_id, cohort_year) ไม่รวม year_level เลยการันตีว่าวิชาเดียวกันจะถูกนับ
+      // ที่ปีเดียวเสมอ รวมยอด 4 ปีแล้วไม่มีทางนับซ้ำ
+      getPLOAchievementByYear(selectedCurriculumId, selectedCohortYear),
+    ])
+      .then(([summaryData, byYearData]) => {
         if (cancelled) return;
-        setProgress(data);
-        // เลือกชั้นปีแรกให้อัตโนมัติเฉพาะตอนที่ชั้นปีที่เลือกอยู่เดิมไม่มีอยู่ในข้อมูลชุดใหม่แล้ว
-        // (เช่น เพิ่งเปลี่ยนหลักสูตร) - เปลี่ยนแค่ "รุ่นที่เข้าเรียน" ไม่ควรรีเซ็ตแท็บชั้นปีที่เลือกอยู่
-        setSelectedYearLevel((prev) => {
-          if (data.years.some((year) => year.year_level === prev)) return prev;
-          return data.years.length > 0 ? data.years[0].year_level : prev;
-        });
+        setSummary(summaryData);
+        setTotalCourseCount(byYearData.years.reduce((sum, year) => sum + year.course_count, 0));
       })
       .catch(() => {
         if (!cancelled) {
@@ -84,7 +83,7 @@ export default function PLOYearProgress() {
         }
       })
       .finally(() => {
-        if (!cancelled) setLoadingProgress(false);
+        if (!cancelled) setLoadingSummary(false);
       });
 
     return () => {
@@ -92,15 +91,19 @@ export default function PLOYearProgress() {
     };
   }, [selectedCurriculumId, selectedCohortYear]);
 
+  const detailQuery = `?curriculum=${selectedCurriculumId}${
+    selectedCohortYear ? `&cohort=${selectedCohortYear}` : ""
+  }`;
+
   return (
     <div className="page">
-      <h1>PLO ตามชั้นปี</h1>
+      <h1>PLO เมื่อจบการศึกษา</h1>
 
       {!loadingCurricula && curricula.length > 0 && (
         <div className="dashboard-toolbar">
-          <label htmlFor="year-progress-curriculum-select">หลักสูตร</label>
+          <label htmlFor="plo-graduation-curriculum-select">หลักสูตร</label>
           <select
-            id="year-progress-curriculum-select"
+            id="plo-graduation-curriculum-select"
             value={selectedCurriculumId ?? ""}
             onChange={(e) => handleSelectCurriculum(Number(e.target.value))}
           >
@@ -111,16 +114,16 @@ export default function PLOYearProgress() {
             ))}
           </select>
 
-          {progress && progress.available_cohort_years.length > 0 && (
+          {summary && summary.available_cohort_years.length > 0 && (
             <>
-              <label htmlFor="year-progress-cohort-select">รุ่นที่เข้าเรียน</label>
+              <label htmlFor="plo-graduation-cohort-select">รุ่นที่เข้าเรียน</label>
               <select
-                id="year-progress-cohort-select"
+                id="plo-graduation-cohort-select"
                 value={selectedCohortYear ?? ""}
-                onChange={(e) => setSelectedCohortYear(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => handleSelectCohortYear(e.target.value ? Number(e.target.value) : null)}
               >
                 <option value="">ทุกรุ่น</option>
-                {progress.available_cohort_years.map((year) => (
+                {summary.available_cohort_years.map((year) => (
                   <option key={year} value={year}>
                     รุ่น {year}
                   </option>
@@ -135,93 +138,40 @@ export default function PLOYearProgress() {
 
       {loadingCurricula && <p className="loading-message">กำลังโหลดข้อมูล...</p>}
 
-      {!loadingCurricula && !error && loadingProgress && (
+      {!loadingCurricula && !error && loadingSummary && (
         <p className="loading-message">กำลังโหลดข้อมูล...</p>
       )}
 
-      {!loadingCurricula && !error && !loadingProgress && progress && (
-        <>
-          {progress.years.length > 0 && (
-            <div className="cohort-tabs">
-              {progress.years.map((year) => (
-                <button
-                  key={year.year_level}
-                  type="button"
-                  className={`cohort-tab ${
-                    year.year_level === selectedYearLevel ? "selected" : ""
-                  }`}
-                  onClick={() => handleSelectYear(year.year_level)}
-                >
-                  ชั้นปีที่ {year.year_level}
-                </button>
+      {!loadingCurricula && !error && !loadingSummary && summary && (
+        <div className="year-progress-list">
+          <div className="year-progress-card">
+            <div className="year-progress-header">
+              <h2>ผลบรรลุ PLO ทั้งหมด</h2>
+              <span className="year-progress-course-count">{totalCourseCount} วิชาที่ใช้คำนวณ</span>
+            </div>
+
+            <div className="plo-grid">
+              {summary.plo_summary.map((plo) => (
+                <PLOSummaryCard
+                  key={plo.plo_id}
+                  code={plo.plo_code}
+                  description={plo.description}
+                  achievedRatePercent={plo.achieved_rate_percent}
+                  isAchieved={plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD}
+                  to={`/plo/cohort/${plo.plo_id}${detailQuery}`}
+                />
               ))}
             </div>
-          )}
 
-          <div className="year-progress-list">
-            {progress.years
-              .filter((year) => year.year_level === selectedYearLevel)
-              .map((year) => {
-                const totalStudents = year.students.length;
-                const isExpandable = totalStudents > 0;
-                // แสดงเฉพาะ PLO ที่ YLO ปีนี้กำหนดไว้จริง (ผูกผ่าน YLO-PLO mapping) - ปีไหนไม่ได้
-                // เก็บ PLO ตัวไหน ก็ไม่ต้องโชว์ PLO ตัวนั้นให้รกหน้า
-                const expectedPlos = year.plo_summary.filter((plo) => plo.is_expected_this_year);
+            {summary.plo_summary.length === 0 && (
+              <p className="student-list-empty">หลักสูตรนี้ยังไม่ได้กำหนด PLO ไว้เลย</p>
+            )}
 
-                return (
-                  <div className="year-progress-card" key={year.year_level}>
-                    <div className="year-progress-header">
-                      <h2>ชั้นปีที่ {year.year_level}</h2>
-                      <span className="year-progress-course-count">
-                        {year.course_count} วิชาที่ใช้คำนวณ
-                      </span>
-                    </div>
-
-                    <div className="ylo-description-box">
-                      <span className="ylo-description-label">เป้าหมายของปีนี้ (YLO)</span>
-                      <p>{year.ylo_description || "ไม่มีข้อมูล YLO สำหรับปีนี้"}</p>
-                    </div>
-
-                    <div className="plo-list">
-                      {expectedPlos.map((plo) => {
-                        const key = `${year.year_level}-${plo.plo_id}`;
-                        const isExpanded = isExpandable && expandedKey === key;
-                        return (
-                          <div key={plo.plo_id}>
-                            <PLOCohortBar
-                              code={plo.plo_code}
-                              description={plo.description}
-                              averagePercent={plo.average_achieved_percent}
-                              isAchieved={plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD}
-                              achievedStudentCount={plo.achieved_student_count}
-                              totalStudents={totalStudents}
-                              achievedRatePercent={plo.achieved_rate_percent}
-                              isExpandable={isExpandable}
-                              isExpanded={isExpanded}
-                              onToggle={() => toggleExpanded(key)}
-                            />
-                            {isExpanded && (
-                              <PLOStudentBreakdown ploId={plo.plo_id} students={year.students} />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {expectedPlos.length === 0 && (
-                      <p className="student-list-empty">
-                        ปีนี้ยังไม่ได้กำหนด PLO เป้าหมายไว้ (ยังไม่ได้ผูก YLO ปีนี้กับ PLO ตัวไหนเลย)
-                      </p>
-                    )}
-
-                    {expectedPlos.length > 0 && totalStudents === 0 && (
-                      <p className="student-list-empty">หลักสูตรนี้ยังไม่มีนักศึกษา</p>
-                    )}
-                  </div>
-                );
-              })}
+            {summary.plo_summary.length > 0 && summary.total_students === 0 && (
+              <p className="student-list-empty">หลักสูตรนี้ยังไม่มีนักศึกษา</p>
+            )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

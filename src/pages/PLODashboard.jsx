@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getCohortPLOAchievement, listCurricula } from "../api/client.js";
 import PLODonut from "../components/PLODonut.jsx";
-import PLOCohortBar from "../components/PLOCohortBar.jsx";
-import PLOStudentBreakdown from "../components/PLOStudentBreakdown.jsx";
+import PLOSummaryCard from "../components/PLOSummaryCard.jsx";
 
 const COHORT_ACHIEVED_THRESHOLD = 50;
 
@@ -13,25 +13,29 @@ const FILTERS = [
 ];
 
 export default function PLODashboard() {
+  // หลักสูตร/รุ่นที่เลือกอยู่ใน URL query param เสมอ (ไม่ใช่ local state เฉยๆ เหมือนก่อนงานนี้) - เพื่อให้
+  // กดการ์ด PLO ไปหน้ารายละเอียดแล้วค่อยกด "กลับ" ยังเจอ filter เดิม และ refresh/แชร์ลิงก์ได้ตรงด้วย
+  const [searchParams, setSearchParams] = useSearchParams();
   const [curricula, setCurricula] = useState([]);
-  const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
   const [summary, setSummary] = useState(null);
   const [loadingCurricula, setLoadingCurricula] = useState(true);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState(null);
-  const [expandedPloId, setExpandedPloId] = useState(null);
   const [filterMode, setFilterMode] = useState("all");
-  const [selectedCohortYear, setSelectedCohortYear] = useState(null);
+
+  const selectedCurriculumId = searchParams.get("curriculum") ? Number(searchParams.get("curriculum")) : null;
+  const selectedCohortYear = searchParams.get("cohort") ? Number(searchParams.get("cohort")) : null;
 
   function handleSelectCurriculum(curriculumId) {
-    setSelectedCurriculumId(curriculumId);
-    setExpandedPloId(null);
     setFilterMode("all");
-    setSelectedCohortYear(null);
+    setSearchParams({ curriculum: String(curriculumId) });
   }
 
-  function toggleExpandedPlo(ploId) {
-    setExpandedPloId((prev) => (prev === ploId ? null : ploId));
+  function handleSelectCohortYear(cohortYear) {
+    const next = new URLSearchParams(searchParams);
+    if (cohortYear) next.set("cohort", String(cohortYear));
+    else next.delete("cohort");
+    setSearchParams(next);
   }
 
   useEffect(() => {
@@ -41,8 +45,10 @@ export default function PLODashboard() {
       .then((data) => {
         if (cancelled) return;
         setCurricula(data);
-        if (data.length > 0) {
-          setSelectedCurriculumId(data[0].id);
+        // ยังไม่มีหลักสูตรใน URL เลย (เข้าหน้านี้ครั้งแรก) - เติมค่าเริ่มต้นเป็นหลักสูตรแรกลง URL ไปเลย
+        // กันไม่ให้ query param ว่างเปล่าตอน refresh/กดกลับจากหน้ารายละเอียด
+        if (data.length > 0 && !searchParams.get("curriculum")) {
+          setSearchParams({ curriculum: String(data[0].id) }, { replace: true });
         }
       })
       .catch(() => {
@@ -57,6 +63,7 @@ export default function PLODashboard() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -84,12 +91,18 @@ export default function PLODashboard() {
     };
   }, [selectedCurriculumId, selectedCohortYear]);
 
+  // "ครบทุกข้อ" มาจาก backend แล้ว (all_plo_achieved_count/percent) - นับเฉพาะ PLO ที่มีวิชา "หลัก"
+  // ผ่านเกณฑ์คำนวณจริงอย่างน้อย 1 วิชา (qualifying_plo_count/total_plo_count) ไม่ใช่ครบ 9 ข้อเสมอไป
+  // เพราะ PLO ที่ไม่มีวิชาเชื่อมเลยเป็นไปไม่ได้ที่จะบรรลุอยู่แล้วโดยดีไซน์ (ดู plo_calculation.py) -
+  // เดิมคำนวณฝั่ง frontend เองจาก summary.students[].plo_achievements ทุกข้อ ย้ายไป backend แล้ว
   const allAchievedStats = useMemo(() => {
-    if (!summary || summary.total_students === 0) return { count: 0, percent: null };
-    const count = summary.students.filter(
-      (s) => s.plo_achievements.length > 0 && s.plo_achievements.every((p) => p.is_achieved)
-    ).length;
-    return { count, percent: (count / summary.total_students) * 100 };
+    if (!summary || summary.total_students === 0) return { count: 0, percent: null, qualifying: 0, total: 0 };
+    return {
+      count: summary.all_plo_achieved_count,
+      percent: summary.all_plo_achieved_percent,
+      qualifying: summary.qualifying_plo_count,
+      total: summary.total_plo_count,
+    };
   }, [summary]);
 
   const filteredPloSummary = useMemo(() => {
@@ -110,6 +123,12 @@ export default function PLODashboard() {
         : 0,
     [summary]
   );
+
+  // ต่อให้ URL query param เดียวกันนี้ไปกับการ์ดที่กด เพื่อให้หน้ารายละเอียดรู้บริบท และกด "กลับ" แล้ว
+  // filter เดิมยังอยู่ (อ่านจาก URL ตรงๆ ไม่ใช่ state ที่หายไปตอน refresh)
+  const detailQuery = `?curriculum=${selectedCurriculumId}${
+    selectedCohortYear ? `&cohort=${selectedCohortYear}` : ""
+  }`;
 
   return (
     <div className="page">
@@ -136,7 +155,7 @@ export default function PLODashboard() {
               <select
                 id="cohort-year-select"
                 value={selectedCohortYear ?? ""}
-                onChange={(e) => setSelectedCohortYear(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) => handleSelectCohortYear(e.target.value ? Number(e.target.value) : null)}
               >
                 <option value="">ทุกรุ่น</option>
                 {summary.available_cohort_years.map((year) => (
@@ -170,6 +189,9 @@ export default function PLODashboard() {
               <span className="dashboard-hero-sub">
                 {allAchievedStats.count} จาก {summary.total_students} คน · {summary.curriculum_name}
               </span>
+              <span className="dashboard-hero-sub">
+                ({allAchievedStats.qualifying} จาก {allAchievedStats.total} ข้อที่มีวิชาหลัก)
+              </span>
             </div>
           </div>
 
@@ -194,32 +216,16 @@ export default function PLODashboard() {
               </div>
 
               <div className="plo-grid">
-                {filteredPloSummary.map((plo) => {
-                  const isExpandable = summary.students.length > 0;
-                  const isExpanded = isExpandable && expandedPloId === plo.plo_id;
-                  return (
-                    <div
-                      key={plo.plo_id}
-                      className={`plo-grid-item ${isExpanded ? "plo-grid-item-expanded" : ""}`}
-                    >
-                      <PLOCohortBar
-                        code={plo.plo_code}
-                        description={plo.description}
-                        averagePercent={plo.average_achieved_percent}
-                        isAchieved={plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD}
-                        achievedStudentCount={plo.achieved_student_count}
-                        totalStudents={summary.total_students}
-                        achievedRatePercent={plo.achieved_rate_percent}
-                        isExpandable={isExpandable}
-                        isExpanded={isExpanded}
-                        onToggle={() => toggleExpandedPlo(plo.plo_id)}
-                      />
-                      {isExpanded && (
-                        <PLOStudentBreakdown ploId={plo.plo_id} students={summary.students} />
-                      )}
-                    </div>
-                  );
-                })}
+                {filteredPloSummary.map((plo) => (
+                  <PLOSummaryCard
+                    key={plo.plo_id}
+                    code={plo.plo_code}
+                    description={plo.description}
+                    achievedRatePercent={plo.achieved_rate_percent}
+                    isAchieved={plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD}
+                    to={`/plo/overview/${plo.plo_id}${detailQuery}`}
+                  />
+                ))}
               </div>
 
               {filteredPloSummary.length === 0 && (

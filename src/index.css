@@ -15,6 +15,10 @@
   --color-red-100: #FEE2E2;
   --color-red-700: #B91C1C;
   --shadow-card: 0 2px 10px rgba(76, 29, 149, 0.06);
+  --shadow-card-hover: 0 4px 16px rgba(76, 29, 149, 0.14);
+  --clickable-hover-bg: var(--color-surface-soft);
+  --clickable-border: var(--color-purple-100);
+  --heading-color: var(--color-purple-900);
 
   font-family: "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
   color: #1a1a2e;
@@ -61,7 +65,9 @@ body {
 }
 
 .page h1 {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--heading-color);
   margin-bottom: 20px;
 }
 
@@ -221,6 +227,26 @@ body {
   text-align: right;
 }
 
+.plo-bar-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.plo-bar-stats-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.plo-bar-stats-text .plo-bar-percent,
+.plo-bar-stats-text .plo-cohort-subtitle {
+  margin-top: 0;
+  text-align: left;
+}
+
 .loading-message {
   color: #555;
 }
@@ -246,6 +272,97 @@ body {
   border-color: var(--color-purple-700);
   background: var(--color-purple-700);
   color: white;
+}
+
+.cohort-tabs-sub {
+  margin-top: -8px;
+}
+
+.cohort-tab-sub {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  color: #777;
+}
+
+.cohort-tab-sub.selected {
+  border-color: var(--color-purple-600);
+  background: var(--color-purple-600);
+}
+
+.drilldown-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+}
+
+.drilldown-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-purple-700);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.drilldown-breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.curriculum-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.curriculum-card {
+  position: relative;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.curriculum-card:hover {
+  border-color: var(--color-purple-600);
+}
+
+.curriculum-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-purple-900);
+  padding-right: 60px;
+}
+
+.curriculum-card-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #666;
+}
+
+.curriculum-card-badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
+  padding: 3px 9px;
+  border-radius: 999px;
 }
 
 .status-badge {
@@ -335,19 +452,31 @@ body {
   display: table-row;
   color: inherit;
   text-decoration: none;
-  cursor: pointer;
 }
 
 .student-table-row:nth-child(even) {
   background: #fafbfd;
 }
 
-.student-table-row:hover {
-  background: var(--color-surface-soft);
+/* จุดที่กดได้จริง 2 แบบ: a.student-table-row (ลิงก์ไปหน้าอื่น) กับ tr.student-table-row.expandable
+   (ขยาย/ยุบแถวในตารางเดียวกัน มี onClick) - ให้มีพื้นหลังสีม่วงอ่อนสังเกตได้ตั้งแต่ยังไม่ hover ก็รู้ว่า
+   กดได้ ส่วนแถวข้อมูลธรรมดา (tr เฉยๆ ไม่มี onClick เช่น แถวแสดงคะแนน/รายวิชา) ไม่ใช้ selector นี้เลย
+   จึงไม่มี cursor/hover หลอกว่ากดได้ทั้งที่กดไม่ได้ (ของเดิม cursor:pointer ใช้กับทุกแถวเหมือนกันหมด) */
+a.student-table-row,
+tr.student-table-row.expandable {
+  cursor: pointer;
+  background: var(--clickable-hover-bg);
+  transition: background-color 0.15s ease;
 }
 
-.student-table-row.expandable {
-  cursor: pointer;
+a.student-table-row:nth-child(even),
+tr.student-table-row.expandable:nth-child(even) {
+  background: var(--clickable-hover-bg);
+}
+
+a.student-table-row:hover,
+tr.student-table-row.expandable:hover {
+  background: var(--color-purple-100);
 }
 
 .student-table-detail-row {
@@ -365,6 +494,12 @@ body {
 .student-list-empty {
   color: #666;
   padding: 12px 0;
+}
+
+.student-row-arrow-cell {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
 }
 
 .curriculum-layout {
@@ -502,6 +637,22 @@ body {
   color: #666;
 }
 
+.dashboard-hero-clickable {
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border-color: var(--clickable-border);
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.dashboard-hero-clickable:hover {
+  border-color: var(--color-purple-600);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
 .plo-filter-pills {
   display: flex;
   gap: 8px;
@@ -552,8 +703,54 @@ body {
   align-items: start;
 }
 
-.plo-grid-item-expanded {
-  grid-column: 1 / -1;
+.plo-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--clickable-hover-bg);
+  border: 1px solid var(--clickable-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.plo-summary-card.at-goal {
+  border-left-color: var(--color-green-700);
+}
+
+.plo-summary-card.at-risk {
+  border-left-color: var(--color-red-700);
+}
+
+.plo-summary-card:hover {
+  border-color: var(--color-purple-600);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.plo-summary-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.plo-summary-card-code {
+  font-weight: 700;
+  color: var(--color-purple-700);
+}
+
+.plo-summary-card-desc {
+  font-size: 0.85rem;
+  color: #555;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .plo-cohort-subtitle {
@@ -709,16 +906,26 @@ body {
 
 .plo-bar-row.expandable {
   cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 
 .plo-bar-row.expandable:hover {
   border-color: var(--color-purple-700);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
 }
 
 .expand-icon {
-  display: inline-block;
-  color: #666;
-  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
+  font-size: 0.7rem;
+  flex-shrink: 0;
   transition: transform 0.15s ease;
 }
 
@@ -763,7 +970,9 @@ body {
 
 .crud-header h2 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--heading-color);
 }
 
 .crud-header button {
@@ -822,6 +1031,72 @@ body {
 .crud-form input:read-only,
 .crud-form select:disabled {
   background: #eef0f6;
+  color: #888;
+}
+
+.searchable-select {
+  position: relative;
+}
+
+.searchable-select input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cfd3e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: #1a1a2e;
+  box-sizing: border-box;
+}
+
+.searchable-select input:focus {
+  outline: none;
+  border-color: var(--color-purple-600);
+}
+
+.searchable-select.disabled input {
+  background: #eef0f6;
+  color: #888;
+}
+
+.searchable-select-options {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(17, 10, 34, 0.15);
+}
+
+.searchable-select-option {
+  padding: 7px 10px;
+  border-radius: 5px;
+  font-size: 0.92rem;
+  color: #1a1a2e;
+  cursor: pointer;
+}
+
+.searchable-select-option:hover {
+  background: var(--color-surface-soft);
+}
+
+.searchable-select-option.selected {
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
+  font-weight: 600;
+}
+
+.searchable-select-empty {
+  padding: 8px 10px;
+  font-size: 0.88rem;
   color: #888;
 }
 
@@ -1355,7 +1630,9 @@ body {
 
 .year-progress-header h2 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--heading-color);
 }
 
 .year-progress-course-count {
@@ -1378,6 +1655,118 @@ body {
   color: var(--color-purple-700);
   text-transform: uppercase;
   margin-bottom: 4px;
+}
+
+.plo-expanded-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+  margin-bottom: 14px;
+}
+
+.plo-linked-courses .student-list-empty,
+.plo-linked-courses .loading-message,
+.plo-linked-courses .error-message {
+  margin: 4px 0 0;
+}
+
+.plo-course-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.plo-course-breakdown-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-purple-700);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.plo-course-breakdown-label svg {
+  cursor: help;
+  color: #999;
+}
+
+.plo-course-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.plo-course-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--clickable-border);
+  background: var(--clickable-hover-bg);
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.plo-course-chip:hover {
+  border-color: var(--color-purple-600);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.plo-course-chip.expanded {
+  border-color: var(--color-purple-700);
+  background: var(--color-purple-100);
+}
+
+.plo-course-chip-arrow {
+  display: inline-flex;
+  color: var(--color-purple-600);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.plo-course-chip.expanded .plo-course-chip-arrow {
+  transform: rotate(90deg);
+}
+
+.plo-course-chip-badge {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-purple-700);
+  background: white;
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+
+.plo-course-chip-panel {
+  flex-basis: 100%;
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.plo-course-chip-panel-title {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.plo-course-chip-panel .plo-breakdown-table {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .ylo-description-box p {
@@ -2165,6 +2554,27 @@ body {
 
 .instructor-course-btn:hover {
   background: var(--color-purple-900);
+}
+
+.instructor-course-btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.instructor-course-btn-row .instructor-course-btn {
+  margin-top: 0;
+}
+
+.instructor-course-btn-secondary {
+  background: white;
+  color: var(--color-purple-700);
+  border: 1px solid var(--color-purple-700);
+}
+
+.instructor-course-btn-secondary:hover {
+  background: var(--color-purple-100);
 }
 
 .instructor-course-release-btn {

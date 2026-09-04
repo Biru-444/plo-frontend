@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, ArrowLeft } from "lucide-react";
+import SearchableSelect from "../SearchableSelect.jsx";
 
 /**
  * Generic CRUD manager: table + add/edit form (in a modal) + delete, ใช้ซ้ำได้ทุกตาราง
- * columns: [{ key, label, type: 'text'|'number'|'password'|'select', options?: [{value,label}],
+ * columns: [{ key, label, type: 'text'|'number'|'password'|'select'|'searchable-select', options?: [{value,label}],
  *             required?: bool, nullable?: bool, step?: string, omitIfEmptyOnUpdate?: bool,
  *             readOnly?: bool (ล็อกไม่ให้แก้ตอน editingId !== "new" - เช่น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว)
- *             filterable?: bool (select column: default true, ใช้ options เดิม;
+ *             filterable?: bool (select/searchable-select column: default true, ใช้ options เดิม;
  *                                 text/number column: default false, ต้องระบุ true เอง - ตัวเลือกจะ derive จาก rows จริง) }]
+ * 'searchable-select' = เหมือน 'select' ทุกอย่าง (options เดียวกัน, ผูก value/filter เหมือนกัน) แค่
+ *   render เป็น SearchableSelect (พิมพ์ค้นหาได้) แทน <select> ธรรมดา - ใช้ตอนตัวเลือกเยอะ/ชื่อยาว
  * groupBy?: { keys: string[], label: (values: Record<string, any>) => string } - ถ้าส่งมา
  *   จะแบ่งตารางเป็นกลุ่มย่อยตามค่าคอลัมน์ใน keys (เรียงน้อย->มาก) แต่ละกลุ่มมีหัวข้อจาก label()
  * api: { list, create, update?(ไม่ใส่ = ไม่มีปุ่มแก้ไข), remove }
@@ -135,13 +138,13 @@ export default function CrudManager({
   }
 
   const filterableColumns = columns.filter((c) =>
-    c.type === "select" ? c.filterable !== false : c.filterable === true
+    c.type === "select" || c.type === "searchable-select" ? c.filterable !== false : c.filterable === true
   );
 
   const filterOptionsByKey = useMemo(() => {
     const map = {};
     filterableColumns.forEach((c) => {
-      if (c.type === "select") {
+      if (c.type === "select" || c.type === "searchable-select") {
         map[c.key] = c.options || [];
         return;
       }
@@ -204,7 +207,7 @@ export default function CrudManager({
 
   function displayValue(col, row) {
     if (col.type === "password") return "••••••";
-    if (col.type === "select") {
+    if (col.type === "select" || col.type === "searchable-select") {
       const opt = col.options?.find((o) => String(o.value) === String(row[col.key]));
       return opt ? opt.label : row[col.key];
     }
@@ -301,6 +304,15 @@ export default function CrudManager({
                         </option>
                       ))}
                     </select>
+                  ) : c.type === "searchable-select" ? (
+                    <SearchableSelect
+                      id={`crud-field-${c.key}`}
+                      value={form[c.key] ?? ""}
+                      onChange={(val) => handleChange(c.key, val)}
+                      options={c.options || []}
+                      required={c.required}
+                      disabled={c.readOnly && editingId !== "new"}
+                    />
                   ) : (
                     <input
                       type={c.type === "number" ? "number" : c.type === "password" ? "password" : "text"}
@@ -329,19 +341,33 @@ export default function CrudManager({
 
       {!loading && filterableColumns.length > 0 && (
         <div className="crud-filters">
-          {filterableColumns.map((c) => (
-            <label key={c.key}>
-              {c.label}
-              <select value={filters[c.key] ?? ""} onChange={(e) => handleFilterChange(c.key, e.target.value)}>
-                <option value="">-- ทั้งหมด --</option>
-                {filterOptionsByKey[c.key]?.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ))}
+          {filterableColumns.map((c) =>
+            c.type === "searchable-select" ? (
+              <label key={c.key}>
+                {c.label}
+                <SearchableSelect
+                  value={filters[c.key] ?? ""}
+                  onChange={(val) => handleFilterChange(c.key, val)}
+                  options={[{ value: "", label: "-- ทั้งหมด --" }, ...(filterOptionsByKey[c.key] || [])]}
+                />
+              </label>
+            ) : (
+              <label key={c.key}>
+                {c.label}
+                <select
+                  value={filters[c.key] ?? ""}
+                  onChange={(e) => handleFilterChange(c.key, e.target.value)}
+                >
+                  <option value="">-- ทั้งหมด --</option>
+                  {filterOptionsByKey[c.key]?.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          )}
           {activeFilterCount > 0 && (
             <button type="button" onClick={clearFilters}>
               ล้างตัวกรอง

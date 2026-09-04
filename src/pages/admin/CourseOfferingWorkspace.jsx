@@ -115,6 +115,12 @@ export default function CourseOfferingWorkspace() {
       setSelectedOfferingId(paramOfferingId);
       loadWorkspace(Number(paramOfferingId));
     }
+    // เปิดตรงแท็บที่ระบุมาได้ (เช่น ลิงก์ "จัดการ CLO และเกณฑ์ผ่าน" จากหน้าหลักอาจารย์) - เช็คว่าเป็น
+    // key ที่มีจริงก่อน กันลิงก์เก่า/query แปลกๆ พาไปแท็บที่ไม่มีอยู่
+    const paramTab = searchParams.get("tab");
+    if (paramTab && TABS.some((tab) => tab.key === paramTab)) {
+      setActiveTab(paramTab);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -1616,7 +1622,11 @@ function CLOTab({ cloAchievement, itemCLOs, assessmentItems }) {
                     onClick={() => setExpandedCloId(isExpanded ? null : clo.clo_id)}
                   >
                     <td className="student-table-cell">
-                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      {isExpanded ? (
+                        <ChevronDown size={16} color="var(--color-purple-600)" />
+                      ) : (
+                        <ChevronRight size={16} color="var(--color-purple-600)" />
+                      )}
                     </td>
                     <td className="student-table-cell">{clo.clo_code}</td>
                     <td className="student-table-cell">{clo.description}</td>

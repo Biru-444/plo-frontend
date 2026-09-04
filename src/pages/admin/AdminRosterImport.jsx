@@ -17,8 +17,8 @@ const INSTRUCTOR_ACTION_LABEL = {
 
 const STUDENT_ACTION_LABEL = {
   create: "นักศึกษาใหม่ - จะสร้าง",
-  update_name: "ชื่อไม่ตรง - จะแก้ตามไฟล์",
-  unchanged: "มีอยู่แล้ว ชื่อตรงกัน",
+  update_info: "ชื่อ/หมู่ไม่ตรง - จะแก้ตามไฟล์",
+  unchanged: "มีอยู่แล้ว ชื่อ+หมู่ตรงกัน",
   error: "ข้าม (ดูรายละเอียด)",
 };
 
@@ -26,7 +26,7 @@ function actionBadgeClass(action) {
   if (action === "created" || action === "unchanged" || action === "matched_existing") {
     return "roster-badge roster-badge-green";
   }
-  if (action === "will_create" || action === "create" || action === "update_name") {
+  if (action === "will_create" || action === "create" || action === "update_info") {
     return "roster-badge roster-badge-orange";
   }
   if (action === "error") {
@@ -149,7 +149,7 @@ function ResultPanel({ result }) {
         <div className="workspace-section">
           <h2>รายชื่อนักศึกษา ({result.students.length} คน)</h2>
           <p className="workspace-hint-inline">
-            นักศึกษาใหม่ {s.students_create ?? 0} คน · แก้ชื่อ {s.students_update_name ?? 0} คน · ชื่อตรงอยู่แล้ว{" "}
+            นักศึกษาใหม่ {s.students_create ?? 0} คน · แก้ชื่อ/หมู่ {s.students_update_info ?? 0} คน · ตรงอยู่แล้ว{" "}
             {s.students_unchanged ?? 0} คน · ข้าม {s.students_error ?? 0} คน · ลงทะเบียนเพิ่ม{" "}
             {result.enrollments_added} คน · ลงทะเบียนอยู่แล้ว {result.enrollments_already} คน
           </p>

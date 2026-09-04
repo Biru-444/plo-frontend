@@ -1,0 +1,207 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { ChevronRight, Info } from "lucide-react";
+import { getCourseEnrolledStudents, getPLOCoursePlan, getPLOLinkedCourses } from "../api/client.js";
+
+const RESPONSIBILITY_LABEL = { primary: "หลัก", secondary: "รอง" };
+
+/**
+ * ชิปวิชา 1 ใบ กดแล้วขยาย/พับได้อิสระต่อกัน โชว์รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้จริง (จาก enrollment
+ * ผ่าน courseId+cohortYear) - คนละเรื่องกับตาราง "บรรลุ PLO" ที่อยู่ท้ายการ์ด PLO (ไม่เกี่ยวกัน ห้ามปน)
+ * แคช enrolled students ไว้ต่อ courseId ใช้ร่วมกันได้ทั้ง 2 บล็อกถ้าวิชาเดียวกันโผล่ทั้งคู่
+ */
+function CourseChip({ course, badge, isOpen, onToggle, enrolled }) {
+  return (
+    <>
+      <button
+        type="button"
+        className={`plo-course-chip ${isOpen ? "expanded" : ""}`}
+        onClick={onToggle}
+      >
+        <span>
+          {course.course_code} {course.name_th}
+        </span>
+        <span className="plo-course-chip-badge">{badge}</span>
+        <ChevronRight size={14} className="plo-course-chip-arrow" />
+      </button>
+      {isOpen && (
+        <div className="plo-course-chip-panel">
+          <span className="plo-course-chip-panel-title">
+            นักศึกษาที่ลงทะเบียน {course.course_code} {course.name_th}
+          </span>
+          {enrolled?.status === "loading" && <p className="loading-message">กำลังโหลดข้อมูล...</p>}
+          {enrolled?.status === "error" && (
+            <p className="error-message">โหลดรายชื่อนักศึกษาไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+          )}
+          {enrolled?.status === "ready" &&
+            (enrolled.students.length === 0 ? (
+              <p className="student-list-empty">ยังไม่มีนักศึกษาลงทะเบียนวิชานี้ในรุ่นที่เลือก</p>
+            ) : (
+              <table className="student-table plo-breakdown-table">
+                <thead>
+                  <tr>
+                    <th>รหัสนักศึกษา</th>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {enrolled.students.map((s) => (
+                    <Link
+                      key={s.id}
+                      to={`/student-plo?student_id=${encodeURIComponent(s.id)}`}
+                      className="student-table-row"
+                    >
+                      <span className="student-table-cell">{s.id}</span>
+                      <span className="student-table-cell">
+                        {s.title ? `${s.title} ` : ""}
+                        {s.first_name} {s.last_name}
+                      </span>
+                      <span className="student-table-cell student-row-arrow-cell">
+                        <ChevronRight size={16} className="plo-course-chip-arrow" />
+                      </span>
+                    </Link>
+                  ))}
+                </tbody>
+              </table>
+            ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * ใช้ร่วมกันระหว่างหน้า "ภาพรวม PLO" (PLODashboard) และ "PLO เมื่อจบการศึกษา" (PLOYearProgress)
+ * ในส่วนขยายของการ์ด PLO แต่ละใบ - แสดง 2 แหล่งข้อมูลวิชาที่เชื่อมกับ PLO แยกกันชัดเจน ห้ามเอามาปนกัน:
+ *   - "วิชาตามแผนหลักสูตร (มคอ.2)" จาก course_plo (ตอนออกแบบหลักสูตร, มี primary/secondary)
+ *   - "วิชาที่ผูกจริงจากการสอน (CLO)" จาก clo_plo_mapping (อาจารย์ผูกเองตอนสอน ผ่าน CLO)
+ * ทั้งสองไม่ขึ้นกับ cohort/รุ่นที่เข้าเรียน (ผูกกับ course_id ตรงๆ) - cohortYear ใช้แค่ตอนกดชิปขยายดู
+ * รายชื่อนักศึกษาที่ลงทะเบียนวิชานั้น ให้ตรงกับตัวกรอง "รุ่นที่เข้าเรียน" ที่หน้ากำลังเลือกอยู่
+ * onInteract (optional) เรียกทุกครั้งที่กดชิปวิชาอันไหนก็ได้ (ทั้งขยาย/ยุบ) - ผู้เรียกใช้เป็นสัญญาณ
+ * "ผู้ใช้กดชิปแล้ว" เพื่อโชว์ตาราง "บรรลุ PLO" ท้ายการ์ด PLO ที่ถูกซ่อนไว้ก่อนเป็นค่าเริ่มต้น
+ */
+export default function PLOCourseBreakdown({ ploId, cohortYear, onInteract }) {
+  const [coursePlan, setCoursePlan] = useState({ status: "loading", courses: [] });
+  const [linkedCourses, setLinkedCourses] = useState({ status: "loading", courses: [] });
+  // key: `${source}-${course_id}` -> เก็บว่าชิปไหนกางอยู่ (แต่ละชิปเป็นอิสระต่อกัน เปิดพร้อมกันได้หลายอัน)
+  const [openChipKeys, setOpenChipKeys] = useState(new Set());
+  // { [course_id]: { status: 'loading'|'ready'|'error', students: [] } } - ใช้ร่วมกันทั้ง 2 บล็อก
+  const [enrolledByCourseId, setEnrolledByCourseId] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setCoursePlan({ status: "loading", courses: [] });
+    setLinkedCourses({ status: "loading", courses: [] });
+    setOpenChipKeys(new Set());
+    setEnrolledByCourseId({});
+
+    getPLOCoursePlan(ploId)
+      .then((courses) => {
+        if (!cancelled) setCoursePlan({ status: "ready", courses });
+      })
+      .catch(() => {
+        if (!cancelled) setCoursePlan({ status: "error", courses: [] });
+      });
+
+    getPLOLinkedCourses(ploId)
+      .then((courses) => {
+        if (!cancelled) setLinkedCourses({ status: "ready", courses });
+      })
+      .catch(() => {
+        if (!cancelled) setLinkedCourses({ status: "error", courses: [] });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ploId]);
+
+  // รุ่นที่เข้าเรียนที่หน้ากำลังเลือกเปลี่ยน -> รายชื่อนักศึกษาที่แคชไว้ไม่ตรงกับตัวกรองใหม่แล้ว ต้องเคลียร์
+  useEffect(() => {
+    setEnrolledByCourseId({});
+  }, [cohortYear]);
+
+  function toggleChip(source, courseId) {
+    // นับเป็น "กดชิปแล้ว" ทั้งตอนขยายและตอนยุบ - ผู้เรียกใช้เพื่อโชว์ตาราง "บรรลุ PLO" ท้ายการ์ด
+    // ครั้งแรกที่กด แล้วค้างโชว์ต่อไป ไม่ toggle กลับตามชิปที่เปิด/ปิดอยู่ ณ ขณะนั้น
+    onInteract?.();
+    const chipKey = `${source}-${courseId}`;
+    setOpenChipKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(chipKey)) next.delete(chipKey);
+      else next.add(chipKey);
+      return next;
+    });
+    if (!enrolledByCourseId[courseId]) {
+      setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "loading", students: [] } }));
+      getCourseEnrolledStudents(courseId, cohortYear)
+        .then((students) => {
+          setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "ready", students } }));
+        })
+        .catch(() => {
+          setEnrolledByCourseId((prev) => ({ ...prev, [courseId]: { status: "error", students: [] } }));
+        });
+    }
+  }
+
+  return (
+    <div className="plo-course-breakdown">
+      <div className="plo-linked-courses">
+        <span className="plo-course-breakdown-label">
+          วิชาตามแผนหลักสูตร (มคอ.2)
+          <Info size={13} strokeWidth={2} title="ข้อมูลจากแผนหลักสูตรตอนออกแบบ (course_plo) - คนละอันกับวิชาที่ผูกจริงตอนสอนด้านล่าง" />
+        </span>
+        {coursePlan.status === "loading" && <p className="loading-message">กำลังโหลดข้อมูล...</p>}
+        {coursePlan.status === "error" && (
+          <p className="error-message">โหลดรายชื่อวิชาไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+        )}
+        {coursePlan.status === "ready" &&
+          (coursePlan.courses.length === 0 ? (
+            <p className="student-list-empty">หลักสูตรนี้ยังไม่ได้กำหนดวิชาให้ PLO ข้อนี้ในแผนหลักสูตร</p>
+          ) : (
+            <div className="plo-course-chip-row">
+              {coursePlan.courses.map((c) => (
+                <CourseChip
+                  key={c.course_id}
+                  course={c}
+                  badge={RESPONSIBILITY_LABEL[c.responsibility_level] ?? c.responsibility_level}
+                  isOpen={openChipKeys.has(`plan-${c.course_id}`)}
+                  onToggle={() => toggleChip("plan", c.course_id)}
+                  enrolled={enrolledByCourseId[c.course_id]}
+                />
+              ))}
+            </div>
+          ))}
+      </div>
+
+      <div className="plo-linked-courses">
+        <span className="plo-course-breakdown-label">
+          วิชาที่ผูกจริงจากการสอน (CLO)
+          <Info size={13} strokeWidth={2} title="ข้อมูลจากการผูก CLO กับ PLO จริงของอาจารย์ขณะสอน (clo_plo_mapping) - คนละอันกับแผนหลักสูตรด้านบน" />
+        </span>
+        {linkedCourses.status === "loading" && <p className="loading-message">กำลังโหลดข้อมูล...</p>}
+        {linkedCourses.status === "error" && (
+          <p className="error-message">โหลดรายชื่อวิชาไม่สำเร็จ ลองใหม่อีกครั้ง</p>
+        )}
+        {linkedCourses.status === "ready" &&
+          (linkedCourses.courses.length === 0 ? (
+            <p className="student-list-empty">ยังไม่มีวิชาที่ผูก CLO จริงกับ PLO ข้อนี้</p>
+          ) : (
+            <div className="plo-course-chip-row">
+              {linkedCourses.courses.map((c) => (
+                <CourseChip
+                  key={c.course_id}
+                  course={c}
+                  badge={`${c.clo_count} CLO`}
+                  isOpen={openChipKeys.has(`clo-${c.course_id}`)}
+                  onToggle={() => toggleChip("clo", c.course_id)}
+                  enrolled={enrolledByCourseId[c.course_id]}
+                />
+              ))}
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+}
