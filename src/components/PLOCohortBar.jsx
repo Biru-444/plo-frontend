@@ -1,3 +1,5 @@
+import PLODonut from "./PLODonut.jsx";
+
 const KEYWORD_MAX_LENGTH = 60;
 
 function truncate(text, max) {
@@ -66,15 +68,21 @@ export default function PLOCohortBar({
       <p className="plo-keyword" title={description}>
         {truncate(description, KEYWORD_MAX_LENGTH)}
       </p>
-      <div className="plo-bar-track">
-        <div
-          className={`plo-bar-fill ${isAchieved ? "achieved" : "not-achieved"}`}
-          style={{ width: `${pct}%` }}
+      <div className="plo-bar-stats">
+        {/* วงแหวนโชว์ achievedRatePercent (สัดส่วนคนบรรลุ) ให้สม่ำเสมอกับวงใหญ่ "0% นักศึกษาบรรลุ PLO
+            ครบทุกข้อ" บนสุดของหน้า - สีระบุเองจาก isAchieved ที่ผู้เรียกคำนวณมาแล้ว (เกณฑ์ในระบบนี้คือ
+            50% ไม่ใช่ 60% ที่ PLODonut ใช้เป็นค่า default ถ้าไม่ระบุสี) */}
+        <PLODonut
+          percent={achievedRatePercent}
+          size={48}
+          color={isAchieved ? "var(--color-green-700)" : "var(--color-red-700)"}
         />
-      </div>
-      <div className="plo-bar-percent">เฉลี่ย {pct.toFixed(1)}%</div>
-      <div className="plo-cohort-subtitle">
-        บรรลุ {achievedStudentCount} จาก {totalStudents} คน ({achievedRatePercent.toFixed(1)}%)
+        <div className="plo-bar-stats-text">
+          <div className="plo-bar-percent">เฉลี่ย {pct.toFixed(1)}%</div>
+          <div className="plo-cohort-subtitle">
+            บรรลุ {achievedStudentCount} จาก {totalStudents} คน ({achievedRatePercent.toFixed(1)}%)
+          </div>
+        </div>
       </div>
     </div>
   );

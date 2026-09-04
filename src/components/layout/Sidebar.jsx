@@ -1,5 +1,15 @@
 import { NavLink } from "react-router-dom";
-import { Home, Users, BookOpen, PieChart, CalendarRange, ClipboardList, Settings } from "lucide-react";
+import {
+  Home,
+  Users,
+  BookOpen,
+  PieChart,
+  CalendarRange,
+  ClipboardList,
+  Settings,
+  Target,
+  UserPlus,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function Sidebar() {
@@ -31,6 +41,16 @@ export default function Sidebar() {
       title: "ลงทะเบียน/กรอกคะแนนทั้งชั้น/ดูผลบรรลุ CLO ของวิชาที่เปิดสอน - ใช้เมนูนี้เป็นหลักสำหรับงานประจำภาคเรียน",
     },
     { to: "/students", label: "รายชื่อนักศึกษา", icon: Users },
+    ...(isAdmin
+      ? [
+          {
+            to: "/admin/enrollments",
+            label: "ลงทะเบียนนักศึกษา",
+            icon: UserPlus,
+            title: "ลงทะเบียนนักศึกษาเข้าวิชาที่เปิดสอนด้วยตนเอง ทีละคน (manual - ไม่มี auto-enroll)",
+          },
+        ]
+      : []),
     ...(isInstructor
       ? [
           {
@@ -43,9 +63,15 @@ export default function Sidebar() {
       : []),
     {
       to: "/plo-by-year",
-      label: "PLO ตามชั้นปี",
+      label: "PLO เมื่อจบการศึกษา",
       icon: CalendarRange,
-      title: "ดูความก้าวหน้าการบรรลุ PLO แยกตามชั้นปี",
+      title: "ผลบรรลุ PLO รวมทั้งหลักสูตร - PLO เป็นผลลัพธ์รวมที่ควรบรรลุตอนจบ ไม่แยกตามชั้นปีเหมือน YLO",
+    },
+    {
+      to: "/ylo-by-year",
+      label: "YLO ตามชั้นปี",
+      icon: Target,
+      title: "ดูเป้าหมายการเรียนรู้ระดับชั้นปี (YLO) แยกตามชั้นปี",
     },
     { to: "/curriculum", label: "หลักสูตร/รายวิชา", icon: BookOpen },
   ];

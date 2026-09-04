@@ -41,6 +41,7 @@ export default function AddStudent() {
     },
     { key: "cohort_year", label: "ปีที่เข้าศึกษา (cohort year)", type: "number", required: true, filterable: true },
     { key: "current_year_level", label: "ชั้นปีปัจจุบัน", type: "number", required: true, filterable: true },
+    { key: "section", label: "หมู่", type: "text", nullable: true, filterable: true },
   ];
 
   return (

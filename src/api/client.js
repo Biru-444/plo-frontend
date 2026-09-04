@@ -161,10 +161,25 @@ export async function deleteStudent(id) {
   await api.delete(`/students/${id}`);
 }
 
+/**
+ * วิชาที่ study_plan แนะนำสำหรับนักศึกษาคนนี้ (ตามชั้นปีที่เรียนมาแล้วจนถึงปัจจุบัน) ที่มี
+ * course_offering จริงรองรับแล้วแต่ยังไม่ได้ลงทะเบียน - ใช้เป็นคำแนะนำในหน้าลงทะเบียนด้วยตนเอง
+ * Backend: GET /students/{id}/recommended-offerings
+ */
+export async function getRecommendedOfferings(studentId) {
+  const { data } = await api.get(`/students/${studentId}/recommended-offerings`);
+  return data;
+}
+
 export async function listEnrollments(offeringId) {
   const { data } = await api.get("/enrollments", {
     params: offeringId ? { offering_id: offeringId } : {},
   });
+  return data;
+}
+
+export async function listStudentEnrollments(studentId) {
+  const { data } = await api.get("/enrollments", { params: { student_id: studentId } });
   return data;
 }
 
@@ -267,6 +282,32 @@ export async function listPLO() {
   return data;
 }
 
+export async function getPLOLinkedCourses(ploId) {
+  const { data } = await api.get(`/plo/${ploId}/courses`);
+  return data;
+}
+
+// วิชาตามแผนหลักสูตร (มคอ.2, course_plo) - คนละแหล่งข้อมูลกับ getPLOLinkedCourses ข้างบน
+// (clo_plo_mapping) ห้ามเอามาปนกัน
+export async function getPLOCoursePlan(ploId) {
+  const { data } = await api.get(`/plo/${ploId}/course-plan`);
+  return data;
+}
+
+// วิชาที่เกี่ยวข้องกับ PLO ข้อนี้ พร้อมสถานะผ่าน/ไม่ผ่านของนักศึกษาคนนี้โดยเฉพาะต่อวิชา
+export async function getStudentPLOCourseBreakdown(ploId, studentId) {
+  const { data } = await api.get(`/plo/${ploId}/students/${studentId}/course-breakdown`);
+  return data;
+}
+
+// นักศึกษาที่ลงทะเบียนวิชานี้จริง (ผ่าน enrollment) - คนละเรื่องกับ "ใครบรรลุ PLO"
+export async function getCourseEnrolledStudents(courseId, cohortYear) {
+  const { data } = await api.get(`/courses/${courseId}/enrolled-students`, {
+    params: cohortYear ? { cohort_year: cohortYear } : {},
+  });
+  return data;
+}
+
 export async function createPLO(payload) {
   const { data } = await api.post("/plo", payload);
   return data;
@@ -283,8 +324,21 @@ export async function deletePLO(id) {
 
 // --- YLO ---
 
-export async function listYLO() {
-  const { data } = await api.get("/ylo");
+export async function listYLO(curriculumId) {
+  const { data } = await api.get("/ylo", {
+    params: curriculumId ? { curriculum_id: curriculumId } : {},
+  });
+  return data;
+}
+
+export async function getYLOAchievement(curriculumId, yearLevel, cohortYear) {
+  const { data } = await api.get("/ylo/achievement/by-year", {
+    params: {
+      curriculum_id: curriculumId,
+      year_level: yearLevel,
+      ...(cohortYear ? { cohort_year: cohortYear } : {}),
+    },
+  });
   return data;
 }
 

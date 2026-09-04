@@ -26,7 +26,7 @@ export default function AdminCoursePLO() {
   }, []);
 
   const columns = [
-    { key: "course_id", label: "รายวิชา", type: "select", options: courseOptions, required: true },
+    { key: "course_id", label: "รายวิชา", type: "searchable-select", options: courseOptions, required: true },
     { key: "plo_id", label: "PLO (ผลลัพธ์ระดับหลักสูตร)", type: "select", options: ploOptions, required: true },
     {
       key: "responsibility_level",

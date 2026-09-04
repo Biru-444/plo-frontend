@@ -197,9 +197,20 @@ export default function InstructorHome() {
                         : `${offering.avgCloAchievement.toFixed(1)}%`}
                     </span>
                   </div>
-                  <Link to={`/course-workspace?offering_id=${offering.id}`} className="instructor-course-btn">
-                    จัดการคะแนน/CLO
-                  </Link>
+                  <div className="instructor-course-btn-row">
+                    <Link
+                      to={`/course-workspace?offering_id=${offering.id}`}
+                      className="instructor-course-btn"
+                    >
+                      จัดการคะแนน/CLO
+                    </Link>
+                    <Link
+                      to={`/course-workspace?offering_id=${offering.id}&tab=structure`}
+                      className="instructor-course-btn instructor-course-btn-secondary"
+                    >
+                      จัดการ CLO และเกณฑ์ผ่าน
+                    </Link>
+                  </div>
                   {!isAdmin && (
                     <button
                       type="button"
