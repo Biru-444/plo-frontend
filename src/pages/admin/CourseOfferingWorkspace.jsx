@@ -10,10 +10,10 @@ import {
   ChevronDown,
   ChevronRight,
   Users,
-  Upload,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import SearchableSelect from "../../components/SearchableSelect.jsx";
+import BulkEnrollPanel from "../../components/BulkEnrollPanel.jsx";
 import {
   listCourseOfferings,
   listCourses,
@@ -31,8 +31,6 @@ import {
   updateEnrollment,
   deleteEnrollment,
   bulkEnrollByCohort,
-  bulkEnrollStudents,
-  bulkEnrollUpload,
   getSiblingSectionEnrollments,
   listStudents,
   getOfferingStudentScores,
@@ -364,17 +362,6 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
   const [cohortError, setCohortError] = useState("");
   const [cohortResultMessage, setCohortResultMessage] = useState("");
 
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [multiSubmitting, setMultiSubmitting] = useState(false);
-  const [multiError, setMultiError] = useState("");
-  const [multiResultMessage, setMultiResultMessage] = useState("");
-
-  const [uploadFile, setUploadFile] = useState(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [uploadSubmitting, setUploadSubmitting] = useState(false);
-  const [uploadError, setUploadError] = useState("");
-  const [uploadResult, setUploadResult] = useState(null);
-
   // รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้ไปแล้วในหมู่/section อื่น (วิชาเดียวกัน ภาคเรียนเดียวกัน)
   // ใช้แยกไม่ให้ปนกับคนที่ยังไม่ได้ลงทะเบียนเลย เช่น รุ่น 69 ที่แบ่งเป็น 2 หมู่เพราะคนเยอะ
   const [otherSectionMap, setOtherSectionMap] = useState({});
@@ -415,16 +402,6 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     );
   }, [allStudents, enrolledIds, otherSectionMap, addSearch]);
 
-  // แสดงแยกต่างหาก (ไม่ปนกับ availableStudents) เพื่อให้เห็นชัดว่าใครลงทะเบียนวิชานี้ไปแล้วที่หมู่ไหน
-  const otherSectionAvailableStudents = useMemo(() => {
-    const candidates = allStudents.filter((s) => !enrolledIds.has(s.id) && otherSectionMap[s.id]);
-    if (!addSearch.trim()) return candidates;
-    const q = addSearch.trim().toLowerCase();
-    return candidates.filter(
-      (s) => s.id.toLowerCase().includes(q) || `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
-    );
-  }, [allStudents, enrolledIds, otherSectionMap, addSearch]);
-
   const cohortOptions = useMemo(() => {
     const years = new Set(
       allStudents.filter((s) => s.curriculum_id === curriculumId).map((s) => s.cohort_year)
@@ -451,31 +428,6 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     () => cohortCandidates.filter((s) => !otherSectionMap[s.id]).length,
     [cohortCandidates, otherSectionMap]
   );
-
-  const allVisibleSelected =
-    availableStudents.length > 0 && availableStudents.every((s) => selectedIds.has(s.id));
-
-  function toggleOne(studentId) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(studentId)) next.delete(studentId);
-      else next.add(studentId);
-      return next;
-    });
-  }
-
-  function toggleSelectAllVisible() {
-    setSelectedIds((prev) => {
-      if (allVisibleSelected) {
-        const next = new Set(prev);
-        availableStudents.forEach((s) => next.delete(s.id));
-        return next;
-      }
-      const next = new Set(prev);
-      availableStudents.forEach((s) => next.add(s.id));
-      return next;
-    });
-  }
 
   async function handleBulkByCohort() {
     if (!cohortYear) return;
@@ -504,55 +456,6 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
       setCohortError(err?.response?.data?.detail || "เพิ่มนักศึกษารุ่นนี้ไม่สำเร็จ");
     } finally {
       setCohortSubmitting(false);
-    }
-  }
-
-  async function handleAddSelected() {
-    if (selectedIds.size === 0) return;
-    setMultiSubmitting(true);
-    setMultiError("");
-    setMultiResultMessage("");
-    try {
-      const result = await bulkEnrollStudents(offeringId, Array.from(selectedIds));
-      setMultiResultMessage(
-        `เพิ่มสำเร็จ ${result.added_count} คน${
-          result.already_enrolled.length > 0 ? `, ข้าม ${result.already_enrolled.length} คน` : ""
-        }${
-          result.already_in_other_section.length > 0
-            ? `, ข้าม ${result.already_in_other_section.length} คนที่อยู่หมู่อื่นของวิชานี้แล้ว`
-            : ""
-        }`
-      );
-      setSelectedIds(new Set());
-      await onChanged();
-    } catch (err) {
-      setMultiError(err?.response?.data?.detail || "เพิ่มนักศึกษาที่เลือกไม่สำเร็จ");
-    } finally {
-      setMultiSubmitting(false);
-    }
-  }
-
-  function handleFileChange(e) {
-    setUploadFile(e.target.files?.[0] ?? null);
-    setUploadResult(null);
-    setUploadError("");
-  }
-
-  async function handleUpload() {
-    if (!uploadFile) return;
-    setUploadSubmitting(true);
-    setUploadError("");
-    setUploadResult(null);
-    try {
-      const result = await bulkEnrollUpload(offeringId, uploadFile);
-      setUploadResult(result);
-      setUploadFile(null);
-      setFileInputKey((k) => k + 1);
-      await onChanged();
-    } catch (err) {
-      setUploadError(err?.response?.data?.detail || "อัปโหลดไฟล์ไม่สำเร็จ");
-    } finally {
-      setUploadSubmitting(false);
     }
   }
 
@@ -752,105 +655,7 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
         {cohortResultMessage && <p className="success-message">{cohortResultMessage}</p>}
       </div>
 
-      <div className="workspace-section">
-        <h2>เลือกหลายคนพร้อมกัน</h2>
-        {multiError && <p className="error-message">{multiError}</p>}
-        <div className="workspace-inline-form">
-          <button type="button" onClick={toggleSelectAllVisible} disabled={availableStudents.length === 0}>
-            {allVisibleSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
-          </button>
-        </div>
-        <div className="enroll-multiselect-list">
-          {availableStudents.map((s) => (
-            <label key={s.id} className="enroll-multiselect-item">
-              <input type="checkbox" checked={selectedIds.has(s.id)} onChange={() => toggleOne(s.id)} />
-              {s.id} {s.first_name} {s.last_name}
-            </label>
-          ))}
-          {availableStudents.length === 0 && (
-            <p className="student-list-empty">ไม่พบนักศึกษาที่ยังไม่ได้ลงทะเบียน</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={handleAddSelected}
-          disabled={selectedIds.size === 0 || multiSubmitting}
-        >
-          {multiSubmitting ? "กำลังเพิ่ม..." : `เพิ่มที่เลือก (${selectedIds.size} คน)`}
-        </button>
-        {multiResultMessage && <p className="success-message">{multiResultMessage}</p>}
-
-        {otherSectionAvailableStudents.length > 0 && (
-          <div className="enroll-other-section-note">
-            <p className="workspace-hint-inline">
-              นักศึกษาที่ลงทะเบียนวิชานี้ไปแล้วที่หมู่อื่น ({otherSectionAvailableStudents.length} คน —
-              ไม่แสดงในรายการด้านบนเพื่อไม่ให้เพิ่มซ้ำ):
-            </p>
-            <ul className="enroll-other-section-list">
-              {otherSectionAvailableStudents.map((s) => (
-                <li key={s.id}>
-                  {s.id} {s.first_name} {s.last_name} — หมู่ {otherSectionMap[s.id]}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      <div className="workspace-section">
-        <h2>
-          <Upload size={18} strokeWidth={2} /> อัปโหลดไฟล์รายชื่อ (.csv, .xlsx)
-        </h2>
-        {uploadError && <p className="error-message">{uploadError}</p>}
-        <div className="workspace-inline-form">
-          <input key={fileInputKey} type="file" accept=".csv,.xlsx" onChange={handleFileChange} />
-          <button type="button" onClick={handleUpload} disabled={!uploadFile || uploadSubmitting}>
-            {uploadSubmitting ? "กำลังอัปโหลด..." : "อัปโหลดและลงทะเบียน"}
-          </button>
-        </div>
-        {uploadResult && (
-          <div className="upload-result">
-            <p className="success-message">
-              เพิ่มสำเร็จ {uploadResult.added_count} คน
-              {uploadResult.already_enrolled.length > 0 &&
-                `, ข้าม (ลงทะเบียนแล้ว) ${uploadResult.already_enrolled.length} คน`}
-              {uploadResult.already_in_other_section.length > 0 &&
-                `, ข้าม (อยู่หมู่อื่นของวิชานี้แล้ว) ${uploadResult.already_in_other_section.length} คน`}
-              {uploadResult.not_found.length > 0 && `, ไม่พบในระบบ ${uploadResult.not_found.length} คน`}
-              {uploadResult.wrong_curriculum.length > 0 &&
-                `, คนละหลักสูตร ${uploadResult.wrong_curriculum.length} คน`}
-            </p>
-            {uploadResult.not_found.length > 0 && (
-              <div className="upload-result-list">
-                <label>รหัสที่ไม่พบในระบบ (คัดลอกไปตรวจสอบได้):</label>
-                <textarea readOnly value={uploadResult.not_found.join(", ")} onClick={(e) => e.target.select()} />
-              </div>
-            )}
-            {uploadResult.wrong_curriculum.length > 0 && (
-              <div className="upload-result-list">
-                <label>รหัสที่อยู่คนละหลักสูตรกับวิชานี้ (ไม่ได้ลงทะเบียนให้):</label>
-                <textarea
-                  readOnly
-                  value={uploadResult.wrong_curriculum.join(", ")}
-                  onClick={(e) => e.target.select()}
-                />
-              </div>
-            )}
-            {uploadResult.already_in_other_section.length > 0 && (
-              <div className="upload-result-list">
-                <label>รหัสที่ลงทะเบียนวิชานี้ไปแล้วที่หมู่อื่น (ไม่ได้เพิ่มซ้ำให้):</label>
-                <textarea
-                  readOnly
-                  value={uploadResult.already_in_other_section
-                    .map((c) => `${c.student_id} (หมู่ ${c.section})`)
-                    .join(", ")}
-                  onClick={(e) => e.target.select()}
-                />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <BulkEnrollPanel offeringId={offeringId} allStudents={allStudents} onChanged={onChanged} />
     </>
   );
 }
