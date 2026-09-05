@@ -5,11 +5,11 @@
   --color-purple-700: #5B21B6;
   --color-purple-600: #7C3AED;
   --color-purple-100: #EDE9FE;
+  --color-yellow-100: #FDF6E3;
+  --color-yellow-200: #F2E2B3;
   --color-yellow-400: #FACC15;
   --color-yellow-600: #CA8A04;
-  --color-text: #1F2937;
   --color-text-invert: #FFFFFF;
-  --color-border: #E5E7EB;
   --color-green-100: #DCFCE7;
   --color-green-700: #15803D;
   --color-red-100: #FEE2E2;
@@ -20,9 +20,38 @@
   --clickable-border: var(--color-purple-100);
   --heading-color: var(--color-purple-900);
 
-  font-family: "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
-  color: #1a1a2e;
-  background-color: #f7f8fb;
+  /* เทาสเกล - ใช้แทน hex เทาที่กระจัดกระจายทั่ว index.css เดิม (ธีมรีเฟรช) */
+  --color-gray-50: #F8FAFC;
+  --color-gray-100: #F1F5F9;
+  --color-gray-200: #E2E8F0;
+  --color-gray-300: #CBD5E1;
+  --color-gray-400: #94A3B8;
+  --color-gray-500: #64748B;
+  --color-gray-600: #475569;
+  --color-gray-700: #334155;
+  --color-gray-800: #1E293B;
+  --color-gray-900: #0F172A;
+
+  --color-page-bg: var(--color-gray-50);
+  --color-border: var(--color-gray-200);
+  --color-text: var(--color-gray-800);
+
+  --color-orange-100: #FDF1E0;
+  --color-orange-700: #B3691E;
+
+  --color-blue-100: #E6ECFB;
+  --color-blue-700: var(--color-purple-700);
+
+  --color-red-50: #FDECEA;
+  --color-red-600: #B3261E;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+
+  font-family: 'IBM Plex Sans Thai', 'Noto Sans Thai', 'Segoe UI', system-ui, sans-serif;
+  color: var(--color-text);
+  background-color: var(--color-page-bg);
 }
 
 * {
@@ -31,37 +60,7 @@
 
 body {
   margin: 0;
-}
-
-.app-shell {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-.app-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e2e4ec;
-  padding-bottom: 16px;
-  margin-bottom: 24px;
-}
-
-.app-title {
-  font-size: 1.25rem;
-  margin: 0;
-}
-
-.app-header nav {
-  display: flex;
-  gap: 20px;
-}
-
-.app-header nav a {
-  color: var(--color-purple-700);
-  text-decoration: none;
-  font-weight: 600;
+  background: var(--color-page-bg);
 }
 
 .page h1 {
@@ -82,13 +81,13 @@ body {
   display: block;
   font-size: 0.85rem;
   margin-bottom: 4px;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .search-form input {
   padding: 8px 10px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   min-width: 220px;
 }
@@ -96,7 +95,7 @@ body {
 .search-form button {
   padding: 9px 18px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-purple-700);
   color: white;
   font-weight: 600;
@@ -109,17 +108,17 @@ body {
 }
 
 .error-message {
-  color: #b3261e;
-  background: #fdecea;
-  border: 1px solid #f5c6c3;
+  color: var(--color-red-600);
+  background: var(--color-red-50);
+  border: 1px solid var(--color-red-100);
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .student-summary {
   background: white;
-  border: 1px solid #e2e4ec;
-  border-radius: 10px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   padding: 16px 20px;
   margin-bottom: 20px;
 }
@@ -143,7 +142,7 @@ body {
   background: white;
   border: 1px solid var(--color-border);
   border-left: 4px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 12px 16px;
   height: 100%;
@@ -171,13 +170,13 @@ body {
 
 .plo-description {
   flex: 1;
-  color: #333;
+  color: var(--color-gray-800);
   font-size: 0.92rem;
 }
 
 .plo-keyword {
   margin: 0 0 10px;
-  color: #555;
+  color: var(--color-gray-600);
   font-size: 0.85rem;
   line-height: 1.4;
   cursor: help;
@@ -201,11 +200,11 @@ body {
 }
 
 .plo-achieved-empty {
-  color: #9CA3AF;
+  color: var(--color-gray-400);
 }
 
 .plo-bar-track {
-  background: #eef0f6;
+  background: var(--color-gray-100);
   border-radius: 999px;
   height: 17px;
   overflow: hidden;
@@ -227,7 +226,7 @@ body {
 .plo-bar-percent {
   margin-top: 4px;
   font-size: 0.8rem;
-  color: #666;
+  color: var(--color-gray-500);
   text-align: right;
 }
 
@@ -252,7 +251,7 @@ body {
 }
 
 .loading-message {
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .cohort-tabs {
@@ -263,10 +262,10 @@ body {
 
 .cohort-tab {
   padding: 8px 16px;
-  border: 1px solid #cfd3e0;
+  border: 1px solid var(--color-gray-300);
   border-radius: 999px;
   background: white;
-  color: #555;
+  color: var(--color-gray-600);
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
@@ -285,7 +284,7 @@ body {
 .cohort-tab-sub {
   padding: 5px 12px;
   font-size: 0.78rem;
-  color: #777;
+  color: var(--color-gray-500);
 }
 
 .cohort-tab-sub.selected {
@@ -328,7 +327,7 @@ body {
   position: relative;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 18px 20px;
   display: flex;
@@ -354,7 +353,7 @@ body {
 .curriculum-card-meta {
   margin: 0;
   font-size: 0.82rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .curriculum-card-badge {
@@ -374,8 +373,8 @@ body {
   font-weight: 700;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #eef0f6;
-  color: #555;
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
 }
 
 .status-badge.status-active {
@@ -389,12 +388,12 @@ body {
 }
 
 .status-badge.status-suspended {
-  background: #fdf1e0;
-  color: #b3691e;
+  background: var(--color-orange-100);
+  color: var(--color-orange-700);
 }
 
 .status-badge.status-graduated {
-  background: #e6ecfb;
+  background: var(--color-blue-100);
   color: var(--color-purple-700);
 }
 
@@ -412,7 +411,7 @@ body {
   left: 13px;
   top: 50%;
   transform: translateY(-50%);
-  color: #9ca3af;
+  color: var(--color-gray-400);
   pointer-events: none;
 }
 
@@ -438,7 +437,7 @@ body {
   border-collapse: collapse;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
@@ -446,8 +445,8 @@ body {
 .student-table thead th {
   text-align: left;
   font-size: 0.85rem;
-  color: #555;
-  background: #f9fafb;
+  color: var(--color-gray-600);
+  background: var(--color-gray-50);
   padding: 13px 16px;
   border-bottom: 1px solid var(--color-border);
 }
@@ -459,7 +458,7 @@ body {
 }
 
 .student-table-row:nth-child(even) {
-  background: #fafbfd;
+  background: var(--color-gray-50);
 }
 
 /* จุดที่กดได้จริง 2 แบบ: a.student-table-row (ลิงก์ไปหน้าอื่น) กับ tr.student-table-row.expandable
@@ -490,13 +489,13 @@ tr.student-table-row.expandable:hover {
 .student-table-cell {
   display: table-cell;
   padding: 13px 16px;
-  border-bottom: 1px solid #eef0f6;
+  border-bottom: 1px solid var(--color-gray-100);
   font-size: 0.92rem;
   vertical-align: middle;
 }
 
 .student-list-empty {
-  color: #666;
+  color: var(--color-gray-500);
   padding: 12px 0;
 }
 
@@ -526,8 +525,8 @@ tr.student-table-row.expandable:hover {
   align-items: flex-start;
   gap: 4px;
   background: white;
-  border: 1px solid #e2e4ec;
-  border-radius: 10px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   padding: 12px 14px;
   font-family: inherit;
   text-align: left;
@@ -536,17 +535,17 @@ tr.student-table-row.expandable:hover {
 
 .curriculum-item.selected {
   border-color: var(--color-purple-700);
-  background: #eef0fa;
+  background: var(--color-surface-soft);
 }
 
 .curriculum-item-name {
   font-weight: 700;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
 }
 
 .curriculum-item-year {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .curriculum-badge {
@@ -557,13 +556,13 @@ tr.student-table-row.expandable:hover {
 }
 
 .curriculum-badge.active {
-  background: #e3f6e8;
-  color: #1e7a3d;
+  background: var(--color-green-100);
+  color: var(--color-green-700);
 }
 
 .curriculum-badge.inactive {
-  background: #fdf1e0;
-  color: #b3691e;
+  background: var(--color-orange-100);
+  color: var(--color-orange-700);
 }
 
 .curriculum-courses {
@@ -592,13 +591,13 @@ tr.student-table-row.expandable:hover {
 
 .dashboard-toolbar label {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .dashboard-toolbar select {
   padding: 8px 10px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   min-width: 280px;
   background: white;
@@ -610,7 +609,7 @@ tr.student-table-row.expandable:hover {
   gap: 28px;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
   padding: 24px 28px;
   margin-bottom: 24px;
@@ -638,7 +637,7 @@ tr.student-table-row.expandable:hover {
 
 .dashboard-hero-sub {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .plo-filter-pills {
@@ -655,7 +654,7 @@ tr.student-table-row.expandable:hover {
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: white;
-  color: #555;
+  color: var(--color-gray-600);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
@@ -698,7 +697,7 @@ tr.student-table-row.expandable:hover {
   background: var(--clickable-hover-bg);
   border: 1px solid var(--clickable-border);
   border-left: 4px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 14px 16px;
   text-decoration: none;
@@ -735,7 +734,7 @@ tr.student-table-row.expandable:hover {
 
 .plo-summary-card-desc {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -744,15 +743,15 @@ tr.student-table-row.expandable:hover {
 .plo-cohort-subtitle {
   margin-top: 6px;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .success-message {
-  color: #1e7a3d;
-  background: #e3f6e8;
-  border: 1px solid #bfe6cb;
+  color: var(--color-green-700);
+  background: var(--color-green-100);
+  border: 1px solid var(--color-green-100);
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .nav-user {
@@ -761,13 +760,13 @@ tr.student-table-row.expandable:hover {
   gap: 8px;
   margin-left: auto;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
 }
 
 .nav-logout {
   padding: 6px 14px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   background: white;
   color: var(--color-purple-700);
   font-weight: 600;
@@ -783,13 +782,13 @@ tr.student-table-row.expandable:hover {
 }
 
 .badge-role.admin {
-  background: #fdf1e0;
-  color: #b3691e;
+  background: var(--color-orange-100);
+  color: var(--color-orange-700);
 }
 
 .badge-role.instructor {
-  background: #e3f6e8;
-  color: #1e7a3d;
+  background: var(--color-green-100);
+  color: var(--color-green-700);
 }
 
 .login-page {
@@ -803,8 +802,8 @@ tr.student-table-row.expandable:hover {
   flex-direction: column;
   gap: 16px;
   background: white;
-  border: 1px solid #e2e4ec;
-  border-radius: 10px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   padding: 20px;
 }
 
@@ -816,14 +815,14 @@ tr.student-table-row.expandable:hover {
 
 .form-field label {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .form-field input,
 .form-field select {
   padding: 8px 10px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
 }
 
@@ -832,7 +831,7 @@ tr.student-table-row.expandable:hover {
   align-items: center;
   gap: 8px;
   font-size: 1rem;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
 }
 
 .form-field-checkbox input {
@@ -843,7 +842,7 @@ tr.student-table-row.expandable:hover {
 .admin-form button {
   padding: 9px 18px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-purple-700);
   color: white;
   font-weight: 600;
@@ -863,8 +862,8 @@ tr.student-table-row.expandable:hover {
 .score-input {
   width: 90px;
   padding: 6px 8px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 0.92rem;
 }
 
@@ -877,7 +876,7 @@ tr.student-table-row.expandable:hover {
 .add-score-section {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 20px;
 }
@@ -929,7 +928,7 @@ tr.student-table-row.expandable:hover {
 .crud-manager {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 20px;
 }
@@ -966,7 +965,7 @@ tr.student-table-row.expandable:hover {
 .crud-header button {
   padding: 9px 18px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-purple-700);
   color: white;
   font-weight: 600;
@@ -979,11 +978,11 @@ tr.student-table-row.expandable:hover {
 }
 
 .error-text {
-  color: #b3261e;
-  background: #fdecea;
-  border: 1px solid #f5c6c3;
+  color: var(--color-red-600);
+  background: var(--color-red-50);
+  border: 1px solid var(--color-red-100);
   padding: 10px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-bottom: 16px;
 }
 
@@ -991,9 +990,9 @@ tr.student-table-row.expandable:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #f7f8fb;
-  border: 1px solid #e2e4ec;
-  border-radius: 8px;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 20px;
 }
@@ -1003,23 +1002,23 @@ tr.student-table-row.expandable:hover {
   flex-direction: column;
   gap: 4px;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .crud-form input,
 .crud-form select {
   padding: 8px 10px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   font-family: inherit;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
 }
 
 .crud-form input:read-only,
 .crud-form select:disabled {
-  background: #eef0f6;
-  color: #888;
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
 }
 
 .searchable-select {
@@ -1029,11 +1028,11 @@ tr.student-table-row.expandable:hover {
 .searchable-select input {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   font-family: inherit;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
   box-sizing: border-box;
 }
 
@@ -1043,8 +1042,8 @@ tr.student-table-row.expandable:hover {
 }
 
 .searchable-select.disabled input {
-  background: #eef0f6;
-  color: #888;
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
 }
 
 .searchable-select-options {
@@ -1060,15 +1059,15 @@ tr.student-table-row.expandable:hover {
   list-style: none;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(17, 10, 34, 0.15);
 }
 
 .searchable-select-option {
   padding: 7px 10px;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   font-size: 0.92rem;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
   cursor: pointer;
 }
 
@@ -1085,7 +1084,7 @@ tr.student-table-row.expandable:hover {
 .searchable-select-empty {
   padding: 8px 10px;
   font-size: 0.88rem;
-  color: #888;
+  color: var(--color-gray-400);
 }
 
 .crud-form-actions {
@@ -1096,7 +1095,7 @@ tr.student-table-row.expandable:hover {
 .crud-form-actions button {
   padding: 9px 18px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -1108,7 +1107,7 @@ tr.student-table-row.expandable:hover {
 
 .crud-form-actions button[type="button"] {
   background: white;
-  border: 1px solid #cfd3e0;
+  border: 1px solid var(--color-gray-300);
   color: var(--color-purple-700);
 }
 
@@ -1130,8 +1129,8 @@ tr.student-table-row.expandable:hover {
 
 .crud-modal {
   background: white;
-  border-radius: 10px;
-  border-top: 4px solid var(--color-purple-600, #7c3aed);
+  border-radius: var(--radius-md);
+  border-top: 4px solid var(--color-purple-600);
   box-shadow: 0 20px 50px rgba(17, 10, 34, 0.3);
   width: 100%;
   max-width: 480px;
@@ -1144,13 +1143,13 @@ tr.student-table-row.expandable:hover {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #e2e4ec;
+  border-bottom: 1px solid var(--color-gray-200);
 }
 
 .crud-modal-header h3 {
   margin: 0;
   font-size: 1.05rem;
-  color: var(--color-purple-900, #4c1d95);
+  color: var(--color-purple-900);
 }
 
 .crud-modal-close {
@@ -1158,15 +1157,15 @@ tr.student-table-row.expandable:hover {
   border: none;
   font-size: 1.4rem;
   line-height: 1;
-  color: #666;
+  color: var(--color-gray-500);
   cursor: pointer;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .crud-modal-close:hover {
-  background: var(--color-purple-100, #ede9fe);
-  color: var(--color-purple-700, #5b21b6);
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
 }
 
 .crud-modal-close:disabled {
@@ -1187,10 +1186,10 @@ tr.student-table-row.expandable:hover {
 
 .crud-group-title {
   font-size: 0.95rem;
-  color: var(--color-purple-900, #4c1d95);
-  background: var(--color-purple-100, #ede9fe);
+  color: var(--color-purple-900);
+  background: var(--color-purple-100);
   padding: 8px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin: 0 0 10px;
 }
 
@@ -1199,9 +1198,9 @@ tr.student-table-row.expandable:hover {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 12px;
-  background: #f7f8fb;
-  border: 1px solid #e2e4ec;
-  border-radius: 8px;
+  background: var(--color-gray-50);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   margin-bottom: 12px;
 }
@@ -1211,22 +1210,22 @@ tr.student-table-row.expandable:hover {
   flex-direction: column;
   gap: 4px;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .crud-filters select {
   padding: 7px 9px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 0.95rem;
   font-family: inherit;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
 }
 
 .crud-filters button {
   padding: 8px 14px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   background: white;
   color: var(--color-purple-700);
   font-weight: 600;
@@ -1236,7 +1235,7 @@ tr.student-table-row.expandable:hover {
 
 .crud-filter-summary {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
   margin: 0 0 10px;
 }
 
@@ -1245,7 +1244,7 @@ tr.student-table-row.expandable:hover {
   border-collapse: collapse;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   overflow: hidden;
   font-size: 0.88rem;
@@ -1254,20 +1253,20 @@ tr.student-table-row.expandable:hover {
 .crud-table thead th {
   text-align: left;
   font-size: 0.8rem;
-  color: #555;
-  background: #f9fafb;
+  color: var(--color-gray-600);
+  background: var(--color-gray-50);
   padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .crud-table tbody td {
   padding: 11px 14px;
-  border-bottom: 1px solid #eef0f6;
+  border-bottom: 1px solid var(--color-gray-100);
   vertical-align: middle;
 }
 
 .crud-table tbody tr:nth-child(even) {
-  background: #fafbfd;
+  background: var(--color-gray-50);
 }
 
 .crud-table tbody tr:hover {
@@ -1281,8 +1280,8 @@ tr.student-table-row.expandable:hover {
 
 .crud-table tbody button {
   padding: 5px 12px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   background: white;
   color: var(--color-purple-700);
   font-size: 0.82rem;
@@ -1303,9 +1302,9 @@ tr.student-table-row.expandable:hover {
   justify-content: center;
   padding: 6px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: none;
-  color: #9ca3af;
+  color: var(--color-gray-400);
   cursor: pointer;
 }
 
@@ -1337,7 +1336,7 @@ tr.student-table-row.expandable:hover {
 .admin-home-group {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 16px 20px;
 }
@@ -1388,7 +1387,7 @@ tr.student-table-row.expandable:hover {
   gap: 16px;
   background: var(--color-purple-700);
   color: var(--color-text-invert);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 18px 22px;
   text-decoration: none;
   margin-bottom: 28px;
@@ -1432,8 +1431,8 @@ tr.student-table-row.expandable:hover {
 
 .admin-home-links a {
   padding: 8px 14px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   color: var(--color-purple-700);
   text-decoration: none;
   font-weight: 600;
@@ -1441,13 +1440,13 @@ tr.student-table-row.expandable:hover {
 }
 
 .admin-home-links a:hover {
-  background: #eef0fa;
+  background: var(--color-surface-soft);
 }
 
 .export-pdf-button {
   padding: 9px 18px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   background: white;
   color: var(--color-purple-700);
   font-weight: 600;
@@ -1456,7 +1455,7 @@ tr.student-table-row.expandable:hover {
 }
 
 .export-pdf-button:hover {
-  background: #eef0fa;
+  background: var(--color-surface-soft);
 }
 
 .student-profile-card {
@@ -1467,7 +1466,7 @@ tr.student-table-row.expandable:hover {
   gap: 20px;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 20px;
   margin-bottom: 20px;
@@ -1480,7 +1479,7 @@ tr.student-table-row.expandable:hover {
 
 .student-profile-id {
   margin: 0;
-  color: #666;
+  color: var(--color-gray-500);
   font-size: 0.9rem;
 }
 
@@ -1500,14 +1499,14 @@ tr.student-table-row.expandable:hover {
 
 .student-profile-meta dt {
   font-size: 0.75rem;
-  color: #888;
+  color: var(--color-gray-400);
   text-transform: uppercase;
 }
 
 .student-profile-meta dd {
   margin: 0;
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-gray-900);
 }
 
 .plo-summary-stats {
@@ -1523,7 +1522,7 @@ tr.student-table-row.expandable:hover {
   gap: 4px;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 16px 20px;
 }
@@ -1542,7 +1541,7 @@ tr.student-table-row.expandable:hover {
 
 .stat-label {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .plo-radar-wrap {
@@ -1550,8 +1549,8 @@ tr.student-table-row.expandable:hover {
   flex-direction: column;
   align-items: center;
   background: white;
-  border: 1px solid #e2e4ec;
-  border-radius: 10px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 20px;
 }
@@ -1559,9 +1558,9 @@ tr.student-table-row.expandable:hover {
 .plo-radar-tooltip {
   margin-top: 8px;
   padding: 8px 14px;
-  background: #1a1a2e;
+  background: var(--color-gray-900);
   color: white;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.85rem;
 }
 
@@ -1573,8 +1572,8 @@ tr.student-table-row.expandable:hover {
 
 .button-secondary {
   padding: 9px 18px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   background: white;
   color: var(--color-purple-700);
   font-weight: 600;
@@ -1583,7 +1582,7 @@ tr.student-table-row.expandable:hover {
 }
 
 .button-secondary:hover {
-  background: #eef0fa;
+  background: var(--color-surface-soft);
 }
 
 @media print {
@@ -1604,7 +1603,7 @@ tr.student-table-row.expandable:hover {
 .year-progress-card {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 20px;
 }
@@ -1625,13 +1624,13 @@ tr.student-table-row.expandable:hover {
 
 .year-progress-course-count {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .ylo-description-box {
-  background: #eef0fa;
-  border: 1px solid #d6dbf2;
-  border-radius: 8px;
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-purple-100);
+  border-radius: var(--radius-md);
   padding: 12px 16px;
   margin-bottom: 16px;
 }
@@ -1692,7 +1691,7 @@ tr.student-table-row.expandable:hover {
 
 .plo-course-breakdown-label svg {
   cursor: help;
-  color: #999;
+  color: var(--color-gray-400);
 }
 
 .plo-cohort-prefix-filter {
@@ -1709,7 +1708,7 @@ tr.student-table-row.expandable:hover {
   font-size: 0.82rem;
   padding: 3px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text);
 }
@@ -1767,7 +1766,7 @@ tr.student-table-row.expandable:hover {
 .ylo-description-box p {
   margin: 0;
   font-size: 0.9rem;
-  color: #333;
+  color: var(--color-gray-800);
 }
 
 .plo-bar-row.expected-this-year {
@@ -1839,13 +1838,13 @@ tr.student-table-row.expandable:hover {
   text-decoration: none;
   font-weight: 600;
   font-size: 0.92rem;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border-left: 3px solid transparent;
 }
 
 .sidebar-nav a svg {
   flex-shrink: 0;
-  color: #9ca3af;
+  color: var(--color-gray-400);
 }
 
 .sidebar-nav a:hover {
@@ -1896,7 +1895,7 @@ tr.student-table-row.expandable:hover {
   background: none;
   border: none;
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-family: inherit;
 }
 
@@ -1935,7 +1934,7 @@ tr.student-table-row.expandable:hover {
   right: 0;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   min-width: 180px;
   overflow: hidden;
@@ -1965,7 +1964,7 @@ tr.student-table-row.expandable:hover {
 .app-content {
   flex: 1;
   padding: 24px;
-  background: var(--color-surface);
+  background: var(--color-page-bg);
 }
 
 /* --- profile page --- */
@@ -1977,7 +1976,7 @@ tr.student-table-row.expandable:hover {
 .profile-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(76, 29, 149, 0.08);
 }
@@ -2026,7 +2025,7 @@ tr.student-table-row.expandable:hover {
 }
 
 .profile-field-label {
-  color: #666;
+  color: var(--color-gray-500);
   font-size: 0.85rem;
 }
 
@@ -2057,13 +2056,13 @@ tr.student-table-row.expandable:hover {
 
 .workspace-offering-select label {
   font-size: 0.85rem;
-  color: #555;
+  color: var(--color-gray-600);
 }
 
 .workspace-offering-select select {
   padding: 9px 10px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
 }
 
@@ -2086,7 +2085,7 @@ tr.student-table-row.expandable:hover {
   background: none;
   font-weight: 600;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-gray-500);
   cursor: pointer;
 }
 
@@ -2102,7 +2101,7 @@ tr.student-table-row.expandable:hover {
 
 .workspace-hint {
   font-size: 0.82rem;
-  color: #666;
+  color: var(--color-gray-500);
   margin: -8px 0 16px;
 }
 
@@ -2112,14 +2111,14 @@ tr.student-table-row.expandable:hover {
    ตรง "จะเพิ่มนักศึกษา X คน" ใต้ปุ่ม "เพิ่มนักศึกษารุ่นนี้ทั้งหมด") */
 .workspace-hint-inline {
   font-size: 0.82rem;
-  color: #666;
+  color: var(--color-gray-500);
   margin: 4px 0 16px;
 }
 
 .workspace-empty-state {
   background: var(--color-surface-soft);
-  border: 1px dashed #cfd3e0;
-  border-radius: 10px;
+  border: 1px dashed var(--color-gray-300);
+  border-radius: var(--radius-md);
   padding: 20px 24px;
   max-width: 560px;
 }
@@ -2161,7 +2160,7 @@ tr.student-table-row.expandable:hover {
   max-height: 280px;
   overflow-y: auto;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 6px;
   margin: 12px 0 16px;
   background: var(--color-surface-soft);
@@ -2172,7 +2171,7 @@ tr.student-table-row.expandable:hover {
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   cursor: pointer;
 }
@@ -2188,9 +2187,9 @@ tr.student-table-row.expandable:hover {
 .enroll-other-section-note {
   margin: 4px 0 16px;
   padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--color-yellow-100, #fdf6e3);
-  border: 1px solid var(--color-yellow-200, #f2e2b3);
+  border-radius: var(--radius-md);
+  background: var(--color-yellow-100);
+  border: 1px solid var(--color-yellow-200);
 }
 
 .enroll-other-section-note .workspace-hint-inline {
@@ -2204,7 +2203,7 @@ tr.student-table-row.expandable:hover {
   max-height: 160px;
   overflow-y: auto;
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .enroll-other-section-list li {
@@ -2228,7 +2227,7 @@ tr.student-table-row.expandable:hover {
 .roster-info-grid label {
   display: block;
   font-size: 0.78rem;
-  color: #666;
+  color: var(--color-gray-500);
   margin-bottom: 3px;
 }
 
@@ -2248,8 +2247,8 @@ tr.student-table-row.expandable:hover {
   font-weight: 700;
   padding: 2px 10px;
   border-radius: 999px;
-  background: #eef0f6;
-  color: #555;
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
   white-space: nowrap;
 }
 
@@ -2259,8 +2258,8 @@ tr.student-table-row.expandable:hover {
 }
 
 .roster-badge-orange {
-  background: #fdf1e0;
-  color: #b3691e;
+  background: var(--color-orange-100);
+  color: var(--color-orange-700);
 }
 
 .roster-badge-red {
@@ -2270,7 +2269,7 @@ tr.student-table-row.expandable:hover {
 
 .roster-detail-cell {
   font-size: 0.82rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .roster-credentials-box {
@@ -2280,7 +2279,7 @@ tr.student-table-row.expandable:hover {
 .roster-credentials-box code {
   background: var(--color-surface-soft);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
 }
 
@@ -2292,7 +2291,7 @@ tr.student-table-row.expandable:hover {
 
 .upload-result-list label {
   font-size: 0.82rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .upload-result-list textarea {
@@ -2300,7 +2299,7 @@ tr.student-table-row.expandable:hover {
   min-height: 60px;
   padding: 8px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-family: inherit;
   font-size: 0.85rem;
   resize: vertical;
@@ -2323,7 +2322,7 @@ tr.student-table-row.expandable:hover {
   padding: 8px 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 0.88rem;
 }
 
@@ -2340,7 +2339,7 @@ tr.student-table-row.expandable:hover {
 .workspace-section {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 20px;
   margin-bottom: 24px;
@@ -2400,14 +2399,14 @@ tr.student-table-row.expandable:hover {
 
 .score-sheet-table th,
 .score-sheet-table td {
-  border: 1px solid #e2e4ec;
+  border: 1px solid var(--color-gray-200);
   padding: 8px 10px;
   font-size: 0.9rem;
 }
 
 .score-sheet-table thead th {
-  background: #f0f1f7;
-  color: #444;
+  background: var(--color-gray-100);
+  color: var(--color-gray-700);
   text-align: left;
 }
 
@@ -2420,20 +2419,20 @@ tr.student-table-row.expandable:hover {
 }
 
 .score-sheet-table td.score-sheet-student-cell {
-  background: #fafbfd;
+  background: var(--color-gray-50);
   z-index: 1;
 }
 
 .score-sheet-table thead th.score-sheet-student-cell {
-  background: #f0f1f7;
+  background: var(--color-gray-100);
   z-index: 3;
 }
 
 .score-sheet-table input {
   width: 80px;
   padding: 5px 7px;
-  border: 1px solid #cfd3e0;
-  border-radius: 6px;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
@@ -2468,7 +2467,7 @@ tr.student-table-row.expandable:hover {
 
 .workspace-muted {
   font-size: 0.78rem;
-  color: #888;
+  color: var(--color-gray-400);
   margin-left: 6px;
 }
 
@@ -2484,7 +2483,7 @@ tr.student-table-row.expandable:hover {
   flex: 1;
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 18px 20px;
   display: flex;
@@ -2506,7 +2505,7 @@ tr.student-table-row.expandable:hover {
 
 .instructor-summary-label {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .instructor-course-grid {
@@ -2518,7 +2517,7 @@ tr.student-table-row.expandable:hover {
 .instructor-course-card {
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   padding: 18px 20px;
   display: flex;
@@ -2541,7 +2540,7 @@ tr.student-table-row.expandable:hover {
 .instructor-course-meta {
   margin: 0;
   font-size: 0.82rem;
-  color: #666;
+  color: var(--color-gray-500);
 }
 
 .instructor-course-stats {
@@ -2550,14 +2549,14 @@ tr.student-table-row.expandable:hover {
   gap: 8px;
   align-items: center;
   font-size: 0.85rem;
-  color: #444;
+  color: var(--color-gray-700);
 }
 
 .instructor-course-btn {
   margin-top: 8px;
   align-self: flex-start;
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--color-purple-700);
   color: white;
   text-decoration: none;
@@ -2593,10 +2592,10 @@ tr.student-table-row.expandable:hover {
 .instructor-course-release-btn {
   align-self: flex-start;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: transparent;
-  color: #888;
+  color: var(--color-gray-400);
   font-size: 0.8rem;
 }
 
@@ -2620,7 +2619,7 @@ tr.student-table-row.expandable:hover {
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: #eee;
-  color: #777;
+  background: var(--color-gray-200);
+  color: var(--color-gray-500);
   white-space: nowrap;
 }

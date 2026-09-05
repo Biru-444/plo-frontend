@@ -6,15 +6,18 @@ const CENTER = SIZE / 2;
 const MAX_RADIUS = 130;
 const LEVELS = [20, 40, 60, 80, 100];
 
-// สีจาก validated palette (dataviz skill): series-1 blue, status good/critical
-const COLOR_LINE = "#2a78d6";
-const COLOR_FILL = "rgba(42, 120, 214, 0.18)";
-const COLOR_GOOD = "#0ca30c";
-const COLOR_CRITICAL = "#d03b3b";
-const COLOR_GRID = "#e1e0d9";
-const COLOR_AXIS = "#c3c2b7";
-const COLOR_MUTED_TEXT = "#898781";
-const COLOR_THRESHOLD_RING = "#52514e";
+// สีเดียวกับธีมหลักของระบบ (ม่วง/เขียว/แดง/เทา จาก :root ใน index.css) แทนโทนฟ้า/เขียว/เทาอมเหลืองเดิม
+// ที่ไม่เข้ากับระบบ - ใช้ CSS variable ตรงๆ ผ่าน SVG presentation attribute (ทำงานได้ปกติเหมือนที่
+// PLODonut.jsx ใช้อยู่แล้ว) ยกเว้น COLOR_FILL ที่ต้องเป็น rgba() ตรงๆ เพราะ opacity ผสมกับสีผ่าน var()
+// ไม่ได้ตรงๆ ในทุกเบราว์เซอร์ - ใช้ rgb ของ --color-purple-600 (#7C3AED) แทน
+const COLOR_LINE = "var(--color-purple-600)";
+const COLOR_FILL = "rgba(124, 58, 237, 0.18)";
+const COLOR_GOOD = "var(--color-green-700)";
+const COLOR_CRITICAL = "var(--color-red-700)";
+const COLOR_GRID = "var(--color-gray-200)";
+const COLOR_AXIS = "var(--color-gray-300)";
+const COLOR_MUTED_TEXT = "var(--color-gray-500)";
+const COLOR_THRESHOLD_RING = "var(--color-gray-600)";
 
 function pointFor(index, count, valuePercent) {
   const angle = -Math.PI / 2 + (index * 2 * Math.PI) / count;
@@ -99,7 +102,7 @@ export default function PLORadarChart({ achievements }) {
               cy={p.y}
               r={5}
               fill={passed ? COLOR_GOOD : COLOR_CRITICAL}
-              stroke="#fcfcfb"
+              stroke="var(--color-surface)"
               strokeWidth={2}
               tabIndex={0}
               onMouseEnter={() => setHovered(a)}
