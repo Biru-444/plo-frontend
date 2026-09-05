@@ -11,7 +11,10 @@ import { useEffect } from "react";
  * เสี่ยง regression เกินความจำเป็นสำหรับงานนี้ จึงเขียนใหม่ชิ้นเล็กๆ นี้แทน คัดลอกเฉพาะ CSS class
  * ไม่ได้สร้างสไตล์คู่ขนานใหม่
  *
- * fields: [{ key, label, type: 'text'|'number'|'select', options?: [{value,label}], required?: bool }]
+ * fields: [{ key, label, type: 'text'|'number'|'select'|'custom', options?: [{value,label}],
+ *            required?: bool, render?: (value, onChange) => ReactNode (เฉพาะ type: 'custom' - ให้
+ *            ผู้เรียกวาด field เองทั้งหมด เช่น dropdown+ช่องพิมพ์ "อื่นๆ" ที่ไม่ใช่แค่ text/select/
+ *            number ธรรมดา โดยไม่ต้องสอน QuickFormModal ให้รู้จัก logic เฉพาะของ field นั้น) }]
  * values: object ค่าปัจจุบันของฟอร์ม (key -> value)
  */
 export default function QuickFormModal({
@@ -72,6 +75,8 @@ export default function QuickFormModal({
                     </option>
                   ))}
                 </select>
+              ) : f.type === "custom" ? (
+                f.render(values[f.key] ?? "", (value) => onChange(f.key, value))
               ) : (
                 <input
                   type={f.type === "number" ? "number" : "text"}
