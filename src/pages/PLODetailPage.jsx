@@ -9,16 +9,11 @@ import PLOStudentBreakdown from "../components/PLOStudentBreakdown.jsx";
 
 const COHORT_ACHIEVED_THRESHOLD = 50;
 
-// ทั้ง 2 route (/plo/overview/:ploId, /plo/cohort/:ploId) ใช้ component เดียวกันนี้ - ข้อมูล/endpoint
-// เหมือนกันทุกจุด (getCohortPLOAchievement ตัวเดียวกัน) ต่างกันแค่ป้าย/ปลายทางปุ่มกลับ เพราะหน้า
-// "ภาพรวม PLO" กับ "PLO เมื่อจบการศึกษา" ใช้ตัวเลขชุดเดียวกันอยู่แล้วตั้งแต่ก่อนงานนี้ (ดูคอมเมนต์เดิม
-// ใน PLOYearProgress.jsx) ไม่ใช่ endpoint คนละตัวที่บังเอิญคืนค่าเหมือนกัน
-const CONTEXT_META = {
-  overview: { backLabel: "ภาพรวม PLO" },
-  cohort: { backLabel: "PLO เมื่อจบการศึกษา" },
-};
-
-export default function PLODetailPage({ context }) {
+// เดิมมี 2 route เข้าหน้านี้ได้ (/plo/overview/:ploId จากหน้า "ภาพรวม PLO", /plo/cohort/:ploId จาก
+// หน้า "PLO เมื่อจบการศึกษา" ที่แยกกัน) ใช้ component เดียวกันนี้มาตลอดเพราะข้อมูล/endpoint เหมือนกัน
+// ทุกจุด (getCohortPLOAchievement ตัวเดียวกัน) ต่างกันแค่ป้าย/ปลายทางปุ่มกลับ - ตอนนี้สองหน้าต้นทาง
+// ถูกรวมเป็นหน้าเดียว ("ภาพรวม PLO") แล้ว จึงเหลือ route เดียวคือ /plo/overview/:ploId เท่านั้น
+export default function PLODetailPage() {
   const { ploId } = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
@@ -58,8 +53,7 @@ export default function PLODetailPage({ context }) {
     };
   }, [curriculumId, cohortYear]);
 
-  const backBasePath =
-    context === "overview" ? (user?.role === "instructor" ? "/dashboard" : "/") : "/plo-by-year";
+  const backBasePath = user?.role === "instructor" ? "/dashboard" : "/";
   const backQuery = curriculumId
     ? `?curriculum=${curriculumId}${cohortYear ? `&cohort=${cohortYear}` : ""}`
     : "";
@@ -129,7 +123,7 @@ export default function PLODetailPage({ context }) {
     <div className="page">
       <Link to={`${backBasePath}${backQuery}`} className="crud-back-link">
         <ArrowLeft size={14} strokeWidth={2} />
-        กลับไป{CONTEXT_META[context].backLabel}
+        กลับไปภาพรวม PLO
       </Link>
 
       {!curriculumId && (
@@ -158,7 +152,6 @@ export default function PLODetailPage({ context }) {
             <PLOCourseBreakdown
               ploId={plo.plo_id}
               cohortYear={cohortYear ? Number(cohortYear) : null}
-              context={context}
               curriculumId={curriculumId}
             />
 

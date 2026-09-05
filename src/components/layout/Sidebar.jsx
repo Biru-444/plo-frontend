@@ -4,7 +4,6 @@ import {
   Users,
   BookOpen,
   LayoutDashboard,
-  GraduationCap,
   ClipboardList,
   Settings,
   Target,
@@ -61,12 +60,6 @@ export default function Sidebar() {
           },
         ]
       : []),
-    {
-      to: "/plo-by-year",
-      label: "PLO เมื่อจบการศึกษา",
-      icon: GraduationCap,
-      title: "ผลบรรลุ PLO รวมทั้งหลักสูตร - PLO เป็นผลลัพธ์รวมที่ควรบรรลุตอนจบ ไม่แยกตามชั้นปีเหมือน YLO",
-    },
     {
       to: "/ylo-by-year",
       label: "YLO ตามชั้นปี",

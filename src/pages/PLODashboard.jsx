@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getCohortPLOAchievement, listCurricula } from "../api/client.js";
+import { getCohortPLOAchievement, getPLOAchievementByYear, listCurricula } from "../api/client.js";
 import PLODonut from "../components/PLODonut.jsx";
 import PLOSummaryCard from "../components/PLOSummaryCard.jsx";
 
@@ -18,6 +18,7 @@ export default function PLODashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [curricula, setCurricula] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [totalCourseCount, setTotalCourseCount] = useState(0);
   const [loadingCurricula, setLoadingCurricula] = useState(true);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState(null);
@@ -73,9 +74,19 @@ export default function PLODashboard() {
     setLoadingSummary(true);
     setError(null);
 
-    getCohortPLOAchievement(selectedCurriculumId, selectedCohortYear)
-      .then((data) => {
-        if (!cancelled) setSummary(data);
+    // ยิงคู่กับ /plo/achievement/by-year เพื่อเอาแค่ course_count มารวมทุกปีสำหรับป้าย "N วิชาที่ใช้
+    // คำนวณ" (เดิมมีเฉพาะหน้า "PLO เมื่อจบการศึกษา" ก่อนรวมหน้า) - StudyPlan unique constraint คือ
+    // (curriculum_id, course_id, cohort_year) ไม่รวม year_level เลยการันตีว่าวิชาเดียวกันจะถูกนับที่
+    // ปีเดียวเสมอ รวมยอด 4 ปีแล้วไม่มีทางนับซ้ำ - ตัวเลข achievement % ยังคงมาจาก
+    // getCohortPLOAchievement ตัวเดียวเหมือนเดิมทุกประการ ไม่แตะ
+    Promise.all([
+      getCohortPLOAchievement(selectedCurriculumId, selectedCohortYear),
+      getPLOAchievementByYear(selectedCurriculumId, selectedCohortYear),
+    ])
+      .then(([summaryData, byYearData]) => {
+        if (cancelled) return;
+        setSummary(summaryData);
+        setTotalCourseCount(byYearData.years.reduce((sum, year) => sum + year.course_count, 0));
       })
       .catch(() => {
         if (!cancelled) {
@@ -192,6 +203,7 @@ export default function PLODashboard() {
               <span className="dashboard-hero-sub">
                 ({allAchievedStats.qualifying} จาก {allAchievedStats.total} ข้อที่มีวิชาหลัก)
               </span>
+              <span className="dashboard-hero-sub">{totalCourseCount} วิชาที่ใช้คำนวณ</span>
             </div>
           </div>
 
