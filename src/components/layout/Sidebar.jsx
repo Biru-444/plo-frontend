@@ -3,8 +3,8 @@ import {
   Home,
   Users,
   BookOpen,
-  PieChart,
-  CalendarRange,
+  LayoutDashboard,
+  GraduationCap,
   ClipboardList,
   Settings,
   Target,
@@ -56,7 +56,7 @@ export default function Sidebar() {
           {
             to: "/dashboard",
             label: "ภาพรวม PLO",
-            icon: PieChart,
+            icon: LayoutDashboard,
             title: "PLO = ผลลัพธ์การเรียนรู้ระดับหลักสูตร - ภาพรวมทั้งชั้นเรียน/หลักสูตร",
           },
         ]
@@ -64,7 +64,7 @@ export default function Sidebar() {
     {
       to: "/plo-by-year",
       label: "PLO เมื่อจบการศึกษา",
-      icon: CalendarRange,
+      icon: GraduationCap,
       title: "ผลบรรลุ PLO รวมทั้งหลักสูตร - PLO เป็นผลลัพธ์รวมที่ควรบรรลุตอนจบ ไม่แยกตามชั้นปีเหมือน YLO",
     },
     {
