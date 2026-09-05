@@ -6,17 +6,17 @@ import { getPLOCoursePlan } from "../api/client.js";
 const RESPONSIBILITY_LABEL = { primary: "หลัก", secondary: "รอง" };
 
 /**
- * รายการวิชาตามแผนหลักสูตร (มคอ.2, course_plo) ของ PLO ข้อหนึ่ง - ใช้ร่วมกันระหว่างหน้า "ภาพรวม PLO"
- * (PLODashboard) และ "PLO เมื่อจบการศึกษา" (PLOYearProgress) ผ่าน PLODetailPage แสดงเป็นลิสต์แนวตั้ง
- * เต็มความกว้างทีละแถว (เดิมเป็น chip แนวนอน กดแล้ว accordion ขยายในหน้าเดิม - เปลี่ยนเป็นแต่ละแถวคลิก
- * แล้วนำทางไปหน้าเต็มแยกต่างหากแทน ดู PLOCourseDetailPage.jsx ที่ย้ายเนื้อหาเดิมของ accordion ไปทั้งชุด:
- * ตารางนักศึกษาที่ลงทะเบียน, filter รุ่น, คอลัมน์ผลการบรรลุ)
+ * รายการวิชาตามแผนหลักสูตร (มคอ.2, course_plo) ของ PLO ข้อหนึ่ง - ใช้ในหน้ารายละเอียด PLO
+ * (PLODetailPage, เข้าถึงจากหน้า "ภาพรวม PLO") แสดงเป็นลิสต์แนวตั้งเต็มความกว้างทีละแถว (เดิมเป็น chip
+ * แนวนอน กดแล้ว accordion ขยายในหน้าเดิม - เปลี่ยนเป็นแต่ละแถวคลิกแล้วนำทางไปหน้าเต็มแยกต่างหากแทน ดู
+ * PLOCourseDetailPage.jsx ที่ย้ายเนื้อหาเดิมของ accordion ไปทั้งชุด: ตารางนักศึกษาที่ลงทะเบียน,
+ * filter รุ่น, คอลัมน์ผลการบรรลุ)
  *
- * context/curriculumId ใช้แค่สร้าง URL ของแต่ละแถว (route /plo/{context}/{ploId}/course/{course_id} คู่
- * กับ route ของ PLODetailPage เอง) ให้หน้าใหม่มีปุ่ม "กลับไป" ย้อนมาที่นี่พร้อมตัวกรองที่เลือกไว้ได้ถูกต้อง
- * - cohortYear ก็ส่งผ่าน query string เดียวกัน เพื่อให้หน้าใหม่ fetch roster ของรุ่นเดียวกับที่หน้านี้กรองอยู่
+ * curriculumId ใช้แค่สร้าง URL ของแต่ละแถว (route /plo/overview/{ploId}/course/{course_id} คู่กับ route
+ * ของ PLODetailPage เอง) ให้หน้าใหม่มีปุ่ม "กลับไป" ย้อนมาที่นี่พร้อมตัวกรองที่เลือกไว้ได้ถูกต้อง -
+ * cohortYear ก็ส่งผ่าน query string เดียวกัน เพื่อให้หน้าใหม่ fetch roster ของรุ่นเดียวกับที่หน้านี้กรองอยู่
  */
-export default function PLOCourseBreakdown({ ploId, cohortYear, context, curriculumId }) {
+export default function PLOCourseBreakdown({ ploId, cohortYear, curriculumId }) {
   const [coursePlan, setCoursePlan] = useState({ status: "loading", courses: [] });
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, context, curricu
     const query = curriculumId
       ? `?curriculum=${curriculumId}${cohortYear ? `&cohort=${cohortYear}` : ""}`
       : "";
-    return `/plo/${context}/${ploId}/course/${courseId}${query}`;
+    return `/plo/overview/${ploId}/course/${courseId}${query}`;
   }
 
   return (

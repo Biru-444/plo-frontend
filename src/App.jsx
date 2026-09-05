@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 import PLOAchievement from "./pages/PLOAchievement.jsx";
@@ -6,7 +6,6 @@ import InstructorHome from "./pages/InstructorHome.jsx";
 import StudentList from "./pages/StudentList.jsx";
 import CurriculumCourses from "./pages/CurriculumCourses.jsx";
 import PLODashboard from "./pages/PLODashboard.jsx";
-import PLOYearProgress from "./pages/PLOYearProgress.jsx";
 import PLODetailPage from "./pages/PLODetailPage.jsx";
 import PLOCourseDetailPage from "./pages/PLOCourseDetailPage.jsx";
 import YLOYearProgress from "./pages/YLOYearProgress.jsx";
@@ -92,31 +91,11 @@ export default function App() {
         }
       />
       <Route
-        path="/plo-by-year"
-        element={
-          <AppLayout>
-            <ProtectedRoute>
-              <PLOYearProgress />
-            </ProtectedRoute>
-          </AppLayout>
-        }
-      />
-      <Route
         path="/plo/overview/:ploId"
         element={
           <AppLayout>
             <ProtectedRoute>
-              <PLODetailPage context="overview" />
-            </ProtectedRoute>
-          </AppLayout>
-        }
-      />
-      <Route
-        path="/plo/cohort/:ploId"
-        element={
-          <AppLayout>
-            <ProtectedRoute>
-              <PLODetailPage context="cohort" />
+              <PLODetailPage />
             </ProtectedRoute>
           </AppLayout>
         }
@@ -126,17 +105,7 @@ export default function App() {
         element={
           <AppLayout>
             <ProtectedRoute>
-              <PLOCourseDetailPage context="overview" />
-            </ProtectedRoute>
-          </AppLayout>
-        }
-      />
-      <Route
-        path="/plo/cohort/:ploId/course/:courseId"
-        element={
-          <AppLayout>
-            <ProtectedRoute>
-              <PLOCourseDetailPage context="cohort" />
+              <PLOCourseDetailPage />
             </ProtectedRoute>
           </AppLayout>
         }
@@ -341,6 +310,9 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* path ที่ไม่ตรงกับ route ไหนเลย (เช่น /plo-by-year เดิม ที่ถูกรวมเข้ากับ /dashboard แล้ว) ->
+          พากลับหน้าแรกแทนที่จะปล่อยเป็นหน้าขาว - ProtectedRoute ของ "/" จะพาไป /login เองถ้ายังไม่ login */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

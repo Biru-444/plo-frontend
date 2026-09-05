@@ -26,8 +26,9 @@ export default function PLOCohortBar({
   isExpandable = false,
   isExpanded = false,
   onToggle,
-  // undefined (default) = ไม่ใช้ฟีเจอร์นี้เลย เหมือนพฤติกรรมเดิมของหน้า /dashboard
-  // true/false = หน้า /plo-by-year ใช้เน้น PLO ที่ YLO ปีนั้นคาดหวัง
+  // undefined (default) = ไม่ใช้ฟีเจอร์นี้เลย เหมือนพฤติกรรมเดิมของหน้า /dashboard - true/false ไว้เผื่อ
+  // อนาคตอยากเน้น PLO ที่ YLO ปีนั้นคาดหวัง แต่ปัจจุบันยังไม่มีผู้เรียกส่งค่านี้มาจากที่ไหนเลย (ไม่มีหน้า
+  // ไหน pass isExpectedThisYear แล้วตอนนี้ หลังรวมหน้า "ภาพรวม PLO"/"PLO เมื่อจบการศึกษา" เป็นหน้าเดียว)
   isExpectedThisYear,
 }) {
   const pct = Math.max(0, Math.min(100, averagePercent));

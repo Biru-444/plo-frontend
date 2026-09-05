@@ -26,11 +26,10 @@ function PLOAchievedBadge({ achieved }) {
  * เนื้อหา/พฤติกรรมเป็นชุดเดิมทุกอย่าง (fetch enrolled-students พร้อม plo_id, filter รุ่นฝั่ง client,
  * เรียง numeric id, คอลัมน์ผลการบรรลุ) ไม่มีอะไรเปลี่ยน
  *
- * route: /plo/overview/:ploId/course/:courseId และ /plo/cohort/:ploId/course/:courseId (context prop
- * แยกตาม route คู่กับ PLODetailPage) - curriculum/cohort ส่งผ่าน query string เหมือน PLODetailPage
- * เพื่อให้ปุ่ม "กลับไป" ย้อนกลับไปหน้า PLO detail เดิมพร้อมตัวกรองที่เลือกไว้ครบ
+ * route: /plo/overview/:ploId/course/:courseId - curriculum/cohort ส่งผ่าน query string เหมือน
+ * PLODetailPage เพื่อให้ปุ่ม "กลับไป" ย้อนกลับไปหน้า PLO detail เดิมพร้อมตัวกรองที่เลือกไว้ครบ
  */
-export default function PLOCourseDetailPage({ context }) {
+export default function PLOCourseDetailPage() {
   const { ploId, courseId } = useParams();
   const [searchParams] = useSearchParams();
   const curriculumId = searchParams.get("curriculum");
@@ -110,7 +109,7 @@ export default function PLOCourseDetailPage({ context }) {
   const backQuery = curriculumId
     ? `?curriculum=${curriculumId}${cohortYear ? `&cohort=${cohortYear}` : ""}`
     : "";
-  const backHref = `/plo/${context}/${ploId}${backQuery}`;
+  const backHref = `/plo/overview/${ploId}${backQuery}`;
 
   return (
     <div className="page">
