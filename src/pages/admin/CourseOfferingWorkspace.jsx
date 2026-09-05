@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -866,10 +866,14 @@ function StructureTab({
   const [mapWeight, setMapWeight] = useState("");
   const [mapError, setMapError] = useState("");
 
-  // --- สร้าง CLO ---
-  const [cloCode, setCloCode] = useState("");
-  const [cloDescription, setCloDescription] = useState("");
-  const [cloThreshold, setCloThreshold] = useState("60");
+  // --- สร้าง CLO หลายแถวพร้อมกัน (batch) - ไม่มีการผูก PLO ต่อ CLO ในหน้านี้อีกต่อไป (ผูกที่ระดับวิชา
+  // แยกต่างหากผ่านหน้า "เชื่อมโยงรายวิชากับ PLO") - code เป็น "CLO{n}" auto-generate จากตำแหน่งแถว ไม่
+  // ให้พิมพ์เอง - n เริ่มต่อจากเลข CLO สูงสุดที่มีอยู่แล้วจริงในวิชานี้ (ไม่ใช่แค่ courseCLOs.length+1
+  // เพราะถ้าเคยลบ CLO กลางๆ ทิ้งไป นับจำนวนเฉยๆ จะชน code เดิมที่ยังอยู่ได้ - ดู existingCloNumberMax
+  // ด้านล่าง)
+  const cloRowIdRef = useRef(1); // 0 ถูกใช้โดยแถวเริ่มต้นด้านล่างไปแล้ว
+  const [cloRows, setCloRows] = useState([{ rowId: 0, description: "", threshold: "", error: "" }]);
+  const [savingCloRows, setSavingCloRows] = useState(false);
   const [cloFormError, setCloFormError] = useState("");
 
   const itemById = useMemo(() => {
@@ -884,24 +888,100 @@ function StructureTab({
     return map;
   }, [courseCLOs]);
 
-  async function handleCreateCLO(e) {
+  // เลข CLO สูงสุดที่มีอยู่จริงแล้วในวิชานี้ (จาก code ที่ตรงรูปแบบ "CLO<เลข>" เท่านั้น ไม่สนตัวพิมพ์เล็ก
+  // ใหญ่ - code เก่าที่ตั้งชื่อไม่ตรงรูปแบบนี้เลยจะไม่ถูกนับ แต่ก็ไม่ชนกันเองอยู่แล้วเพราะ code ใหม่ที่สร้าง
+  // จะเป็น "CLO{n}" เป๊ะทุกครั้ง) แถวใหม่แต่ละแถวได้เลขต่อจากนี้ +1, +2, ... ตามตำแหน่งในฟอร์ม
+  const existingCloNumberMax = useMemo(() => {
+    let max = 0;
+    courseCLOs.forEach((c) => {
+      const match = /^CLO(\d+)$/i.exec(c.code ?? "");
+      if (match) max = Math.max(max, Number(match[1]));
+    });
+    return max;
+  }, [courseCLOs]);
+
+  function addCloRow() {
+    const rowId = cloRowIdRef.current++;
+    setCloRows((prev) => [...prev, { rowId, description: "", threshold: "", error: "" }]);
+  }
+
+  function removeCloRow(rowId) {
+    setCloRows((prev) => prev.filter((r) => r.rowId !== rowId));
+  }
+
+  function updateCloRow(rowId, field, value) {
+    setCloRows((prev) =>
+      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value, error: "" } : r))
+    );
+  }
+
+  function isValidThresholdInput(value) {
+    if (value === "" || value === null || value === undefined) return false;
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 && n <= 100;
+  }
+
+  async function handleSaveCloRows(e) {
     e.preventDefault();
-    setCloFormError("");
-    if (!cloCode.trim() || !cloDescription.trim()) return;
-    try {
-      await createCLO({
-        course_id: courseId,
-        code: cloCode.trim(),
-        description: cloDescription.trim(),
-        pass_threshold_percent: Number(cloThreshold || 60),
-      });
-      setCloCode("");
-      setCloDescription("");
-      setCloThreshold("60");
-      await onCLOChanged();
-    } catch (err) {
-      setCloFormError(err?.response?.data?.detail || "สร้าง CLO ไม่สำเร็จ (รหัส CLO นี้อาจมีอยู่แล้วในวิชานี้)");
+    if (cloRows.length === 0 || savingCloRows) return;
+
+    // validate ทุกแถวก่อนยิง request ใดๆ เลย - ถ้ามีแถวไหนไม่ผ่าน แสดง error ที่แถวนั้นแล้วหยุด ไม่ต้อง
+    // สร้างแถวที่ผ่านไปก่อนบางส่วน (กันสร้างครึ่งๆ กลางๆ จากข้อมูลที่ยังกรอกไม่ครบ)
+    let hasInvalid = false;
+    const validatedRows = cloRows.map((row) => {
+      let error = "";
+      if (!row.description.trim()) {
+        error = "กรุณากรอกคำอธิบาย";
+      } else if (!isValidThresholdInput(row.threshold)) {
+        error = "เกณฑ์ผ่านต้องเป็นตัวเลข 0-100";
+      }
+      if (error) hasInvalid = true;
+      return { ...row, error };
+    });
+    if (hasInvalid) {
+      setCloRows(validatedRows);
+      return;
     }
+
+    setSavingCloRows(true);
+    const results = await Promise.allSettled(
+      validatedRows.map((row, index) =>
+        createCLO({
+          course_id: courseId,
+          code: `CLO${existingCloNumberMax + index + 1}`,
+          description: row.description.trim(),
+          pass_threshold_percent: Number(row.threshold),
+        })
+      )
+    );
+    setSavingCloRows(false);
+
+    const anyFailed = results.some((r) => r.status === "rejected");
+    if (anyFailed) {
+      // เหลือไว้เฉพาะแถวที่พลาด (แถวที่สำเร็จแล้วขึ้นในตารางด้านล่างไปแล้วจาก onCLOChanged() - ถ้าปล่อย
+      // ให้ยังค้างอยู่ในฟอร์มด้วย กด "บันทึก" ซ้ำจะพยายามสร้างซ้ำด้วย code เดิมที่มีอยู่แล้ว ชนแน่นอน)
+      // ไม่ล้างค่า description/threshold ของแถวที่พลาดทิ้ง ให้แก้แล้วกดบันทึกใหม่ได้เลยไม่ต้องพิมพ์ซ้ำ
+      await onCLOChanged();
+      setCloRows(
+        validatedRows
+          .map((row, index) => {
+            const result = results[index];
+            return result.status === "rejected"
+              ? {
+                  ...row,
+                  error:
+                    result.reason?.response?.data?.detail ||
+                    "สร้าง CLO นี้ไม่สำเร็จ (รหัส CLO นี้อาจมีอยู่แล้วในวิชานี้)",
+                }
+              : null;
+          })
+          .filter(Boolean)
+      );
+      return;
+    }
+
+    await onCLOChanged();
+    setCloRows([{ rowId: cloRowIdRef.current++, description: "", threshold: "", error: "" }]);
   }
 
   async function handleDeleteCLO(id) {
@@ -1019,40 +1099,56 @@ function StructureTab({
           <p className="student-list-empty">วิชานี้ยังไม่มี CLO - สร้างข้อแรกด้านล่างได้เลย</p>
         )}
 
-        <form onSubmit={handleCreateCLO} className="workspace-inline-form">
-          <div className="form-field">
-            <label htmlFor="new-clo-code">รหัส CLO (เช่น CLO1)</label>
-            <input
-              id="new-clo-code"
-              type="text"
-              value={cloCode}
-              onChange={(e) => setCloCode(e.target.value)}
-              required
-            />
+        <form onSubmit={handleSaveCloRows} className="clo-multi-row-form">
+          {cloRows.map((row, index) => {
+            const cloNumber = existingCloNumberMax + index + 1;
+            return (
+              <div key={row.rowId} className="clo-multi-row-wrapper">
+                <div className="workspace-inline-form clo-multi-row">
+                  <span className="clo-multi-row-label">CLO{cloNumber}</span>
+                  <div className="form-field">
+                    <label htmlFor={`clo-row-desc-${row.rowId}`}>คำอธิบาย</label>
+                    <input
+                      id={`clo-row-desc-${row.rowId}`}
+                      type="text"
+                      value={row.description}
+                      onChange={(e) => updateCloRow(row.rowId, "description", e.target.value)}
+                    />
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor={`clo-row-threshold-${row.rowId}`}>เกณฑ์ผ่าน (%)</label>
+                    <input
+                      id={`clo-row-threshold-${row.rowId}`}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={row.threshold}
+                      onChange={(e) => updateCloRow(row.rowId, "threshold", e.target.value)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="icon-btn-delete"
+                    title="ลบแถวนี้"
+                    onClick={() => removeCloRow(row.rowId)}
+                  >
+                    ×
+                  </button>
+                </div>
+                {row.error && <p className="error-message clo-multi-row-error">{row.error}</p>}
+              </div>
+            );
+          })}
+
+          <div className="workspace-inline-form">
+            <button type="button" onClick={addCloRow}>
+              + เพิ่ม CLO
+            </button>
+            <button type="submit" disabled={cloRows.length === 0 || savingCloRows}>
+              {savingCloRows ? "กำลังบันทึก..." : "บันทึก"}
+            </button>
           </div>
-          <div className="form-field">
-            <label htmlFor="new-clo-desc">คำอธิบาย</label>
-            <input
-              id="new-clo-desc"
-              type="text"
-              value={cloDescription}
-              onChange={(e) => setCloDescription(e.target.value)}
-              required
-            />
-          </div>
-          <div className="form-field">
-            <label htmlFor="new-clo-threshold">เกณฑ์ผ่าน (%)</label>
-            <input
-              id="new-clo-threshold"
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={cloThreshold}
-              onChange={(e) => setCloThreshold(e.target.value)}
-            />
-          </div>
-          <button type="submit">+ สร้าง CLO</button>
         </form>
       </div>
 
