@@ -25,7 +25,10 @@ export default function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 
-  const selectedOption = options.find((o) => String(o.value) === String(value ?? ""));
+  // ถ้า value ว่าง/ยังไม่ได้เลือกอะไร ไม่ต้อง match กับ option ที่ value="" (เช่น "-- ทั้งหมด --"
+  // ในตัวกรอง) เพื่อให้ placeholder โชว์บอกใบ้ว่าพิมพ์ค้นหาได้แทน ไม่ถูก label ของ option นั้นบังไว้
+  const hasValue = value !== undefined && value !== null && value !== "";
+  const selectedOption = hasValue ? options.find((o) => String(o.value) === String(value)) : undefined;
 
   useEffect(() => {
     function handleClickOutside(e) {

@@ -9,7 +9,11 @@ import SearchableSelect from "../SearchableSelect.jsx";
  *             required?: bool, nullable?: bool, step?: string, omitIfEmptyOnUpdate?: bool,
  *             readOnly?: bool (ล็อกไม่ให้แก้ตอน editingId !== "new" - เช่น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว)
  *             filterable?: bool (select/searchable-select column: default true, ใช้ options เดิม;
- *                                 text/number column: default false, ต้องระบุ true เอง - ตัวเลือกจะ derive จาก rows จริง) }]
+ *                                 text/number column: default false, ต้องระบุ true เอง - ตัวเลือกจะ derive จาก rows จริง)
+ *             filterType?: 'searchable-select' (เฉพาะ column ที่ filterable แต่ type ไม่ใช่ select/
+ *                                 searchable-select เช่น number ที่พิมพ์ค่าใหม่ในฟอร์มได้อิสระ - ให้
+ *                                 เฉพาะช่องกรองด้านบนตารางเป็น SearchableSelect โดยไม่กระทบช่องกรอกใน
+ *                                 ฟอร์มเพิ่ม/แก้ไข ซึ่งยังคงพิมพ์ค่าที่ไม่เคยมีมาก่อนได้ตามปกติ) }]
  * 'searchable-select' = เหมือน 'select' ทุกอย่าง (options เดียวกัน, ผูก value/filter เหมือนกัน) แค่
  *   render เป็น SearchableSelect (พิมพ์ค้นหาได้) แทน <select> ธรรมดา - ใช้ตอนตัวเลือกเยอะ/ชื่อยาว
  * groupBy?: { keys: string[], label: (values: Record<string, any>) => string } - ถ้าส่งมา
@@ -342,7 +346,7 @@ export default function CrudManager({
       {!loading && filterableColumns.length > 0 && (
         <div className="crud-filters">
           {filterableColumns.map((c) =>
-            c.type === "searchable-select" ? (
+            c.type === "searchable-select" || c.filterType === "searchable-select" ? (
               <label key={c.key}>
                 {c.label}
                 <SearchableSelect
