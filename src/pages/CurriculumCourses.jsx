@@ -1,13 +1,61 @@
 import { useEffect, useMemo, useState } from "react";
-import { listCourses, listCurricula } from "../api/client.js";
+import { Pencil } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
+import QuickFormModal from "../components/QuickFormModal.jsx";
+import {
+  listCourses,
+  listCurricula,
+  createCurriculum,
+  updateCurriculum,
+  createCourse,
+  updateCourse,
+} from "../api/client.js";
+
+const CURRICULUM_FIELDS = [
+  { key: "name", label: "ชื่อหลักสูตร", type: "text", required: true },
+  { key: "year", label: "ปีหลักสูตร", type: "number", required: true },
+  {
+    key: "is_active",
+    label: "สถานะ",
+    type: "select",
+    options: [
+      { value: "true", label: "ใช้งานอยู่" },
+      { value: "false", label: "ไม่ใช้งาน" },
+    ],
+    required: true,
+  },
+];
+
+// หมวดหมู่เป็นช่องพิมพ์อิสระ ไม่ใช่ dropdown ค่าคงที่ - เหมือนหน้า /admin/course (AdminCourse.jsx)
+// เป๊ะ (ตรวจข้อมูลจริงแล้วพบว่ามีหลายค่าที่ต่างกันมาก ไม่ใช่ชุดปิดตายตัว)
+const COURSE_FIELDS = [
+  { key: "course_code", label: "รหัสวิชา", type: "text", required: true },
+  { key: "name_th", label: "ชื่อวิชา (ไทย)", type: "text", required: true },
+  { key: "name_en", label: "ชื่อวิชา (อังกฤษ)", type: "text" },
+  { key: "credit", label: "หน่วยกิต", type: "number", required: true },
+  { key: "category", label: "หมวดหมู่", type: "text" },
+];
 
 export default function CurriculumCourses() {
+  const { isAdmin } = useAuth();
   const [curricula, setCurricula] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Modal เพิ่ม/แก้ไขหลักสูตร - เฉพาะ admin (ดู isAdmin ด้านบน)
+  const [curriculumModal, setCurriculumModal] = useState(null); // null | { mode: "new" } | { mode: "edit", curriculum }
+  const [curriculumForm, setCurriculumForm] = useState({});
+  const [curriculumSaving, setCurriculumSaving] = useState(false);
+  const [curriculumFormError, setCurriculumFormError] = useState("");
+
+  // Modal เพิ่ม/แก้ไขรายวิชา - ผูกกับหลักสูตรที่เลือกอยู่เสมอ
+  const [courseModal, setCourseModal] = useState(null); // null | { mode: "new" } | { mode: "edit", course }
+  const [courseForm, setCourseForm] = useState({});
+  const [courseSaving, setCourseSaving] = useState(false);
+  const [courseFormError, setCourseFormError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +101,109 @@ export default function CurriculumCourses() {
     });
   }, [coursesForSelectedCurriculum, query]);
 
+  // --- หลักสูตร: เพิ่ม/แก้ไข ---
+
+  function openAddCurriculum() {
+    setCurriculumForm({ name: "", year: "", is_active: "true" });
+    setCurriculumFormError("");
+    setCurriculumModal({ mode: "new" });
+  }
+
+  function openEditCurriculum(curriculum) {
+    setCurriculumForm({
+      name: curriculum.name,
+      year: curriculum.year,
+      is_active: curriculum.is_active ? "true" : "false",
+    });
+    setCurriculumFormError("");
+    setCurriculumModal({ mode: "edit", curriculum });
+  }
+
+  function handleCurriculumFieldChange(key, value) {
+    setCurriculumForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleCurriculumSubmit(e) {
+    e.preventDefault();
+    setCurriculumSaving(true);
+    setCurriculumFormError("");
+    try {
+      const payload = {
+        name: curriculumForm.name,
+        year: Number(curriculumForm.year),
+        is_active: curriculumForm.is_active === "true",
+      };
+      if (curriculumModal.mode === "new") {
+        const created = await createCurriculum(payload);
+        setCurricula((prev) => [...prev, created]);
+        setSelectedCurriculumId(created.id);
+      } else {
+        const updated = await updateCurriculum(curriculumModal.curriculum.id, payload);
+        setCurricula((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      }
+      setCurriculumModal(null);
+    } catch {
+      setCurriculumFormError("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
+    } finally {
+      setCurriculumSaving(false);
+    }
+  }
+
+  // --- รายวิชา: เพิ่ม/แก้ไข ---
+
+  function openAddCourse() {
+    setCourseForm({ course_code: "", name_th: "", name_en: "", credit: "", category: "" });
+    setCourseFormError("");
+    setCourseModal({ mode: "new" });
+  }
+
+  function openEditCourse(course) {
+    setCourseForm({
+      course_code: course.course_code,
+      name_th: course.name_th,
+      name_en: course.name_en ?? "",
+      credit: course.credit,
+      category: course.category ?? "",
+    });
+    setCourseFormError("");
+    setCourseModal({ mode: "edit", course });
+  }
+
+  function handleCourseFieldChange(key, value) {
+    setCourseForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleCourseSubmit(e) {
+    e.preventDefault();
+    setCourseSaving(true);
+    setCourseFormError("");
+    try {
+      const payload = {
+        course_code: courseForm.course_code,
+        name_th: courseForm.name_th,
+        name_en: courseForm.name_en || null,
+        credit: Number(courseForm.credit),
+        category: courseForm.category || null,
+      };
+      if (courseModal.mode === "new") {
+        const created = await createCourse({ ...payload, curriculum_id: selectedCurriculumId });
+        setCourses((prev) => [...prev, created]);
+      } else {
+        const updated = await updateCourse(courseModal.course.id, payload);
+        setCourses((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      }
+      setCourseModal(null);
+    } catch (err) {
+      if (err?.response?.status === 409) {
+        setCourseFormError("มีรหัสวิชานี้อยู่ในหลักสูตรนี้แล้ว กรุณาใช้รหัสอื่น");
+      } else {
+        setCourseFormError("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
+      }
+    } finally {
+      setCourseSaving(false);
+    }
+  }
+
   return (
     <div className="page">
       <h1>หลักสูตร/รายวิชา</h1>
@@ -64,30 +215,47 @@ export default function CurriculumCourses() {
       {!loading && !error && (
         <div className="curriculum-layout">
           <aside className="curriculum-sidebar">
-            {curricula.map((curriculum) => (
-              <button
-                key={curriculum.id}
-                type="button"
-                className={`curriculum-item ${
-                  curriculum.id === selectedCurriculumId ? "selected" : ""
-                }`}
-                onClick={() => setSelectedCurriculumId(curriculum.id)}
-              >
-                <span className="curriculum-item-name">{curriculum.name}</span>
-                <span className="curriculum-item-year">ปีการศึกษา {curriculum.year}</span>
-                <span
-                  className={`curriculum-badge ${
-                    curriculum.is_active ? "active" : "inactive"
-                  }`}
-                >
-                  {curriculum.is_active ? "ใช้งานอยู่" : "ปิดใช้งาน"}
-                </span>
+            {isAdmin && (
+              <button type="button" onClick={openAddCurriculum}>
+                + เพิ่มหลักสูตร
               </button>
+            )}
+
+            {curricula.map((curriculum) => (
+              <div key={curriculum.id} className="curriculum-item-row">
+                <button
+                  type="button"
+                  className={`curriculum-item ${
+                    curriculum.id === selectedCurriculumId ? "selected" : ""
+                  }`}
+                  onClick={() => setSelectedCurriculumId(curriculum.id)}
+                >
+                  <span className="curriculum-item-name">{curriculum.name}</span>
+                  <span className="curriculum-item-year">ปีการศึกษา {curriculum.year}</span>
+                  <span
+                    className={`curriculum-badge ${
+                      curriculum.is_active ? "active" : "inactive"
+                    }`}
+                  >
+                    {curriculum.is_active ? "ใช้งานอยู่" : "ปิดใช้งาน"}
+                  </span>
+                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    className="icon-btn-edit"
+                    title="แก้ไขหลักสูตร"
+                    onClick={() => openEditCurriculum(curriculum)}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
             ))}
           </aside>
 
           <div className="curriculum-courses">
-            <div className="student-list-toolbar">
+            <div className="curriculum-course-toolbar">
               <input
                 type="text"
                 value={query}
@@ -95,6 +263,11 @@ export default function CurriculumCourses() {
                 placeholder="ค้นหาด้วยรหัสวิชาหรือชื่อวิชา"
                 aria-label="ค้นหารายวิชา"
               />
+              {isAdmin && selectedCurriculumId && (
+                <button type="button" onClick={openAddCourse}>
+                  + เพิ่มวิชา
+                </button>
+              )}
             </div>
 
             <table className="student-table">
@@ -105,6 +278,7 @@ export default function CurriculumCourses() {
                   <th>ชื่อวิชา (อังกฤษ)</th>
                   <th>หน่วยกิต</th>
                   <th>หมวดหมู่</th>
+                  {isAdmin && <th></th>}
                 </tr>
               </thead>
               <tbody>
@@ -115,6 +289,18 @@ export default function CurriculumCourses() {
                     <td className="student-table-cell">{course.name_en ?? "-"}</td>
                     <td className="student-table-cell">{course.credit}</td>
                     <td className="student-table-cell">{course.category ?? "-"}</td>
+                    {isAdmin && (
+                      <td className="student-table-cell">
+                        <button
+                          type="button"
+                          className="icon-btn-edit"
+                          title="แก้ไขวิชา"
+                          onClick={() => openEditCourse(course)}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -125,6 +311,32 @@ export default function CurriculumCourses() {
             )}
           </div>
         </div>
+      )}
+
+      {curriculumModal && (
+        <QuickFormModal
+          title={curriculumModal.mode === "new" ? "เพิ่มหลักสูตร" : "แก้ไขหลักสูตร"}
+          fields={CURRICULUM_FIELDS}
+          values={curriculumForm}
+          onChange={handleCurriculumFieldChange}
+          onSubmit={handleCurriculumSubmit}
+          onClose={() => setCurriculumModal(null)}
+          saving={curriculumSaving}
+          error={curriculumFormError}
+        />
+      )}
+
+      {courseModal && (
+        <QuickFormModal
+          title={courseModal.mode === "new" ? "เพิ่มวิชา" : "แก้ไขวิชา"}
+          fields={COURSE_FIELDS}
+          values={courseForm}
+          onChange={handleCourseFieldChange}
+          onSubmit={handleCourseSubmit}
+          onClose={() => setCourseModal(null)}
+          saving={courseSaving}
+          error={courseFormError}
+        />
       )}
     </div>
   );
