@@ -2382,6 +2382,24 @@ tr.student-table-row.expandable:hover {
   margin-top: 16px;
 }
 
+/* ฟอร์มสร้าง CLO หลายแถวพร้อมกัน (CourseOfferingWorkspace) - แต่ละแถวใช้ .workspace-inline-form เดิม
+   ซ้อนกันเป็นสแต็ก, ปุ่ม "+ เพิ่ม CLO"/"บันทึก" อยู่ในแถว .workspace-inline-form เปล่าท้ายสุด */
+.clo-multi-row-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.clo-multi-row-label {
+  min-width: 52px;
+  font-weight: 700;
+  color: var(--color-purple-700);
+  padding-bottom: 9px;
+}
+
+.clo-multi-row-error {
+  margin: 4px 0 0;
+}
+
 .toolbar-search.workspace-search-wrap {
   margin-bottom: 16px;
 }
