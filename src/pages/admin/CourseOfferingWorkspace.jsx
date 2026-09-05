@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -7,13 +7,13 @@ import {
   ListChecks,
   PencilLine,
   Target,
-  ChevronDown,
-  ChevronRight,
   Users,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import SearchableSelect from "../../components/SearchableSelect.jsx";
 import BulkEnrollPanel from "../../components/BulkEnrollPanel.jsx";
+import ScoresPanel from "../../components/ScoresPanel.jsx";
+import CLOAchievementPanel from "../../components/CLOAchievementPanel.jsx";
 import {
   listCourseOfferings,
   listCourses,
@@ -33,10 +33,6 @@ import {
   bulkEnrollByCohort,
   getSiblingSectionEnrollments,
   listStudents,
-  getOfferingStudentScores,
-  getOfferingCLOAchievement,
-  updateStudentScore,
-  createStudentScore,
 } from "../../api/client.js";
 
 const ASSESSMENT_TYPE_OPTIONS = ["quiz", "midterm", "final", "assignment", "project"];
@@ -88,8 +84,6 @@ export default function CourseOfferingWorkspace() {
   const [itemCLOs, setItemCLOs] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
-  const [offeringScores, setOfferingScores] = useState([]);
-  const [cloAchievement, setCloAchievement] = useState(null);
 
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
   const [workspaceError, setWorkspaceError] = useState("");
@@ -167,22 +161,17 @@ export default function CourseOfferingWorkspace() {
     setLoadingWorkspace(true);
     setWorkspaceError("");
     try {
-      const [items, clos, allItemClo, offeringEnrollments, scores, achievement] =
-        await Promise.all([
-          listAssessmentItems(offeringId),
-          listCLO(),
-          listItemCLO(),
-          listEnrollments(offeringId),
-          getOfferingStudentScores(offeringId),
-          getOfferingCLOAchievement(offeringId),
-        ]);
+      const [items, clos, allItemClo, offeringEnrollments] = await Promise.all([
+        listAssessmentItems(offeringId),
+        listCLO(),
+        listItemCLO(),
+        listEnrollments(offeringId),
+      ]);
       setAssessmentItems(items);
       setAllCLOs(clos);
       const itemIds = new Set(items.map((i) => i.id));
       setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
       setEnrollments(offeringEnrollments);
-      setOfferingScores(scores);
-      setCloAchievement(achievement);
     } catch {
       setWorkspaceError("โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
     } finally {
@@ -199,8 +188,6 @@ export default function CourseOfferingWorkspace() {
       setAllCLOs([]);
       setItemCLOs([]);
       setEnrollments([]);
-      setOfferingScores([]);
-      setCloAchievement(null);
     }
   }
 
@@ -228,15 +215,6 @@ export default function CourseOfferingWorkspace() {
   async function refreshEnrollments() {
     const offeringEnrollments = await listEnrollments(Number(selectedOfferingId));
     setEnrollments(offeringEnrollments);
-  }
-
-  async function refreshScoresAndAchievement() {
-    const [scores, achievement] = await Promise.all([
-      getOfferingStudentScores(Number(selectedOfferingId)),
-      getOfferingCLOAchievement(Number(selectedOfferingId)),
-    ]);
-    setOfferingScores(scores);
-    setCloAchievement(achievement);
   }
 
   return (
@@ -324,23 +302,9 @@ export default function CourseOfferingWorkspace() {
             />
           )}
 
-          {activeTab === "scores" && (
-            <ScoresTab
-              assessmentItems={assessmentItems}
-              enrollments={enrollments}
-              studentById={studentById}
-              offeringScores={offeringScores}
-              onSaved={refreshScoresAndAchievement}
-            />
-          )}
+          {activeTab === "scores" && <ScoresPanel offeringId={Number(selectedOfferingId)} />}
 
-          {activeTab === "clo" && (
-            <CLOTab
-              cloAchievement={cloAchievement}
-              itemCLOs={itemCLOs}
-              assessmentItems={assessmentItems}
-            />
-          )}
+          {activeTab === "clo" && <CLOAchievementPanel offeringId={Number(selectedOfferingId)} />}
         </>
       )}
 
@@ -1139,346 +1103,3 @@ function StructureTab({
   );
 }
 
-function ScoresTab({ assessmentItems, enrollments, studentById, offeringScores, onSaved }) {
-  const [search, setSearch] = useState("");
-  const [dirty, setDirty] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [saveSummary, setSaveSummary] = useState("");
-  const [savingKeys, setSavingKeys] = useState(() => new Set());
-  const [savedFlashKeys, setSavedFlashKeys] = useState(() => new Set());
-
-  const scoreByStudentItem = useMemo(() => {
-    const map = {};
-    offeringScores.forEach((s) => {
-      map[`${s.student_id}_${s.item_id}`] = s;
-    });
-    return map;
-  }, [offeringScores]);
-
-  const roster = useMemo(() => {
-    const list = enrollments
-      .map((e) => studentById[e.student_id])
-      .filter(Boolean)
-      .sort((a, b) => a.id.localeCompare(b.id));
-    if (!search.trim()) return list;
-    const q = search.trim().toLowerCase();
-    return list.filter(
-      (s) =>
-        s.id.toLowerCase().includes(q) ||
-        `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
-    );
-  }, [enrollments, studentById, search]);
-
-  function cellValue(studentId, itemId) {
-    const key = `${studentId}_${itemId}`;
-    if (dirty[key] !== undefined) return dirty[key].value;
-    const existing = scoreByStudentItem[key];
-    return existing ? String(existing.score_obtained) : "";
-  }
-
-  function handleCellChange(studentId, itemId, value) {
-    const key = `${studentId}_${itemId}`;
-    const existing = scoreByStudentItem[key];
-    setDirty((prev) => ({
-      ...prev,
-      [key]: { studentId, itemId, value, scoreId: existing ? existing.id : null },
-    }));
-  }
-
-  async function handleCellBlur(studentId, itemId) {
-    const key = `${studentId}_${itemId}`;
-    const entry = dirty[key];
-    if (!entry || entry.value === "") return;
-    setSavingKeys((prev) => new Set(prev).add(key));
-    try {
-      if (entry.scoreId) {
-        await updateStudentScore(entry.scoreId, Number(entry.value));
-      } else {
-        await createStudentScore({
-          item_id: entry.itemId,
-          student_id: entry.studentId,
-          score_obtained: Number(entry.value),
-        });
-      }
-      setDirty((prev) => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-      });
-      setSavedFlashKeys((prev) => new Set(prev).add(key));
-      setTimeout(() => {
-        setSavedFlashKeys((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      }, 1200);
-      await onSaved();
-    } catch {
-      // ทิ้ง entry ไว้ใน dirty ต่อไป - ผู้ใช้แก้/กด "บันทึกทั้งหมด" ใหม่ได้
-    } finally {
-      setSavingKeys((prev) => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
-  }
-
-  async function handleSaveAll() {
-    setSaving(true);
-    setSaveSummary("");
-    const entries = Object.values(dirty).filter((d) => d.value !== "");
-    const results = await Promise.allSettled(
-      entries.map((d) =>
-        d.scoreId
-          ? updateStudentScore(d.scoreId, Number(d.value))
-          : createStudentScore({
-              item_id: d.itemId,
-              student_id: d.studentId,
-              score_obtained: Number(d.value),
-            })
-      )
-    );
-    const succeeded = results.filter((r) => r.status === "fulfilled").length;
-    const failed = results.filter((r) => r.status === "rejected").length;
-    setSaveSummary(`บันทึกสำเร็จ ${succeeded} รายการ${failed > 0 ? `, ไม่สำเร็จ ${failed} รายการ` : ""}`);
-    setDirty({});
-    setSaving(false);
-    await onSaved();
-  }
-
-  const dirtyCount = Object.keys(dirty).length;
-
-  return (
-    <div className="workspace-section">
-      <h2>กรอกคะแนน</h2>
-
-      <div className="toolbar-search workspace-search-wrap">
-        <Search size={16} />
-        <input
-          type="text"
-          placeholder="ค้นหารหัส/ชื่อนักศึกษา..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
-      <div className="score-sheet-wrapper">
-        <table className="score-sheet-table">
-          <thead>
-            <tr>
-              <th className="score-sheet-student-cell">นักศึกษา</th>
-              {assessmentItems.map((item) => (
-                <th key={item.id}>
-                  {item.name}
-                  <br />/{item.total_score}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {roster.map((student) => (
-              <tr key={student.id}>
-                <td className="score-sheet-student-cell">
-                  {student.id} {student.first_name} {student.last_name}
-                </td>
-                {assessmentItems.map((item) => {
-                  const key = `${student.id}_${item.id}`;
-                  const inputClass = savedFlashKeys.has(key)
-                    ? "score-input-saved"
-                    : savingKeys.has(key)
-                    ? "score-input-saving"
-                    : "";
-                  return (
-                    <td key={item.id}>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max={item.total_score}
-                        className={inputClass}
-                        value={cellValue(student.id, item.id)}
-                        onChange={(e) => handleCellChange(student.id, item.id, e.target.value)}
-                        onBlur={() => handleCellBlur(student.id, item.id)}
-                      />
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {roster.length === 0 && <p className="student-list-empty">ไม่พบนักศึกษาที่ตรงกับการค้นหา</p>}
-      {assessmentItems.length === 0 && (
-        <p className="student-list-empty">วิชานี้ยังไม่มีงานประเมิน - เพิ่มในแท็บ "โครงสร้างการประเมิน" ก่อน</p>
-      )}
-
-      <div className="workspace-inline-form">
-        <button type="button" onClick={handleSaveAll} disabled={saving || dirtyCount === 0}>
-          {saving ? "กำลังบันทึก..." : `บันทึกทั้งหมด${dirtyCount > 0 ? ` (${dirtyCount})` : ""}`}
-        </button>
-        {saveSummary && <p className="success-message">{saveSummary}</p>}
-      </div>
-    </div>
-  );
-}
-
-function CLOTab({ cloAchievement, itemCLOs, assessmentItems }) {
-  const [expandedCloId, setExpandedCloId] = useState(null);
-
-  const itemById = useMemo(() => {
-    const map = {};
-    assessmentItems.forEach((i) => (map[i.id] = i));
-    return map;
-  }, [assessmentItems]);
-
-  if (!cloAchievement) return <p>กำลังโหลด...</p>;
-
-  const { clo_achievements } = cloAchievement;
-
-  if (clo_achievements.length === 0) {
-    return (
-      <div className="workspace-section">
-        <p className="student-list-empty">วิชานี้ยังไม่มี CLO</p>
-      </div>
-    );
-  }
-
-  const allStudentRows = clo_achievements[0].student_scores.map((s) => ({
-    student_id: s.student_id,
-    student_name: s.student_name,
-  }));
-
-  return (
-    <>
-      <div className="workspace-section">
-        <h2>สรุปผลบรรลุ CLO ระดับชั้นเรียน</h2>
-        <p className="workspace-hint">คลิกแถว CLO เพื่อดูว่าดึงคะแนนมาจากชิ้นงานประเมินใดบ้าง</p>
-        <table className="student-table">
-          <thead>
-            <tr>
-              <th></th>
-              <th>CLO</th>
-              <th>รายละเอียด</th>
-              <th>เกณฑ์ผ่าน (%)</th>
-              <th>ผ่าน</th>
-              <th>ไม่ผ่าน</th>
-              <th>ร้อยละบรรลุ</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {clo_achievements.map((clo) => {
-              const achieved = clo.achieved_rate_percent >= clo.pass_threshold_percent;
-              const isExpanded = expandedCloId === clo.clo_id;
-              const linkedItems = itemCLOs.filter((ic) => ic.clo_id === clo.clo_id);
-              return (
-                <Fragment key={clo.clo_id}>
-                  <tr
-                    className="student-table-row expandable"
-                    onClick={() => setExpandedCloId(isExpanded ? null : clo.clo_id)}
-                  >
-                    <td className="student-table-cell">
-                      {isExpanded ? (
-                        <ChevronDown size={16} color="var(--color-purple-600)" />
-                      ) : (
-                        <ChevronRight size={16} color="var(--color-purple-600)" />
-                      )}
-                    </td>
-                    <td className="student-table-cell">{clo.clo_code}</td>
-                    <td className="student-table-cell">{clo.description}</td>
-                    <td className="student-table-cell">{clo.pass_threshold_percent}</td>
-                    <td className="student-table-cell">{clo.passed_count}</td>
-                    <td className="student-table-cell">{clo.failed_count}</td>
-                    <td className="student-table-cell">
-                      {clo.achieved_rate_percent}%
-                      {clo.students_without_data > 0 && (
-                        <span className="workspace-muted">
-                          (อีก {clo.students_without_data} คนยังไม่มีข้อมูล)
-                        </span>
-                      )}
-                    </td>
-                    <td className="student-table-cell">
-                      <span className={achieved ? "badge-pass" : "badge-fail"}>
-                        {achieved ? "บรรลุ" : "ยังไม่บรรลุ"}
-                      </span>
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr className="student-table-detail-row">
-                      <td colSpan={8}>
-                        {linkedItems.length === 0 ? (
-                          <p className="student-list-empty">
-                            CLO นี้ยังไม่ได้ผูกกับชิ้นงานประเมินใดเลย - ไปเพิ่มใน "โครงสร้างการประเมิน"
-                          </p>
-                        ) : (
-                          <ul className="clo-trace-list">
-                            {linkedItems.map((ic) => (
-                              <li key={ic.id}>
-                                <span className="clo-trace-item-name">
-                                  {itemById[ic.item_id]?.name ?? `item #${ic.item_id}`}
-                                </span>
-                                <span className="clo-trace-item-weight">
-                                  น้ำหนัก {ic.weight_percent}%
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="workspace-section">
-        <h2>คะแนนรายบุคคลต่อ CLO</h2>
-        <div className="score-sheet-wrapper">
-          <table className="score-sheet-table">
-            <thead>
-              <tr>
-                <th className="score-sheet-student-cell">นักศึกษา</th>
-                {clo_achievements.map((clo) => (
-                  <th key={clo.clo_id}>{clo.clo_code}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {allStudentRows.map((row) => (
-                <tr key={row.student_id}>
-                  <td className="score-sheet-student-cell">
-                    {row.student_id} {row.student_name}
-                  </td>
-                  {clo_achievements.map((clo) => {
-                    const s = clo.student_scores.find((s) => s.student_id === row.student_id);
-                    return (
-                      <td key={clo.clo_id}>
-                        {s ? (
-                          <>
-                            {s.clo_percent}%{" "}
-                            <span className={s.passed ? "badge-pass" : "badge-fail"}>
-                              {s.passed ? "ผ่าน" : "ไม่ผ่าน"}
-                            </span>
-                          </>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </>
-  );
-}

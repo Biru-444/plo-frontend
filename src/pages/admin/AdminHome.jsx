@@ -4,7 +4,7 @@ import {
   BookMarked,
   CalendarClock,
   UserCog,
-  ClipboardList,
+  PencilLine,
   ArrowRight,
   FileSpreadsheet,
 } from "lucide-react";
@@ -40,7 +40,8 @@ const SETUP_GROUPS = [
 const OPS_GROUPS = [
   {
     title: "การเปิดสอน / นักศึกษา / ลงทะเบียน",
-    description: "ใช้เมนู \"จัดการวิชาที่สอน\" ด้านบนสำหรับงานประจำวัน มาที่นี่เฉพาะตอนต้องแก้ข้อมูลดิบทีละรายการ",
+    description:
+      "จัดการข้อมูลดิบของวิชาที่เปิดสอน/นักศึกษา/การลงทะเบียนทีละรายการ (กรอกคะแนน/ดูผลบรรลุ CLO ไปที่การ์ด \"กรอกคะแนน / ผลบรรลุ CLO\" ด้านบนแทน)",
     icon: CalendarClock,
     links: [
       { to: "/admin/course-offerings", label: "การเปิดสอนรายวิชา" },
@@ -89,11 +90,14 @@ export default function AdminHome() {
         งานประเมิน → คะแนนนักศึกษา
       </p>
 
-      <Link to="/course-workspace" className="admin-home-primary-card">
-        <ClipboardList size={22} strokeWidth={2} />
+      <Link to="/admin/course-grading" className="admin-home-primary-card">
+        <PencilLine size={22} strokeWidth={2} />
         <div>
-          <strong>จัดการวิชาที่สอน</strong>
-          <span>ลงทะเบียน + กรอกคะแนนทั้งชั้น + ดูผลบรรลุ CLO ของวิชาหนึ่งๆ ในหน้าเดียว — ใช้เมนูนี้เป็นหลักสำหรับงานประจำภาคเรียน แทนการไล่แก้ทีละเมนูย่อยด้านล่าง</span>
+          <strong>กรอกคะแนน / ผลบรรลุ CLO</strong>
+          <span>
+            กรอกคะแนนนักศึกษาทั้งชั้นแบบตาราง และดูผลบรรลุ CLO ของวิชาหนึ่งๆ ในหน้าเดียว — ใช้เมนูนี้เป็นหลักสำหรับงานประจำภาคเรียน
+            ส่วนลงทะเบียนนักศึกษาไปที่ "การลงทะเบียนเรียน" ด้านล่างแทน
+          </span>
         </div>
         <ArrowRight size={18} />
       </Link>
