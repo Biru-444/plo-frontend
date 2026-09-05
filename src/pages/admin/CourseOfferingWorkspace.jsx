@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import SearchableSelect from "../../components/SearchableSelect.jsx";
 import {
   listCourseOfferings,
   listCourses,
@@ -132,17 +133,28 @@ export default function CourseOfferingWorkspace() {
     return map;
   }, [allStudents]);
 
-  const offeringOptions = useMemo(
-    () =>
-      offerings.map((o) => {
+  // Label default ตัดปีการศึกษา/เทอม/หมู่ออก แสดงแค่ "<รหัสวิชา> <ชื่อวิชา>" - ต่อท้ายด้วย
+  // (<ปี>/<เทอม>) หมู่ <หมู่> เฉพาะวิชาที่มีมากกว่า 1 การเปิดสอนในลิสต์นี้เท่านั้น (นับจาก course_id
+  // ซ้ำกัน) เพื่อให้ยังแยกแยะได้เมื่อจำเป็น
+  const offeringOptions = useMemo(() => {
+    const countByCourseId = {};
+    offerings.forEach((o) => {
+      countByCourseId[o.course_id] = (countByCourseId[o.course_id] || 0) + 1;
+    });
+    return [
+      { value: "", label: "-- เลือกวิชา --" },
+      ...offerings.map((o) => {
         const course = courseById[o.course_id];
-        const label = course
-          ? `${course.course_code} ${course.name_th} (${o.academic_year}/${o.semester}) หมู่ ${o.section}`
-          : `วิชา #${o.id}`;
+        if (!course) return { value: o.id, label: `วิชา #${o.id}` };
+        const base = `${course.course_code} ${course.name_th}`;
+        const hasMultipleOfferings = countByCourseId[o.course_id] > 1;
+        const label = hasMultipleOfferings
+          ? `${base} (${o.academic_year}/${o.semester}) หมู่ ${o.section}`
+          : base;
         return { value: o.id, label };
       }),
-    [offerings, courseById]
-  );
+    ];
+  }, [offerings, courseById]);
 
   const selectedOffering = offerings.find((o) => o.id === Number(selectedOfferingId));
   const courseId = selectedOffering?.course_id;
@@ -180,8 +192,7 @@ export default function CourseOfferingWorkspace() {
     }
   }
 
-  function handleSelectOffering(e) {
-    const id = e.target.value;
+  function handleSelectOffering(id) {
     setSelectedOfferingId(id);
     if (id) {
       loadWorkspace(Number(id));
@@ -240,14 +251,13 @@ export default function CourseOfferingWorkspace() {
 
       <div className="workspace-offering-select">
         <label htmlFor="offering-select">เลือกการเปิดสอนรายวิชา</label>
-        <select id="offering-select" value={selectedOfferingId} onChange={handleSelectOffering}>
-          <option value="">-- เลือกวิชา --</option>
-          {offeringOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
+        <SearchableSelect
+          id="offering-select"
+          value={selectedOfferingId}
+          onChange={handleSelectOffering}
+          options={offeringOptions}
+          placeholder="พิมพ์รหัสหรือชื่อวิชา..."
+        />
       </div>
 
       {workspaceError && <p className="error-message">{workspaceError}</p>}
