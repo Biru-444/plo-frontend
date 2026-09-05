@@ -21,23 +21,31 @@ export default function YLOYearProgress() {
   const [loadingYlos, setLoadingYlos] = useState(false);
   const [loadingAchievement, setLoadingAchievement] = useState(false);
   const [error, setError] = useState(null);
-  // ตาราง "รหัสนักศึกษา/ชื่อ-นามสกุล/% บรรลุ" ซ่อนไว้ก่อนจนกว่าจะกดวงแหวน (pattern เดียวกับที่ทำไว้ใน
-  // หน้า PLO ตอนซ่อนตาราง "บรรลุ PLO" ท้ายการ์ด) - แยก state ต่อชั้นปี ไม่ให้ปีอื่นโผล่ตามกัน
-  const [interactedYearLevels, setInteractedYearLevels] = useState(new Set());
+  // ตาราง "รหัสนักศึกษา/ชื่อ-นามสกุล/% บรรลุ" ซ่อนไว้ก่อนเป็นค่าเริ่มต้น ผู้ใช้ต้องกดปุ่มเปิดเองชัดเจน
+  // (แทนของเดิมที่ผูกกับ "กดวงแหวนแล้ว" ซึ่งเปิดได้ทางเดียว ไม่มีปุ่มปิดกลับเลย - pattern เดียวกับที่
+  // เปลี่ยนไปแล้วในหน้า PLO เมื่อ 2 รอบก่อน ดู PLODetailPage.jsx/showStudentList) เป็น state เดียว ไม่ใช่
+  // Set ต่อชั้นปีเหมือนเดิม เพราะ reset กลับเป็นซ่อนทุกครั้งที่สลับปี/รุ่นอยู่แล้ว ไม่ต้องจำไว้ข้ามปี
+  const [showStudentList, setShowStudentList] = useState(false);
 
   function handleSelectCurriculum(curriculumId) {
     setSelectedCurriculumId(curriculumId);
     setSelectedYearLevel(YEAR_LEVELS[0]);
     setSelectedCohortYear(null);
-    setInteractedYearLevels(new Set());
+    setShowStudentList(false);
   }
 
   function handleSelectYear(yearLevel) {
     setSelectedYearLevel(yearLevel);
+    setShowStudentList(false);
   }
 
-  function markInteracted(yearLevel) {
-    setInteractedYearLevels((prev) => new Set(prev).add(yearLevel));
+  function handleSelectCohortYear(cohortYear) {
+    setSelectedCohortYear(cohortYear);
+    setShowStudentList(false);
+  }
+
+  function handleToggleStudentList() {
+    setShowStudentList((prev) => !prev);
   }
 
   useEffect(() => {
@@ -117,7 +125,6 @@ export default function YLOYearProgress() {
     yloByYear[y.year_level] = y;
   });
   const currentYlo = yloByYear[selectedYearLevel];
-  const isInteracted = interactedYearLevels.has(selectedYearLevel);
   const isAchievedOverall =
     achievement != null && achievement.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD;
 
@@ -146,7 +153,9 @@ export default function YLOYearProgress() {
               <select
                 id="ylo-year-progress-cohort-select"
                 value={selectedCohortYear ?? ""}
-                onChange={(e) => setSelectedCohortYear(e.target.value ? Number(e.target.value) : null)}
+                onChange={(e) =>
+                  handleSelectCohortYear(e.target.value ? Number(e.target.value) : null)
+                }
               >
                 <option value="">ทุกรุ่น</option>
                 {achievement.available_cohort_years.map((year) => (
@@ -198,12 +207,7 @@ export default function YLOYearProgress() {
 
               {!loadingAchievement && achievement && achievement.total_students > 0 && (
                 <>
-                  <button
-                    type="button"
-                    className="dashboard-hero dashboard-hero-clickable"
-                    onClick={() => markInteracted(selectedYearLevel)}
-                    aria-expanded={isInteracted}
-                  >
+                  <div className="dashboard-hero">
                     <PLODonut
                       percent={achievement.achieved_rate_percent}
                       size={100}
@@ -216,12 +220,17 @@ export default function YLOYearProgress() {
                       <span className="dashboard-hero-label">นักศึกษาบรรลุ YLO ปีนี้</span>
                       <span className="dashboard-hero-sub">
                         {achievement.achieved_student_count} จาก {achievement.total_students} คน
-                        {!isInteracted && " · กดเพื่อดูรายชื่อ"}
                       </span>
                     </div>
-                  </button>
+                  </div>
 
-                  {isInteracted && <YLOStudentBreakdown students={achievement.students} />}
+                  <div className="plo-student-list-toggle-row">
+                    <button type="button" className="button-secondary" onClick={handleToggleStudentList}>
+                      {showStudentList ? "ซ่อนรายชื่อนักศึกษา" : "ดูรายชื่อนักศึกษา"}
+                    </button>
+                  </div>
+
+                  {showStudentList && <YLOStudentBreakdown students={achievement.students} />}
                 </>
               )}
 
