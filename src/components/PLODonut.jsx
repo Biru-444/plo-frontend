@@ -10,7 +10,8 @@ export default function PLODonut({ percent, threshold = 60, size = SIZE, color }
   const clamped = hasData ? Math.max(0, Math.min(100, percent)) : 0;
   const offset = CIRCUMFERENCE - (clamped / 100) * CIRCUMFERENCE;
   const resolvedColor =
-    color || (!hasData ? "#d1d5db" : clamped >= threshold ? "var(--color-green-700)" : "var(--color-red-700)");
+    color ||
+    (!hasData ? "var(--color-gray-300)" : clamped >= threshold ? "var(--color-green-700)" : "var(--color-red-700)");
 
   return (
     <svg
@@ -20,7 +21,7 @@ export default function PLODonut({ percent, threshold = 60, size = SIZE, color }
       role="img"
       aria-label={hasData ? `${clamped.toFixed(1)}%` : "ยังไม่มีข้อมูล"}
     >
-      <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="#eef0f6" strokeWidth={STROKE} />
+      <circle cx={SIZE / 2} cy={SIZE / 2} r={RADIUS} fill="none" stroke="var(--color-gray-100)" strokeWidth={STROKE} />
       {hasData && (
         <circle
           cx={SIZE / 2}
@@ -42,7 +43,7 @@ export default function PLODonut({ percent, threshold = 60, size = SIZE, color }
         dominantBaseline="middle"
         fontSize={9}
         fontWeight="700"
-        fill={hasData ? "var(--color-text)" : "#9ca3af"}
+        fill={hasData ? "var(--color-text)" : "var(--color-gray-400)"}
       >
         {hasData ? `${Math.round(clamped)}%` : "-"}
       </text>
