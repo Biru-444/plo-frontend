@@ -25,10 +25,6 @@ import {
   listCLO,
   createCLO,
   deleteCLO,
-  listPLO,
-  listCLOPLOMapping,
-  createCLOPLOMapping,
-  deleteCLOPLOMapping,
   listEnrollments,
   createEnrollment,
   updateEnrollment,
@@ -870,20 +866,15 @@ function StructureTab({
   const [mapWeight, setMapWeight] = useState("");
   const [mapError, setMapError] = useState("");
 
-  // --- สร้าง CLO หลายแถวพร้อมกัน (batch) + ผูกกับ PLO (คนละขั้นตอนแล้ว - ผูกทีหลังผ่านตารางด้านล่าง) ---
-  // code เป็น "CLO{n}" auto-generate จากตำแหน่งแถว ไม่ให้พิมพ์เอง - n เริ่มต่อจากเลข CLO สูงสุดที่มีอยู่
-  // แล้วจริงในวิชานี้ (ไม่ใช่แค่ courseCLOs.length+1 เพราะถ้าเคยลบ CLO กลางๆ ทิ้งไป นับจำนวนเฉยๆ จะชน
-  // code เดิมที่ยังอยู่ได้ - ดู existingCloNumberMax ด้านล่าง)
+  // --- สร้าง CLO หลายแถวพร้อมกัน (batch) - ไม่มีการผูก PLO ต่อ CLO ในหน้านี้อีกต่อไป (ผูกที่ระดับวิชา
+  // แยกต่างหากผ่านหน้า "เชื่อมโยงรายวิชากับ PLO") - code เป็น "CLO{n}" auto-generate จากตำแหน่งแถว ไม่
+  // ให้พิมพ์เอง - n เริ่มต่อจากเลข CLO สูงสุดที่มีอยู่แล้วจริงในวิชานี้ (ไม่ใช่แค่ courseCLOs.length+1
+  // เพราะถ้าเคยลบ CLO กลางๆ ทิ้งไป นับจำนวนเฉยๆ จะชน code เดิมที่ยังอยู่ได้ - ดู existingCloNumberMax
+  // ด้านล่าง)
   const cloRowIdRef = useRef(1); // 0 ถูกใช้โดยแถวเริ่มต้นด้านล่างไปแล้ว
   const [cloRows, setCloRows] = useState([{ rowId: 0, description: "", threshold: "", error: "" }]);
   const [savingCloRows, setSavingCloRows] = useState(false);
   const [cloFormError, setCloFormError] = useState("");
-  const [plos, setPlos] = useState([]);
-  const [cloPloMappings, setCloPloMappings] = useState([]);
-  const [activeCloMapId, setActiveCloMapId] = useState(null);
-  const [mapPloId, setMapPloId] = useState("");
-  const [mapPloWeight, setMapPloWeight] = useState("");
-  const [ploMapError, setPloMapError] = useState("");
 
   const itemById = useMemo(() => {
     const map = {};
@@ -897,12 +888,6 @@ function StructureTab({
     return map;
   }, [courseCLOs]);
 
-  const ploById = useMemo(() => {
-    const map = {};
-    plos.forEach((p) => (map[p.id] = p));
-    return map;
-  }, [plos]);
-
   // เลข CLO สูงสุดที่มีอยู่จริงแล้วในวิชานี้ (จาก code ที่ตรงรูปแบบ "CLO<เลข>" เท่านั้น ไม่สนตัวพิมพ์เล็ก
   // ใหญ่ - code เก่าที่ตั้งชื่อไม่ตรงรูปแบบนี้เลยจะไม่ถูกนับ แต่ก็ไม่ชนกันเองอยู่แล้วเพราะ code ใหม่ที่สร้าง
   // จะเป็น "CLO{n}" เป๊ะทุกครั้ง) แถวใหม่แต่ละแถวได้เลขต่อจากนี้ +1, +2, ... ตามตำแหน่งในฟอร์ม
@@ -913,28 +898,6 @@ function StructureTab({
       if (match) max = Math.max(max, Number(match[1]));
     });
     return max;
-  }, [courseCLOs]);
-
-  useEffect(() => {
-    if (!curriculumId) return;
-    listPLO()
-      .then((all) => setPlos(all.filter((p) => p.curriculum_id === curriculumId)))
-      .catch(() => {});
-  }, [curriculumId]);
-
-  async function reloadCloPloMappings() {
-    const all = await listCLOPLOMapping();
-    const cloIds = new Set(courseCLOs.map((c) => c.id));
-    setCloPloMappings(all.filter((m) => cloIds.has(m.clo_id)));
-  }
-
-  useEffect(() => {
-    if (courseCLOs.length === 0) {
-      setCloPloMappings([]);
-      return;
-    }
-    reloadCloPloMappings().catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseCLOs]);
 
   function addCloRow() {
@@ -1023,9 +986,7 @@ function StructureTab({
 
   async function handleDeleteCLO(id) {
     if (
-      !window.confirm(
-        "ยืนยันการลบ CLO นี้? การลบจะลบการผูกกับ PLO และการผูกกับงานประเมินที่มีอยู่ทั้งหมดของ CLO นี้ไปด้วย"
-      )
+      !window.confirm("ยืนยันการลบ CLO นี้? การลบจะลบการผูกกับงานประเมินที่มีอยู่ทั้งหมดของ CLO นี้ไปด้วย")
     )
       return;
     try {
@@ -1033,34 +994,6 @@ function StructureTab({
       await onCLOChanged();
     } catch (err) {
       setCloFormError(err?.response?.data?.detail || "ลบ CLO ไม่สำเร็จ");
-    }
-  }
-
-  async function handleAddPloMapping(e, cloId) {
-    e.preventDefault();
-    setPloMapError("");
-    if (!mapPloId || mapPloWeight === "") return;
-    try {
-      await createCLOPLOMapping({
-        clo_id: cloId,
-        plo_id: Number(mapPloId),
-        weight_percent: Number(mapPloWeight),
-      });
-      setMapPloId("");
-      setMapPloWeight("");
-      await reloadCloPloMappings();
-    } catch (err) {
-      setPloMapError(err?.response?.data?.detail || "ผูกกับ PLO นี้ไม่สำเร็จ (อาจผูกไว้อยู่แล้ว)");
-    }
-  }
-
-  async function handleDeletePloMapping(id) {
-    if (!window.confirm("ยืนยันการเลิกผูก PLO นี้?")) return;
-    try {
-      await deleteCLOPLOMapping(id);
-      await reloadCloPloMappings();
-    } catch {
-      setPloMapError("เลิกผูกไม่สำเร็จ");
     }
   }
 
@@ -1127,8 +1060,9 @@ function StructureTab({
       <div className="workspace-section">
         <h2>CLO ของวิชานี้ (Course Learning Outcome)</h2>
         <p className="workspace-hint-inline">
-          สร้าง CLO ของวิชาก่อน (จะมีกี่ข้อก็ได้) แล้วเลือกว่าแต่ละข้อไปสนับสนุน PLO ข้อไหนบ้าง พร้อม
-          กำหนดน้ำหนัก % — ผูกได้หลาย PLO ต่อ 1 CLO จากนั้นค่อยไปสร้างงานประเมินผูกกับ CLO ในหัวข้อถัดไป
+          สร้าง CLO ของวิชาก่อน (จะมีกี่ข้อก็ได้) กำหนดเกณฑ์ผ่าน (%) ต่อข้อ จากนั้นค่อยไปสร้างงานประเมิน
+          ผูกกับ CLO ในหัวข้อถัดไป (การเชื่อมโยงกับ PLO ทำที่ระดับวิชาผ่านหน้า "เชื่อมโยงรายวิชากับ PLO"
+          แยกต่างหาก ไม่ใช่ตรงนี้)
         </p>
         {cloFormError && <p className="error-message">{cloFormError}</p>}
 
@@ -1138,110 +1072,27 @@ function StructureTab({
               <th>รหัส CLO</th>
               <th>คำอธิบาย</th>
               <th>เกณฑ์ผ่าน (%)</th>
-              <th>ผูกกับ PLO แล้ว</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {courseCLOs.map((clo) => {
-              const links = cloPloMappings.filter((m) => m.clo_id === clo.id);
-              const isMapping = activeCloMapId === clo.id;
-              return (
-                <Fragment key={clo.id}>
-                  <tr className="student-table-row">
-                    <td className="student-table-cell">{clo.code}</td>
-                    <td className="student-table-cell">{clo.description}</td>
-                    <td className="student-table-cell">{clo.pass_threshold_percent}</td>
-                    <td className="student-table-cell">
-                      {links.length === 0 ? (
-                        <span className="workspace-muted">ยังไม่ได้ผูกกับ PLO ไหนเลย</span>
-                      ) : (
-                        <ul className="clo-trace-list">
-                          {links.map((m) => (
-                            <li key={m.id}>
-                              <span className="clo-trace-item-name">
-                                {ploById[m.plo_id]?.code ?? `PLO #${m.plo_id}`}
-                              </span>
-                              <span className="clo-trace-item-weight">{m.weight_percent}%</span>
-                              <button
-                                type="button"
-                                className="icon-btn-delete"
-                                title="เลิกผูก PLO นี้"
-                                onClick={() => handleDeletePloMapping(m.id)}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPloMapError("");
-                          setActiveCloMapId(isMapping ? null : clo.id);
-                        }}
-                      >
-                        {isMapping ? "ปิดฟอร์มผูก PLO" : "+ ผูก PLO"}
-                      </button>
-                    </td>
-                    <td className="student-table-cell">
-                      <button
-                        type="button"
-                        className="icon-btn-delete"
-                        title="ลบ CLO"
-                        onClick={() => handleDeleteCLO(clo.id)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                  {isMapping && (
-                    <tr className="student-table-detail-row">
-                      <td colSpan={5}>
-                        {ploMapError && <p className="error-message">{ploMapError}</p>}
-                        <form
-                          onSubmit={(e) => handleAddPloMapping(e, clo.id)}
-                          className="workspace-inline-form"
-                        >
-                          <div className="form-field">
-                            <label htmlFor={`map-plo-${clo.id}`}>PLO</label>
-                            <select
-                              id={`map-plo-${clo.id}`}
-                              value={mapPloId}
-                              onChange={(e) => setMapPloId(e.target.value)}
-                              required
-                            >
-                              <option value="" disabled>
-                                เลือก PLO
-                              </option>
-                              {plos.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.code} - {p.description}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div className="form-field">
-                            <label htmlFor={`map-weight-${clo.id}`}>น้ำหนัก (%)</label>
-                            <input
-                              id={`map-weight-${clo.id}`}
-                              type="number"
-                              step="0.01"
-                              min="0"
-                              value={mapPloWeight}
-                              onChange={(e) => setMapPloWeight(e.target.value)}
-                              required
-                            />
-                          </div>
-                          <button type="submit">+ ผูกกับ PLO นี้</button>
-                        </form>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
+            {courseCLOs.map((clo) => (
+              <tr key={clo.id} className="student-table-row">
+                <td className="student-table-cell">{clo.code}</td>
+                <td className="student-table-cell">{clo.description}</td>
+                <td className="student-table-cell">{clo.pass_threshold_percent}</td>
+                <td className="student-table-cell">
+                  <button
+                    type="button"
+                    className="icon-btn-delete"
+                    title="ลบ CLO"
+                    onClick={() => handleDeleteCLO(clo.id)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
         {courseCLOs.length === 0 && (

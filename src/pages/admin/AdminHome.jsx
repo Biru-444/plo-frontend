@@ -33,7 +33,6 @@ const SETUP_GROUPS = [
       { to: "/admin/course-plo", label: "เชื่อมโยงรายวิชากับ PLO" },
       { to: "/admin/study-plan", label: "แผนการศึกษา" },
       { to: "/admin/clo", label: "CLO (ผลลัพธ์ระดับรายวิชา)" },
-      { to: "/admin/clo-plo-mapping", label: "เชื่อมโยง CLO กับ PLO" },
     ],
   },
 ];

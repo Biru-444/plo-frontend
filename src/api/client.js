@@ -487,27 +487,6 @@ export async function deleteCLO(id) {
   await api.delete(`/clo/${id}`);
 }
 
-// --- CLO-PLO Mapping ---
-
-export async function listCLOPLOMapping() {
-  const { data } = await api.get("/clo-plo-mapping");
-  return data;
-}
-
-export async function createCLOPLOMapping(payload) {
-  const { data } = await api.post("/clo-plo-mapping", payload);
-  return data;
-}
-
-export async function updateCLOPLOMapping(id, payload) {
-  const { data } = await api.put(`/clo-plo-mapping/${id}`, payload);
-  return data;
-}
-
-export async function deleteCLOPLOMapping(id) {
-  await api.delete(`/clo-plo-mapping/${id}`);
-}
-
 // --- Item-CLO Mapping ---
 
 export async function listItemCLO() {
