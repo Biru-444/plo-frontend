@@ -522,6 +522,19 @@ tr.student-table-row.expandable:hover {
   flex-shrink: 0;
 }
 
+/* ครอบ .curriculum-item (ปุ่มเลือกหลักสูตรเดิม) + ปุ่มแก้ไข (admin เท่านั้น) ไว้เป็นแถวเดียวกัน โดย
+   ไม่แตะ .curriculum-item เดิมเลย (ยังเป็น <button> ทั้งใบเหมือนเดิม กันซ้อน <button> ในกัน) */
+.curriculum-item-row {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.curriculum-item-row .curriculum-item {
+  flex: 1;
+  min-width: 0;
+}
+
 .curriculum-item {
   display: flex;
   flex-direction: column;
@@ -571,6 +584,17 @@ tr.student-table-row.expandable:hover {
 .curriculum-courses {
   flex: 1;
   min-width: 0;
+}
+
+/* toolbar เฉพาะหน้านี้ (ช่องค้นหา + ปุ่ม "+ เพิ่มวิชา" ของ admin) - ไม่ใช้ .student-list-toolbar
+   ร่วมกับ StudentList.jsx เพราะที่นั่นผูกกับ .toolbar-search (display: inline-block) อยู่แล้ว
+   เปลี่ยนเป็น flex ตรงนี้จะไปกระทบเลย-out ของหน้านั้นโดยไม่ตั้งใจ */
+.curriculum-course-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 @media (max-width: 720px) {
@@ -1324,6 +1348,32 @@ tr.student-table-row.expandable:hover {
 }
 
 .icon-btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- shared icon-only edit button (เหมือน .icon-btn-delete แต่ hover สีม่วงแทนแดง ใช้กับจุดที่ไม่มี
+   ปุ่มข้อความ "แก้ไข" อยู่แล้วเช่นในตารางของ CrudManager - เช่นการ์ดหลักสูตร/แถวรายวิชาในหน้า
+   /curriculum) --- */
+
+.icon-btn-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-gray-400);
+  cursor: pointer;
+}
+
+.icon-btn-edit:hover {
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
+}
+
+.icon-btn-edit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
