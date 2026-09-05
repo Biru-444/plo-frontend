@@ -14,8 +14,8 @@
   --color-green-700: #15803D;
   --color-red-100: #FEE2E2;
   --color-red-700: #B91C1C;
-  --shadow-card: 0 2px 10px rgba(76, 29, 149, 0.06);
-  --shadow-card-hover: 0 4px 16px rgba(76, 29, 149, 0.14);
+  --shadow-card: 0 4px 16px rgba(76, 29, 149, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 10px 28px rgba(76, 29, 149, 0.16), 0 2px 6px rgba(0, 0, 0, 0.06);
   --clickable-hover-bg: var(--color-surface-soft);
   --clickable-border: var(--color-purple-100);
   --heading-color: var(--color-purple-900);
@@ -144,7 +144,7 @@ body {
   border-left: 4px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  padding: 12px 16px;
+  padding: 18px 22px;
   height: 100%;
 }
 
@@ -319,7 +319,7 @@ body {
 .curriculum-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  gap: 22px;
   margin-bottom: 16px;
 }
 
@@ -329,7 +329,7 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  padding: 18px 20px;
+  padding: 24px 26px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -337,10 +337,13 @@ body {
   cursor: pointer;
   font: inherit;
   color: inherit;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 
 .curriculum-card:hover {
   border-color: var(--color-purple-600);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .curriculum-card h3 {
@@ -611,7 +614,7 @@ tr.student-table-row.expandable:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  padding: 24px 28px;
+  padding: 32px 36px;
   margin-bottom: 24px;
 }
 
@@ -686,7 +689,7 @@ tr.student-table-row.expandable:hover {
 .plo-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
+  gap: 22px;
   align-items: start;
 }
 
@@ -699,7 +702,7 @@ tr.student-table-row.expandable:hover {
   border-left: 4px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  padding: 14px 16px;
+  padding: 20px 22px;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
@@ -717,7 +720,7 @@ tr.student-table-row.expandable:hover {
 .plo-summary-card:hover {
   border-color: var(--color-purple-600);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .plo-summary-card-text {
@@ -805,6 +808,7 @@ tr.student-table-row.expandable:hover {
   border: 1px solid var(--color-gray-200);
   border-radius: var(--radius-md);
   padding: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 .form-field {
@@ -899,7 +903,7 @@ tr.student-table-row.expandable:hover {
 .plo-bar-row.expandable:hover {
   border-color: var(--color-purple-700);
   box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .expand-icon {
@@ -1392,6 +1396,7 @@ tr.student-table-row.expandable:hover {
   text-decoration: none;
   margin-bottom: 28px;
   box-shadow: var(--shadow-card);
+  transition: box-shadow 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
 }
 
 .admin-home-primary-card > svg:first-child {
@@ -1421,6 +1426,8 @@ tr.student-table-row.expandable:hover {
 
 .admin-home-primary-card:hover {
   background: var(--color-purple-900);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
 }
 
 .admin-home-links {
@@ -1605,7 +1612,7 @@ tr.student-table-row.expandable:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  padding: 20px;
+  padding: 28px;
 }
 
 .year-progress-header {
@@ -1786,8 +1793,8 @@ tr.student-table-row.expandable:hover {
   left: 0;
   width: 240px;
   height: 100vh;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
+  background: linear-gradient(180deg, var(--color-purple-900) 0%, var(--color-purple-700) 100%);
+  border-right: 1px solid var(--color-purple-900);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -1805,8 +1812,8 @@ tr.student-table-row.expandable:hover {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: var(--color-purple-700);
-  color: var(--color-text-invert);
+  background: var(--color-surface);
+  color: var(--color-purple-700);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1816,7 +1823,7 @@ tr.student-table-row.expandable:hover {
 }
 
 .sidebar-logo-text {
-  color: var(--color-purple-900);
+  color: var(--color-text-invert);
   font-weight: 700;
   font-size: 1.05rem;
 }
@@ -1834,31 +1841,38 @@ tr.student-table-row.expandable:hover {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  color: var(--color-text);
+  color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.92rem;
   border-radius: var(--radius-md);
   border-left: 3px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .sidebar-nav a svg {
   flex-shrink: 0;
-  color: var(--color-gray-400);
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.15s ease;
 }
 
 .sidebar-nav a:hover {
-  background: var(--color-surface-soft);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-invert);
+}
+
+.sidebar-nav a:hover svg {
+  color: var(--color-text-invert);
 }
 
 .sidebar-nav a.active {
-  background: var(--color-purple-100);
-  color: var(--color-purple-700);
-  border-left-color: var(--color-purple-600);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--color-text-invert);
+  border-left-color: var(--color-text-invert);
 }
 
 .sidebar-nav a.active svg {
-  color: var(--color-purple-700);
+  color: var(--color-text-invert);
 }
 
 .app-layout-body {
@@ -1874,6 +1888,7 @@ tr.student-table-row.expandable:hover {
   min-height: 60px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -1978,7 +1993,7 @@ tr.student-table-row.expandable:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(76, 29, 149, 0.08);
+  box-shadow: var(--shadow-card);
 }
 
 .profile-card-header {
