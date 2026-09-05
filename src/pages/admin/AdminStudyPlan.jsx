@@ -25,9 +25,9 @@ export default function AdminStudyPlan() {
   const columns = [
     { key: "curriculum_id", label: "หลักสูตร", type: "select", options: curriculumOptions, required: true },
     { key: "course_id", label: "รายวิชา", type: "select", options: courseOptions, required: true },
-    { key: "cohort_year", label: "รุ่นปีเข้า (cohort_year)", type: "number", nullable: true, filterable: true },
-    { key: "year_level", label: "ชั้นปี (year_level)", type: "number", required: true, filterable: true },
-    { key: "semester", label: "ภาคเรียน (semester)", type: "number", required: true, filterable: true },
+    { key: "cohort_year", label: "รุ่นปีเข้า", type: "number", nullable: true, filterable: true },
+    { key: "year_level", label: "ชั้นปี", type: "number", required: true, filterable: true },
+    { key: "semester", label: "ภาคเรียน", type: "number", required: true, filterable: true },
   ];
 
   const groupBy = {

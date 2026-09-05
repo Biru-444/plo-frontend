@@ -33,23 +33,45 @@ export default function AdminCourseOffering() {
       type: "searchable-select",
       options: courseOptions,
       required: true,
-      // ใช้ searchable-select เพราะรายวิชามีจำนวนมาก (49 วิชาในระบบตอนตรวจสอบ) พิมพ์กรองด้วย
-      // รหัส/ชื่อวิชาสะดวกกว่าเลื่อนหา <select> ธรรมดา - อีก 3 dropdown filter ในหน้านี้ (ผู้สอน,
-      // รุ่นปีเข้า, ปีการศึกษา) มีตัวเลือกน้อย (5/5/4 รายการตามลำดับ) จึงคงเป็น <select> ปกติไว้
+      // รายวิชามีจำนวนมาก (49 วิชาในระบบตอนตรวจสอบ) พิมพ์กรองด้วยรหัส/ชื่อวิชาสะดวกกว่าเลื่อนหา
     },
     {
       key: "instructor_id",
       label: "ผู้สอน",
-      type: "select",
+      type: "searchable-select",
       options: instructorOptions,
       required: false,
       nullable: true,
       // เว้นว่างได้ตั้งใจ = ยังไม่มีผู้สอน รอให้อาจารย์มา "จับจอง" วิชานี้เองที่หน้าหลักของอาจารย์
+      // ตัวเลือกมีไม่เยอะ (5 คน) แต่เปลี่ยนเป็น searchable-select เพื่อความสม่ำเสมอกับ dropdown อื่น
     },
-    { key: "cohort_year", label: "รุ่นปีเข้า (cohort_year)", type: "number", nullable: true, filterable: true },
-    { key: "academic_year", label: "ปีการศึกษา (academic_year)", type: "number", required: true, filterable: true },
-    { key: "semester", label: "ภาคเรียน (semester)", type: "number", required: true, filterable: true },
-    { key: "section", label: "หมู่เรียน (section)", type: "text", required: true },
+    {
+      key: "cohort_year",
+      label: "รุ่นปีเข้า",
+      type: "number",
+      nullable: true,
+      filterable: true,
+      // ยังคง type "number" ไว้ (ฟอร์มเพิ่ม/แก้ไขพิมพ์ตัวเลขได้อิสระ ไม่จำกัดเฉพาะค่าที่เคยมี) แค่ให้
+      // ช่องกรองด้านบนตารางเป็น searchable-select ผ่าน filterType (ดู jsdoc ของ CrudManager)
+      filterType: "searchable-select",
+    },
+    {
+      key: "academic_year",
+      label: "ปีการศึกษา",
+      type: "number",
+      required: true,
+      filterable: true,
+      filterType: "searchable-select",
+    },
+    {
+      key: "semester",
+      label: "ภาคเรียน",
+      type: "number",
+      required: true,
+      filterable: true,
+      filterType: "searchable-select",
+    },
+    { key: "section", label: "หมู่เรียน", type: "text", required: true },
   ];
 
   const groupBy = {
