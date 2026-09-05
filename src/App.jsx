@@ -24,7 +24,6 @@ import AdminCoursePLO from "./pages/admin/AdminCoursePLO.jsx";
 import AdminStudyPlan from "./pages/admin/AdminStudyPlan.jsx";
 import AdminCourseOffering from "./pages/admin/AdminCourseOffering.jsx";
 import AdminCLO from "./pages/admin/AdminCLO.jsx";
-import AdminCLOPLOMapping from "./pages/admin/AdminCLOPLOMapping.jsx";
 import AdminAssessmentItem from "./pages/admin/AdminAssessmentItem.jsx";
 import AdminItemCLO from "./pages/admin/AdminItemCLO.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
@@ -278,16 +277,6 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute requireAdmin>
               <AdminCLO />
-            </ProtectedRoute>
-          </AppLayout>
-        }
-      />
-      <Route
-        path="/admin/clo-plo-mapping"
-        element={
-          <AppLayout>
-            <ProtectedRoute requireAdmin>
-              <AdminCLOPLOMapping />
             </ProtectedRoute>
           </AppLayout>
         }
