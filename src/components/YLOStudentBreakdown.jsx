@@ -14,10 +14,12 @@ export default function YLOStudentBreakdown({ students }) {
     return <p className="student-list-empty">ไม่มีข้อมูลนักศึกษาสำหรับชั้นปีนี้</p>;
   }
 
-  const rows = [...students].sort((a, b) => {
-    if (a.is_achieved !== b.is_achieved) return a.is_achieved ? 1 : -1;
-    return a.student_name.localeCompare(b.student_name, "th");
-  });
+  // เรียงตามรหัสนักศึกษาจากน้อยไปมากตามค่าตัวเลขจริง (เหมือน PLOCourseDetailPage.jsx) - backend
+  // (GET /ylo/achievement/by-year) เรียงตามรหัสมาให้แล้วเช่นกัน แต่ re-sort ซ้ำที่นี่เผื่อ backend
+  // เปลี่ยนพฤติกรรมในอนาคต ไม่ใช้ Number()-1 ตาม is_achieved อีกต่อไป (เดิมจัดกลุ่มไม่บรรลุ/บรรลุ
+  // แยกกันก่อนเรียงชื่อ - ตัดออกเพราะ badge "บรรลุ/ไม่บรรลุ" ต่อแถวก็สื่อสถานะชัดเจนอยู่แล้ว ไม่ต้องพึ่ง
+  // การจัดกลุ่มเพิ่ม)
+  const rows = [...students].sort((a, b) => Number(a.student_id) - Number(b.student_id));
 
   return (
     <table className="student-table plo-breakdown-table">
