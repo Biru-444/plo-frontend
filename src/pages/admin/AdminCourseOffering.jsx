@@ -27,7 +27,16 @@ export default function AdminCourseOffering() {
   }, []);
 
   const columns = [
-    { key: "course_id", label: "รายวิชา", type: "select", options: courseOptions, required: true },
+    {
+      key: "course_id",
+      label: "รายวิชา",
+      type: "searchable-select",
+      options: courseOptions,
+      required: true,
+      // ใช้ searchable-select เพราะรายวิชามีจำนวนมาก (49 วิชาในระบบตอนตรวจสอบ) พิมพ์กรองด้วย
+      // รหัส/ชื่อวิชาสะดวกกว่าเลื่อนหา <select> ธรรมดา - อีก 3 dropdown filter ในหน้านี้ (ผู้สอน,
+      // รุ่นปีเข้า, ปีการศึกษา) มีตัวเลือกน้อย (5/5/4 รายการตามลำดับ) จึงคงเป็น <select> ปกติไว้
+    },
     {
       key: "instructor_id",
       label: "ผู้สอน",
