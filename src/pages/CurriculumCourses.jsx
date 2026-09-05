@@ -26,27 +26,29 @@ const CURRICULUM_FIELDS = [
   },
 ];
 
-// ใช้ตอนไม่มีข้อมูลวิชาจริงในระบบเลยให้ derive มาจาก (ระบบว่างเปล่าจริงๆ) - อิงตาม มคอ.2 ทั่วไป
-// ไม่ใช่ชุดค่าคงที่ตายตัวที่บังคับใช้เสมอ (ปกติ dropdown จะ derive จากข้อมูลจริงเป็นหลัก ดู
-// categoryOptions ใน CurriculumCourses ด้านล่าง)
-const FALLBACK_CATEGORY_OPTIONS = ["วิชาแกน", "วิชาบังคับ", "วิชาเลือก", "วิชาชีพ/สหกิจ"];
+// ตัวเลือกหมวดหมู่ตายตัว 3 ปุ่มเสมอ (ไม่ derive จากข้อมูลจริงใน courses อีกต่อไป) ตามที่ผู้ใช้ขอ -
+// "วิชาแกน"/"วิชาบังคับ" เป็นค่าที่พบจริงในระบบส่วนใหญ่ ส่วนค่าอื่นๆ ที่เหลือ (เช่น "วิชาเลือก...",
+// "Core", "Major Elective") ให้ตกไปอยู่โหมด "อื่นๆ" พร้อมพิมพ์เองแทน
+const FIXED_CATEGORY_OPTIONS = ["วิชาแกน", "วิชาบังคับ"];
 const OTHER_CATEGORY_VALUE = "__other__";
 
 /**
- * ช่อง "หมวดหมู่" ของฟอร์มวิชา - dropdown จากค่าที่มีอยู่จริงในระบบ (options) + ตัวเลือก "อื่นๆ"
- * ท้ายลิสต์เสมอ เลือก "อื่นๆ" แล้วโผล่ช่องพิมพ์เพิ่มให้กรอกชื่อหมวดหมู่เอง - ค่าสุดท้ายที่ได้ยังเป็น
+ * ช่อง "หมวดหมู่" ของฟอร์มวิชา - ปุ่มเลือกเดียว (pill) ตายตัว 3 ตัวเลือกเสมอ: วิชาแกน / วิชาบังคับ /
+ * อื่นๆ ใช้สไตล์ .plo-filter-pill(s) เดียวกับปุ่มกรองใน PLODashboard.jsx (pattern ปุ่มเลือกเดียวที่มี
+ * อยู่แล้วในระบบ) เลือก "อื่นๆ" แล้วโผล่ช่องพิมพ์เพิ่มให้กรอกชื่อหมวดหมู่เอง - ค่าสุดท้ายที่ได้ยังเป็น
  * string ธรรมดาเก็บใน courseForm.category ตรงๆ เหมือนเดิมทุกประการ (ไม่มี field พิเศษเพิ่ม)
  *
- * ถ้าค่าเดิมตอนเปิดฟอร์มแก้ไขไม่ตรงกับตัวเลือกไหนในลิสต์เลย (ข้อมูลเก่าที่หลุด pattern) ให้เริ่มที่
- * โหมด "อื่นๆ" พร้อม prefill ค่าดิบเดิมในช่องพิมพ์ทันที ไม่ให้ดูเหมือนข้อมูลหายไป - เช็คตอน mount
- * ครั้งเดียวพอ เพราะ QuickFormModal unmount ทุกครั้งที่ปิด แล้ว mount ใหม่ทุกครั้งที่เปิด (ค่าเริ่มต้น
- * จึงไม่มีทางค้างข้ามรอบเปิด-ปิด)
+ * ถ้าค่าเดิมตอนเปิดฟอร์มแก้ไขไม่ตรงกับ "วิชาแกน"/"วิชาบังคับ" เป๊ะๆ (ข้อมูลเก่า/ค่าอื่นที่มีจริงในระบบ
+ * เช่น "วิชาเลือก - ...") ให้เริ่มที่โหมด "อื่นๆ" พร้อม prefill ค่าดิบเดิมในช่องพิมพ์ทันที ไม่ให้ดู
+ * เหมือนข้อมูลหายไป - เช็คตอน mount ครั้งเดียวพอ เพราะ QuickFormModal unmount ทุกครั้งที่ปิด แล้ว
+ * mount ใหม่ทุกครั้งที่เปิด (ค่าเริ่มต้นจึงไม่มีทางค้างข้ามรอบเปิด-ปิด)
  */
-function CourseCategoryField({ value, onChange, options }) {
-  const [isOther, setIsOther] = useState(() => value !== "" && !options.includes(value));
+function CourseCategoryField({ value, onChange }) {
+  const [isOther, setIsOther] = useState(
+    () => value !== "" && !FIXED_CATEGORY_OPTIONS.includes(value)
+  );
 
-  function handleSelectChange(e) {
-    const selected = e.target.value;
+  function handleSelect(selected) {
     if (selected === OTHER_CATEGORY_VALUE) {
       setIsOther(true);
       onChange(""); // เคลียร์ค่าเดิม (ที่ตรงกับตัวเลือกก่อนหน้า) กันค้างไว้เงียบๆ จนกว่าจะพิมพ์ใหม่
@@ -56,17 +58,29 @@ function CourseCategoryField({ value, onChange, options }) {
     }
   }
 
+  const current = isOther ? OTHER_CATEGORY_VALUE : value;
+
   return (
     <>
-      <select value={isOther ? OTHER_CATEGORY_VALUE : value} onChange={handleSelectChange}>
-        <option value="">-- ไม่ระบุ --</option>
-        {options.map((opt) => (
-          <option key={opt} value={opt}>
+      <div className="plo-filter-pills">
+        {FIXED_CATEGORY_OPTIONS.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            className={`plo-filter-pill ${current === opt ? "active" : ""}`}
+            onClick={() => handleSelect(opt)}
+          >
             {opt}
-          </option>
+          </button>
         ))}
-        <option value={OTHER_CATEGORY_VALUE}>อื่นๆ</option>
-      </select>
+        <button
+          type="button"
+          className={`plo-filter-pill ${current === OTHER_CATEGORY_VALUE ? "active" : ""}`}
+          onClick={() => handleSelect(OTHER_CATEGORY_VALUE)}
+        >
+          อื่นๆ
+        </button>
+      </div>
       {isOther && (
         <input
           type="text"
@@ -80,22 +94,18 @@ function CourseCategoryField({ value, onChange, options }) {
   );
 }
 
-function getCourseFields(categoryOptions) {
-  return [
-    { key: "course_code", label: "รหัสวิชา", type: "text", required: true },
-    { key: "name_th", label: "ชื่อวิชา (ไทย)", type: "text", required: true },
-    { key: "name_en", label: "ชื่อวิชา (อังกฤษ)", type: "text" },
-    { key: "credit", label: "หน่วยกิต", type: "number", required: true },
-    {
-      key: "category",
-      label: "หมวดหมู่",
-      type: "custom",
-      render: (value, onChange) => (
-        <CourseCategoryField value={value} onChange={onChange} options={categoryOptions} />
-      ),
-    },
-  ];
-}
+const COURSE_FIELDS = [
+  { key: "course_code", label: "รหัสวิชา", type: "text", required: true },
+  { key: "name_th", label: "ชื่อวิชา (ไทย)", type: "text", required: true },
+  { key: "name_en", label: "ชื่อวิชา (อังกฤษ)", type: "text" },
+  { key: "credit", label: "หน่วยกิต", type: "number", required: true },
+  {
+    key: "category",
+    label: "หมวดหมู่",
+    type: "custom",
+    render: (value, onChange) => <CourseCategoryField value={value} onChange={onChange} />,
+  },
+];
 
 export default function CurriculumCourses() {
   const { isAdmin } = useAuth();
@@ -161,20 +171,6 @@ export default function CurriculumCourses() {
       );
     });
   }, [coursesForSelectedCurriculum, query]);
-
-  // หมวดหมู่ที่มีอยู่จริงในระบบ (ทุกหลักสูตร ไม่ใช่แค่หลักสูตรที่เลือกอยู่ - วิชาข้ามหลักสูตรอาจใช้
-  // หมวดหมู่ชื่อเดียวกันได้) เรียงตามตัวอักษรไทย - ใช้ FALLBACK_CATEGORY_OPTIONS เฉพาะตอนไม่มีข้อมูล
-  // วิชาที่มี category จริงเลยสักตัวในระบบ
-  const categoryOptions = useMemo(() => {
-    const set = new Set();
-    courses.forEach((c) => {
-      if (c.category) set.add(c.category);
-    });
-    const fromData = Array.from(set).sort((a, b) => a.localeCompare(b, "th"));
-    return fromData.length > 0 ? fromData : FALLBACK_CATEGORY_OPTIONS;
-  }, [courses]);
-
-  const courseFields = useMemo(() => getCourseFields(categoryOptions), [categoryOptions]);
 
   // --- หลักสูตร: เพิ่ม/แก้ไข ---
 
@@ -404,7 +400,7 @@ export default function CurriculumCourses() {
       {courseModal && (
         <QuickFormModal
           title={courseModal.mode === "new" ? "เพิ่มวิชา" : "แก้ไขวิชา"}
-          fields={courseFields}
+          fields={COURSE_FIELDS}
           values={courseForm}
           onChange={handleCourseFieldChange}
           onSubmit={handleCourseSubmit}
