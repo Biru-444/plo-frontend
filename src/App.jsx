@@ -30,6 +30,7 @@ import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminEnrollments from "./pages/admin/AdminEnrollments.jsx";
 import AdminRosterImport from "./pages/admin/AdminRosterImport.jsx";
 import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
+import AdminCourseGrading from "./pages/admin/AdminCourseGrading.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 export default function App() {
@@ -317,6 +318,16 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute>
               <CourseOfferingWorkspace />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/admin/course-grading"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCourseGrading />
             </ProtectedRoute>
           </AppLayout>
         }
