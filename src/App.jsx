@@ -8,6 +8,7 @@ import CurriculumCourses from "./pages/CurriculumCourses.jsx";
 import PLODashboard from "./pages/PLODashboard.jsx";
 import PLODetailPage from "./pages/PLODetailPage.jsx";
 import PLOCourseDetailPage from "./pages/PLOCourseDetailPage.jsx";
+import StudentCourseCLOPage from "./pages/StudentCourseCLOPage.jsx";
 import YLOYearProgress from "./pages/YLOYearProgress.jsx";
 import Login from "./pages/Login.jsx";
 import Profile from "./pages/Profile.jsx";
@@ -56,6 +57,16 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute>
               <PLOAchievement />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      <Route
+        path="/student-clo"
+        element={
+          <AppLayout>
+            <ProtectedRoute>
+              <StudentCourseCLOPage />
             </ProtectedRoute>
           </AppLayout>
         }

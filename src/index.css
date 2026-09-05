@@ -946,6 +946,12 @@ tr.student-table-row.expandable:hover {
   font-size: 0.82rem;
   font-weight: 600;
   margin-bottom: 14px;
+  /* reset ค่า default ของ <button> เผื่อใช้ class นี้กับปุ่ม navigate(-1) แทน <Link> (เช่น
+     StudentCourseCLOPage.jsx) - ไม่กระทบ <Link>/<a> เดิมเพราะไม่มี border/background อยู่แล้ว */
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .crud-back-link:hover {

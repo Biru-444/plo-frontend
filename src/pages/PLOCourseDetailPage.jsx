@@ -169,25 +169,27 @@ export default function PLOCourseDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {visibleStudents.map((s) => (
-                <Link
-                  key={s.id}
-                  to={`/student-plo?student_id=${encodeURIComponent(s.id)}`}
-                  className="student-table-row"
-                >
-                  <span className="student-table-cell">{s.id}</span>
-                  <span className="student-table-cell">
-                    {s.title ? `${s.title} ` : ""}
-                    {s.first_name} {s.last_name}
-                  </span>
-                  <span className="student-table-cell">
-                    <PLOAchievedBadge achieved={s.plo_achieved} />
-                  </span>
-                  <span className="student-table-cell student-row-arrow-cell">
-                    <ChevronRight size={16} className="plo-course-chip-arrow" />
-                  </span>
-                </Link>
-              ))}
+              {visibleStudents.map((s) => {
+                const fullName = `${s.title ? `${s.title} ` : ""}${s.first_name} ${s.last_name}`;
+                return (
+                  <Link
+                    key={s.id}
+                    to={`/student-clo?offering_id=${s.offering_id}&student_id=${encodeURIComponent(
+                      s.id
+                    )}&student_name=${encodeURIComponent(fullName)}`}
+                    className="student-table-row"
+                  >
+                    <span className="student-table-cell">{s.id}</span>
+                    <span className="student-table-cell">{fullName}</span>
+                    <span className="student-table-cell">
+                      <PLOAchievedBadge achieved={s.plo_achieved} />
+                    </span>
+                    <span className="student-table-cell student-row-arrow-cell">
+                      <ChevronRight size={16} className="plo-course-chip-arrow" />
+                    </span>
+                  </Link>
+                );
+              })}
             </tbody>
           </table>
         ))}
