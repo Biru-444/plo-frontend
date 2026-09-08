@@ -720,6 +720,18 @@ function StructureTab({
     return map;
   }, [courseCLOs]);
 
+  // น้ำหนักรวมที่ผูกกับแต่ละ CLO ไปแล้ว (จากงานประเมินทุกชิ้น) - ใช้เตือน/กันไม่ให้ผูกรวมเกิน 100%
+  const cloWeightTotals = useMemo(() => {
+    const totals = {};
+    itemCLOs.forEach((ic) => {
+      totals[ic.clo_id] = (totals[ic.clo_id] || 0) + Number(ic.weight_percent);
+    });
+    return totals;
+  }, [itemCLOs]);
+
+  const mapCloCurrentTotal = mapCloId ? cloWeightTotals[Number(mapCloId)] || 0 : 0;
+  const mapCloRemainingWeight = Math.max(0, 100 - mapCloCurrentTotal);
+
   // เลข CLO สูงสุดที่มีอยู่จริงแล้วในวิชานี้ (จาก code ที่ตรงรูปแบบ "CLO<เลข>" เท่านั้น ไม่สนตัวพิมพ์เล็ก
   // ใหญ่ - code เก่าที่ตั้งชื่อไม่ตรงรูปแบบนี้เลยจะไม่ถูกนับ แต่ก็ไม่ชนกันเองอยู่แล้วเพราะ code ใหม่ที่สร้าง
   // จะเป็น "CLO{n}" เป๊ะทุกครั้ง) แถวใหม่แต่ละแถวได้เลขต่อจากนี้ +1, +2, ... ตามตำแหน่งในฟอร์ม
@@ -862,6 +874,15 @@ function StructureTab({
     e.preventDefault();
     setMapError("");
     if (!mapItemId || !mapCloId || mapWeight === "") return;
+    const newTotal = mapCloCurrentTotal + Number(mapWeight);
+    if (newTotal > 100) {
+      setMapError(
+        `น้ำหนักรวมของ ${cloById[Number(mapCloId)]?.code ?? "CLO นี้"} จะเกิน 100% ` +
+          `(มีอยู่แล้ว ${mapCloCurrentTotal}% + ที่จะเพิ่ม ${Number(mapWeight)}% = ${newTotal}%) ` +
+          `ผูกได้อีกไม่เกิน ${mapCloRemainingWeight}%`
+      );
+      return;
+    }
     try {
       await createItemCLO({
         item_id: Number(mapItemId),
@@ -872,8 +893,8 @@ function StructureTab({
       setMapCloId("");
       setMapWeight("");
       await onItemCLOChanged();
-    } catch {
-      setMapError("เพิ่ม mapping ไม่สำเร็จ (อาจมี mapping นี้อยู่แล้ว)");
+    } catch (err) {
+      setMapError(err?.response?.data?.detail || "เพิ่ม mapping ไม่สำเร็จ (อาจมี mapping นี้อยู่แล้ว)");
     }
   }
 
@@ -1144,6 +1165,7 @@ function StructureTab({
               type="number"
               step="0.01"
               min="0"
+              max={mapCloId ? mapCloRemainingWeight : undefined}
               value={mapWeight}
               onChange={(e) => setMapWeight(e.target.value)}
               required
@@ -1151,6 +1173,12 @@ function StructureTab({
           </div>
           <button type="submit">+ เพิ่ม mapping</button>
         </form>
+        {mapCloId && (
+          <p className="workspace-hint-inline">
+            {cloById[Number(mapCloId)]?.code ?? "CLO นี้"} ผูกน้ำหนักไปแล้ว {mapCloCurrentTotal}%
+            (ผูกเพิ่มได้อีกไม่เกิน {mapCloRemainingWeight}%)
+          </p>
+        )}
       </div>
     </>
   );
