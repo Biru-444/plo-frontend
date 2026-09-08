@@ -600,6 +600,18 @@ export async function getOfferingCLOAchievement(offeringId) {
   return data;
 }
 
+/**
+ * เจาะลึกระดับ CLO -> คะแนน สำหรับนักศึกษาคนเดียวในวิชาเดียว (ทำไมวิชานี้ถึงผ่าน/ไม่ผ่าน) - ใช้ตอนกด
+ * ขยายแถววิชาในหน้า /student-plo (ดู StudentYearBreakdown.jsx)
+ * Backend: GET /clo-achievement/student-course?student_id=...&course_id=...
+ */
+export async function getStudentCourseCLOBreakdown(studentId, courseId) {
+  const { data } = await api.get("/clo-achievement/student-course", {
+    params: { student_id: studentId, course_id: courseId },
+  });
+  return data;
+}
+
 // --- Roster Import (นำเข้ารายชื่อจากไฟล์ Excel ของมหาวิทยาลัย) ---
 
 /**

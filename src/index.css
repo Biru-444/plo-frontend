@@ -2657,8 +2657,50 @@ tr.student-table-row.expandable:hover {
   font-size: 0.85rem;
 }
 
+.student-year-course-item.clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.student-year-course-item.clickable:hover {
+  background: var(--color-purple-100);
+}
+
 .student-year-course-name {
   flex: 1;
+}
+
+.expand-icon-plain {
+  flex-shrink: 0;
+  color: var(--color-purple-600);
+  transition: transform 0.15s ease;
+}
+
+.expand-icon-plain.expanded {
+  transform: rotate(90deg);
+}
+
+.student-year-course-detail {
+  margin: 6px 0 4px 22px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--color-purple-100);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.student-year-clo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-year-clo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
 }
 
 .workspace-muted {

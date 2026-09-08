@@ -113,7 +113,7 @@ export default function PLOAchievement() {
 
           <PLORadarChart achievements={result.plo_achievements} />
 
-          <StudentYearBreakdown years={yloYears} />
+          <StudentYearBreakdown studentId={student?.id} years={yloYears} />
 
           <div className="student-summary">
             <h2 className="student-year-breakdown-title">PLO แต่ละข้อ</h2>
