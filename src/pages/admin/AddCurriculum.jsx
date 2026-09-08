@@ -9,7 +9,7 @@ const ACTIVE_OPTIONS = [
 export default function AddCurriculum() {
   const columns = [
     { key: "name", label: "ชื่อหลักสูตร", type: "text", required: true },
-    { key: "year", label: "ปีหลักสูตร", type: "number", required: true },
+    { key: "year", label: "ปีหลักสูตร", type: "number", min: 0, required: true },
     { key: "is_active", label: "สถานะ", type: "select", options: ACTIVE_OPTIONS, required: true },
   ];
 

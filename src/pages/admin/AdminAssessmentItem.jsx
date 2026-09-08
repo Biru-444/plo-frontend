@@ -41,7 +41,7 @@ export default function AdminAssessmentItem() {
     { key: "offering_id", label: "วิชาที่เปิดสอน", type: "select", options: offeringOptions, required: true },
     { key: "name", label: "ชื่องาน", type: "text", required: true },
     { key: "type", label: "ประเภท", type: "select", options: TYPE_OPTIONS, required: true },
-    { key: "total_score", label: "คะแนนเต็ม", type: "number", step: "0.01", required: true },
+    { key: "total_score", label: "คะแนนเต็ม", type: "number", min: 1, required: true },
   ];
 
   return (

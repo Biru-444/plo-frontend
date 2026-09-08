@@ -12,7 +12,10 @@ import { useEffect } from "react";
  * ไม่ได้สร้างสไตล์คู่ขนานใหม่
  *
  * fields: [{ key, label, type: 'text'|'number'|'select'|'custom', options?: [{value,label}],
- *            required?: bool, render?: (value, onChange) => ReactNode (เฉพาะ type: 'custom' - ให้
+ *            required?: bool, min?: number, max?: number (type: 'number' เท่านั้น - รับเฉพาะจำนวนเต็ม
+ *            เสมอ (step=1 คงที่) ผู้เรียก (onSubmit) ยังต้องเช็ค Number.isInteger + min/max เองก่อนยิง
+ *            API อยู่ดี เพราะ modal นี้แค่ใส่ attribute ไว้เป็น affordance ไม่ได้ validate ให้)
+ *            render?: (value, onChange) => ReactNode (เฉพาะ type: 'custom' - ให้
  *            ผู้เรียกวาด field เองทั้งหมด เช่น dropdown+ช่องพิมพ์ "อื่นๆ" ที่ไม่ใช่แค่ text/select/
  *            number ธรรมดา โดยไม่ต้องสอน QuickFormModal ให้รู้จัก logic เฉพาะของ field นั้น) }]
  * values: object ค่าปัจจุบันของฟอร์ม (key -> value)
@@ -80,6 +83,9 @@ export default function QuickFormModal({
               ) : (
                 <input
                   type={f.type === "number" ? "number" : "text"}
+                  step={f.type === "number" ? "1" : undefined}
+                  min={f.type === "number" ? f.min : undefined}
+                  max={f.type === "number" ? f.max : undefined}
                   value={values[f.key] ?? ""}
                   onChange={(e) => onChange(f.key, e.target.value)}
                   required={f.required}

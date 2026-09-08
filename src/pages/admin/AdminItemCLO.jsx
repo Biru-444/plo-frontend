@@ -53,7 +53,7 @@ export default function AdminItemCLO() {
   const columns = [
     { key: "item_id", label: "งานประเมิน", type: "select", options: itemOptions, required: true },
     { key: "clo_id", label: "CLO (ผลลัพธ์ระดับรายวิชา)", type: "select", options: cloOptions, required: true },
-    { key: "weight_percent", label: "น้ำหนัก (%)", type: "number", step: "0.01", required: true },
+    { key: "weight_percent", label: "น้ำหนัก (%)", type: "number", min: 0, max: 100, required: true },
   ];
 
   return (

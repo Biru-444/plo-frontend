@@ -762,7 +762,7 @@ function StructureTab({
   function isValidThresholdInput(value) {
     if (value === "" || value === null || value === undefined) return false;
     const n = Number(value);
-    return Number.isFinite(n) && n >= 0 && n <= 100;
+    return Number.isInteger(n) && n >= 0 && n <= 100;
   }
 
   async function handleSaveCloRows(e) {
@@ -777,7 +777,7 @@ function StructureTab({
       if (!row.description.trim()) {
         error = "กรุณากรอกคำอธิบาย";
       } else if (!isValidThresholdInput(row.threshold)) {
-        error = "เกณฑ์ผ่านต้องเป็นตัวเลข 0-100";
+        error = "เกณฑ์ผ่านต้องเป็นจำนวนเต็ม 0-100 (ไม่มีทศนิยม)";
       }
       if (error) hasInvalid = true;
       return { ...row, error };
@@ -845,18 +845,23 @@ function StructureTab({
     e.preventDefault();
     setItemError("");
     if (!name.trim() || totalScore === "") return;
+    const parsedTotal = Number(totalScore);
+    if (!Number.isInteger(parsedTotal) || parsedTotal <= 0) {
+      setItemError('"คะแนนเต็ม" ต้องเป็นจำนวนเต็มมากกว่า 0');
+      return;
+    }
     try {
       await createAssessmentItem({
         offering_id: offeringId,
         name: name.trim(),
         type,
-        total_score: Number(totalScore),
+        total_score: parsedTotal,
       });
       setName("");
       setTotalScore("");
       await onStructureChanged();
-    } catch {
-      setItemError("เพิ่มงานประเมินไม่สำเร็จ");
+    } catch (err) {
+      setItemError(err?.response?.data?.detail || "เพิ่มงานประเมินไม่สำเร็จ");
     }
   }
 
@@ -874,11 +879,16 @@ function StructureTab({
     e.preventDefault();
     setMapError("");
     if (!mapItemId || !mapCloId || mapWeight === "") return;
-    const newTotal = mapCloCurrentTotal + Number(mapWeight);
+    const parsedWeight = Number(mapWeight);
+    if (!Number.isInteger(parsedWeight) || parsedWeight < 0 || parsedWeight > 100) {
+      setMapError('"น้ำหนัก (%)" ต้องเป็นจำนวนเต็ม 0-100 (ไม่มีทศนิยม)');
+      return;
+    }
+    const newTotal = mapCloCurrentTotal + parsedWeight;
     if (newTotal > 100) {
       setMapError(
         `น้ำหนักรวมของ ${cloById[Number(mapCloId)]?.code ?? "CLO นี้"} จะเกิน 100% ` +
-          `(มีอยู่แล้ว ${mapCloCurrentTotal}% + ที่จะเพิ่ม ${Number(mapWeight)}% = ${newTotal}%) ` +
+          `(มีอยู่แล้ว ${mapCloCurrentTotal}% + ที่จะเพิ่ม ${parsedWeight}% = ${newTotal}%) ` +
           `ผูกได้อีกไม่เกิน ${mapCloRemainingWeight}%`
       );
       return;
@@ -887,7 +897,7 @@ function StructureTab({
       await createItemCLO({
         item_id: Number(mapItemId),
         clo_id: Number(mapCloId),
-        weight_percent: Number(mapWeight),
+        weight_percent: parsedWeight,
       });
       setMapItemId("");
       setMapCloId("");
@@ -973,7 +983,7 @@ function StructureTab({
                     <input
                       id={`clo-row-threshold-${row.rowId}`}
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       max="100"
                       value={row.threshold}
@@ -1067,8 +1077,8 @@ function StructureTab({
             <input
               id="new-item-total"
               type="number"
-              step="0.01"
-              min="0"
+              step="1"
+              min="1"
               value={totalScore}
               onChange={(e) => setTotalScore(e.target.value)}
               required
@@ -1163,7 +1173,7 @@ function StructureTab({
             <input
               id="map-weight"
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               max={mapCloId ? mapCloRemainingWeight : undefined}
               value={mapWeight}

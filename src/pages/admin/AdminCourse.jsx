@@ -16,7 +16,7 @@ export default function AdminCourse() {
     { key: "course_code", label: "รหัสวิชา", type: "text", required: true },
     { key: "name_th", label: "ชื่อวิชา (ไทย)", type: "text", required: true },
     { key: "name_en", label: "ชื่อวิชา (อังกฤษ)", type: "text", nullable: true },
-    { key: "credit", label: "หน่วยกิต", type: "number", required: true },
+    { key: "credit", label: "หน่วยกิต", type: "number", min: 0, required: true },
     { key: "category", label: "หมวดวิชา", type: "text", nullable: true, filterable: true },
   ];
 

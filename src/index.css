@@ -2517,6 +2517,11 @@ tr.student-table-row.expandable:hover {
   background: var(--color-green-100);
 }
 
+.score-sheet-table input.score-input-error {
+  border-color: var(--color-red-700);
+  background: var(--color-red-100);
+}
+
 .badge-pass,
 .badge-fail {
   font-size: 0.7rem;

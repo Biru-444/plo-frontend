@@ -13,7 +13,7 @@ import {
 
 const CURRICULUM_FIELDS = [
   { key: "name", label: "ชื่อหลักสูตร", type: "text", required: true },
-  { key: "year", label: "ปีหลักสูตร", type: "number", required: true },
+  { key: "year", label: "ปีหลักสูตร", type: "number", min: 0, required: true },
   {
     key: "is_active",
     label: "สถานะ",
@@ -98,7 +98,7 @@ const COURSE_FIELDS = [
   { key: "course_code", label: "รหัสวิชา", type: "text", required: true },
   { key: "name_th", label: "ชื่อวิชา (ไทย)", type: "text", required: true },
   { key: "name_en", label: "ชื่อวิชา (อังกฤษ)", type: "text" },
-  { key: "credit", label: "หน่วยกิต", type: "number", required: true },
+  { key: "credit", label: "หน่วยกิต", type: "number", min: 0, required: true },
   {
     key: "category",
     label: "หมวดหมู่",
@@ -196,12 +196,17 @@ export default function CurriculumCourses() {
 
   async function handleCurriculumSubmit(e) {
     e.preventDefault();
-    setCurriculumSaving(true);
     setCurriculumFormError("");
+    const year = Number(curriculumForm.year);
+    if (!Number.isInteger(year) || year < 0) {
+      setCurriculumFormError('"ปีหลักสูตร" ต้องเป็นจำนวนเต็ม ไม่ติดลบ');
+      return;
+    }
+    setCurriculumSaving(true);
     try {
       const payload = {
         name: curriculumForm.name,
-        year: Number(curriculumForm.year),
+        year,
         is_active: curriculumForm.is_active === "true",
       };
       if (curriculumModal.mode === "new") {
@@ -246,14 +251,19 @@ export default function CurriculumCourses() {
 
   async function handleCourseSubmit(e) {
     e.preventDefault();
-    setCourseSaving(true);
     setCourseFormError("");
+    const credit = Number(courseForm.credit);
+    if (!Number.isInteger(credit) || credit < 0) {
+      setCourseFormError('"หน่วยกิต" ต้องเป็นจำนวนเต็ม ไม่ติดลบ');
+      return;
+    }
+    setCourseSaving(true);
     try {
       const payload = {
         course_code: courseForm.course_code,
         name_th: courseForm.name_th,
         name_en: courseForm.name_en || null,
-        credit: Number(courseForm.credit),
+        credit,
         category: courseForm.category || null,
       };
       if (courseModal.mode === "new") {

@@ -34,6 +34,7 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
   const [saveSummary, setSaveSummary] = useState("");
   const [savingKeys, setSavingKeys] = useState(() => new Set());
   const [savedFlashKeys, setSavedFlashKeys] = useState(() => new Set());
+  const [cellErrors, setCellErrors] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +84,25 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     return map;
   }, [offeringScores]);
 
+  const itemById = useMemo(() => {
+    const map = {};
+    assessmentItems.forEach((i) => (map[i.id] = i));
+    return map;
+  }, [assessmentItems]);
+
+  // คะแนนต้องเป็นจำนวนเต็ม ไม่ติดลบ และห้ามเกินคะแนนเต็มของชิ้นงานนั้น (เช่น คะแนนเต็ม 20 กรอก 100
+  // ไม่ได้) - คืน error เป็น null ถ้าค่าถูกต้อง
+  function validateScore(itemId, rawValue) {
+    const n = Number(rawValue);
+    if (!Number.isInteger(n)) return "คะแนนต้องเป็นจำนวนเต็ม ไม่มีทศนิยม";
+    if (n < 0) return "คะแนนต้องไม่ติดลบ";
+    const totalScore = itemById[itemId]?.total_score;
+    if (totalScore !== undefined && n > Number(totalScore)) {
+      return `คะแนนเกินคะแนนเต็มของชิ้นงานนี้ (เต็ม ${totalScore})`;
+    }
+    return null;
+  }
+
   const roster = useMemo(() => {
     const list = enrollments
       .map((e) => studentById[e.student_id])
@@ -111,12 +131,25 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
       ...prev,
       [key]: { studentId, itemId, value, scoreId: existing ? existing.id : null },
     }));
+    setCellErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }
 
   async function handleCellBlur(studentId, itemId) {
     const key = `${studentId}_${itemId}`;
     const entry = dirty[key];
     if (!entry || entry.value === "") return;
+
+    const error = validateScore(entry.itemId, entry.value);
+    if (error) {
+      setCellErrors((prev) => ({ ...prev, [key]: error }));
+      return; // ไม่ยิง API - ค่ายังค้างใน dirty ให้แก้ไขต่อได้
+    }
+
     setSavingKeys((prev) => new Set(prev).add(key));
     try {
       if (entry.scoreId) {
@@ -142,7 +175,11 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
         });
       }, 1200);
       await refreshScores();
-    } catch {
+    } catch (err) {
+      setCellErrors((prev) => ({
+        ...prev,
+        [key]: err?.response?.data?.detail || "บันทึกไม่สำเร็จ",
+      }));
       // ทิ้ง entry ไว้ใน dirty ต่อไป - ผู้ใช้แก้/กด "บันทึกทั้งหมด" ใหม่ได้
     } finally {
       setSavingKeys((prev) => {
@@ -156,9 +193,19 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
   async function handleSaveAll() {
     setSaving(true);
     setSaveSummary("");
-    const entries = Object.values(dirty).filter((d) => d.value !== "");
+    const allEntries = Object.entries(dirty).filter(([, d]) => d.value !== "");
+
+    const invalidErrors = {};
+    const validEntries = [];
+    allEntries.forEach(([key, d]) => {
+      const error = validateScore(d.itemId, d.value);
+      if (error) invalidErrors[key] = error;
+      else validEntries.push([key, d]);
+    });
+    setCellErrors((prev) => ({ ...prev, ...invalidErrors }));
+
     const results = await Promise.allSettled(
-      entries.map((d) =>
+      validEntries.map(([, d]) =>
         d.scoreId
           ? updateStudentScore(d.scoreId, Number(d.value))
           : createStudentScore({
@@ -170,8 +217,18 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     );
     const succeeded = results.filter((r) => r.status === "fulfilled").length;
     const failed = results.filter((r) => r.status === "rejected").length;
-    setSaveSummary(`บันทึกสำเร็จ ${succeeded} รายการ${failed > 0 ? `, ไม่สำเร็จ ${failed} รายการ` : ""}`);
-    setDirty({});
+    const invalidCount = Object.keys(invalidErrors).length;
+    setSaveSummary(
+      `บันทึกสำเร็จ ${succeeded} รายการ` +
+        (failed > 0 ? `, ไม่สำเร็จ ${failed} รายการ` : "") +
+        (invalidCount > 0 ? `, ข้าม ${invalidCount} รายการที่คะแนนไม่ถูกต้อง (ดูช่องขอบแดง)` : "")
+    );
+    // เก็บ entry ที่ invalid ไว้ใน dirty ต่อ (แก้ไขได้) ลบเฉพาะที่ส่งไปแล้ว (ไม่ว่าสำเร็จ/ไม่สำเร็จ)
+    setDirty((prev) => {
+      const next = { ...prev };
+      validEntries.forEach(([key]) => delete next[key]);
+      return next;
+    });
     setSaving(false);
     await refreshScores();
   }
@@ -216,7 +273,9 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
                 </td>
                 {assessmentItems.map((item) => {
                   const key = `${student.id}_${item.id}`;
-                  const inputClass = savedFlashKeys.has(key)
+                  const inputClass = cellErrors[key]
+                    ? "score-input-error"
+                    : savedFlashKeys.has(key)
                     ? "score-input-saved"
                     : savingKeys.has(key)
                     ? "score-input-saving"
@@ -225,10 +284,11 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
                     <td key={item.id}>
                       <input
                         type="number"
-                        step="0.01"
+                        step="1"
                         min="0"
                         max={item.total_score}
                         className={inputClass}
+                        title={cellErrors[key] || undefined}
                         value={cellValue(student.id, item.id)}
                         onChange={(e) => handleCellChange(student.id, item.id, e.target.value)}
                         onBlur={() => handleCellBlur(student.id, item.id)}

@@ -72,9 +72,27 @@ export default function ScoreManagement() {
     loadScores(trimmed);
   }
 
+  // คะแนนต้องเป็นจำนวนเต็ม ไม่ติดลบ และห้ามเกินคะแนนเต็มของชิ้นงานนั้น (เช่น คะแนนเต็ม 20 กรอก 100
+  // ไม่ได้) - คืน error เป็น null ถ้าค่าถูกต้อง
+  function validateScore(rawValue, totalScore) {
+    const n = Number(rawValue);
+    if (!Number.isInteger(n)) return "คะแนนต้องเป็นจำนวนเต็ม ไม่มีทศนิยม";
+    if (n < 0) return "คะแนนต้องไม่ติดลบ";
+    if (totalScore !== undefined && n > Number(totalScore)) {
+      return `คะแนนเกินคะแนนเต็มของชิ้นงานนี้ (เต็ม ${totalScore})`;
+    }
+    return null;
+  }
+
   async function handleSaveRow(scoreId) {
-    setSavingId(scoreId);
     setRowError((prev) => ({ ...prev, [scoreId]: null }));
+    const row = scores.find((s) => s.id === scoreId);
+    const error = validateScore(editValues[scoreId], row?.total_score);
+    if (error) {
+      setRowError((prev) => ({ ...prev, [scoreId]: error }));
+      return;
+    }
+    setSavingId(scoreId);
     try {
       const updated = await updateStudentScore(scoreId, Number(editValues[scoreId]));
       setScores((prev) =>
@@ -82,8 +100,8 @@ export default function ScoreManagement() {
           score.id === scoreId ? { ...score, score_obtained: updated.score_obtained } : score
         )
       );
-    } catch {
-      setRowError((prev) => ({ ...prev, [scoreId]: "บันทึกไม่สำเร็จ" }));
+    } catch (err) {
+      setRowError((prev) => ({ ...prev, [scoreId]: err?.response?.data?.detail || "บันทึกไม่สำเร็จ" }));
     } finally {
       setSavingId(null);
     }
@@ -94,6 +112,13 @@ export default function ScoreManagement() {
     setAddError(null);
     setAddSuccess(null);
     if (!searchedStudentId || !newItemId || newScore === "") return;
+
+    const selectedItem = assessmentItems.find((item) => item.id === Number(newItemId));
+    const error = validateScore(newScore, selectedItem?.total_score);
+    if (error) {
+      setAddError(error);
+      return;
+    }
 
     try {
       await createStudentScore({
@@ -111,7 +136,7 @@ export default function ScoreManagement() {
           "มีคะแนนของชิ้นงานนี้สำหรับนักศึกษาคนนี้อยู่แล้ว กรุณาแก้ไขในตารางด้านบนแทนการเพิ่มใหม่"
         );
       } else {
-        setAddError("เกิดข้อผิดพลาดในการเพิ่มคะแนน");
+        setAddError(err?.response?.data?.detail || "เกิดข้อผิดพลาดในการเพิ่มคะแนน");
       }
     }
   }
@@ -154,8 +179,9 @@ export default function ScoreManagement() {
                   <td className="student-table-cell">
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
+                      max={score.total_score}
                       className="score-input"
                       value={editValues[score.id] ?? ""}
                       onChange={(e) =>
@@ -212,8 +238,9 @@ export default function ScoreManagement() {
                 <input
                   id="new-score"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
+                  max={assessmentItems.find((item) => item.id === Number(newItemId))?.total_score}
                   value={newScore}
                   onChange={(e) => setNewScore(e.target.value)}
                   required

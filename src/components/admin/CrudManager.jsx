@@ -6,7 +6,11 @@ import SearchableSelect from "../SearchableSelect.jsx";
 /**
  * Generic CRUD manager: table + add/edit form (in a modal) + delete, ใช้ซ้ำได้ทุกตาราง
  * columns: [{ key, label, type: 'text'|'number'|'password'|'select'|'searchable-select', options?: [{value,label}],
- *             required?: bool, nullable?: bool, step?: string, omitIfEmptyOnUpdate?: bool,
+ *             required?: bool, nullable?: bool, omitIfEmptyOnUpdate?: bool,
+ *             min?: number, max?: number (type: 'number' only - ตัวเลขต้องเป็นจำนวนเต็มเสมอ (step=1
+ *                                 คงที่ ไม่รับทศนิยม) และถ้าใส่ min/max ไว้ ค่าต้องอยู่ในช่วงนั้น เช่น
+ *                                 เปอร์เซ็นต์ให้ใส่ min:0, max:100 - เช็คทั้งฝั่ง input (attribute)
+ *                                 และตอนบันทึกจริงใน buildPayload ไม่ใช่แค่ HTML attribute เฉยๆ)
  *             readOnly?: bool (ล็อกไม่ให้แก้ตอน editingId !== "new" - เช่น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว)
  *             filterable?: bool (select/searchable-select column: default true, ใช้ options เดิม;
  *                                 text/number column: default false, ต้องระบุ true เอง - ตัวเลือกจะ derive จาก rows จริง)
@@ -91,6 +95,8 @@ export default function CrudManager({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // ช่องตัวเลขทุกช่องรับเฉพาะจำนวนเต็ม (ไม่มีทศนิยม) - และถ้า column กำหนด min/max ไว้ ต้องอยู่ในช่วงนั้น
+  // (เช่น เปอร์เซ็นต์ 0-100) โยน Error พร้อมข้อความภาษาไทยให้ handleSave ดักไปแสดงถ้าไม่ผ่าน
   function buildPayload() {
     const payload = {};
     columns.forEach((c) => {
@@ -102,7 +108,17 @@ export default function CrudManager({
       if (isEmpty) {
         payload[c.key] = c.nullable ? null : raw;
       } else if (c.type === "number") {
-        payload[c.key] = Number(raw);
+        const parsed = Number(raw);
+        if (!Number.isInteger(parsed)) {
+          throw new Error(`"${c.label}" ต้องเป็นจำนวนเต็ม ไม่มีทศนิยม`);
+        }
+        if (c.min !== undefined && parsed < c.min) {
+          throw new Error(`"${c.label}" ต้องไม่น้อยกว่า ${c.min}`);
+        }
+        if (c.max !== undefined && parsed > c.max) {
+          throw new Error(`"${c.label}" ต้องไม่เกิน ${c.max}`);
+        }
+        payload[c.key] = parsed;
       } else {
         payload[c.key] = raw;
       }
@@ -124,7 +140,7 @@ export default function CrudManager({
       cancelEdit();
       await load();
     } catch (err) {
-      setError(err?.response?.data?.detail || "บันทึกไม่สำเร็จ");
+      setError(err?.response?.data?.detail || err?.message || "บันทึกไม่สำเร็จ");
     } finally {
       setSaving(false);
     }
@@ -320,7 +336,9 @@ export default function CrudManager({
                   ) : (
                     <input
                       type={c.type === "number" ? "number" : c.type === "password" ? "password" : "text"}
-                      step={c.step}
+                      step={c.type === "number" ? "1" : undefined}
+                      min={c.type === "number" ? c.min : undefined}
+                      max={c.type === "number" ? c.max : undefined}
                       value={form[c.key] ?? ""}
                       onChange={(e) => handleChange(c.key, e.target.value)}
                       required={c.required && !(c.omitIfEmptyOnUpdate && editingId !== "new")}
