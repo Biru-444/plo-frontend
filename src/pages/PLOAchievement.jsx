@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getCurriculum, getStudent, getStudentPLOAchievement } from "../api/client.js";
+import {
+  getCurriculum,
+  getStudent,
+  getStudentPLOAchievement,
+  getStudentYLOAchievement,
+} from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import PLOBar from "../components/PLOBar.jsx";
 import StudentProfileCard from "../components/StudentProfileCard.jsx";
 import PLOSummaryStats from "../components/PLOSummaryStats.jsx";
 import PLORadarChart from "../components/PLORadarChart.jsx";
+import StudentYearBreakdown from "../components/StudentYearBreakdown.jsx";
 
 export default function PLOAchievement() {
   const [searchParams] = useSearchParams();
@@ -14,6 +20,7 @@ export default function PLOAchievement() {
   const [result, setResult] = useState(null);
   const [student, setStudent] = useState(null);
   const [curriculumName, setCurriculumName] = useState(null);
+  const [yloYears, setYloYears] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -26,6 +33,7 @@ export default function PLOAchievement() {
     setResult(null);
     setStudent(null);
     setCurriculumName(null);
+    setYloYears(null);
 
     try {
       const [achievement, studentData] = await Promise.all([
@@ -38,6 +46,12 @@ export default function PLOAchievement() {
       // ไม่ block การแสดงผล - ถ้าดึงชื่อหลักสูตรไม่ได้ StudentProfileCard จะ fallback เป็น #curriculum_id เอง
       getCurriculum(studentData.curriculum_id)
         .then((curriculum) => setCurriculumName(`${curriculum.name} (${curriculum.year})`))
+        .catch(() => {});
+
+      // เช่นเดียวกัน ไม่ block การแสดงผลหลัก - ถ้าดึงไม่ได้ ส่วนรายวิชา/YLO แค่ไม่แสดง (StudentYearBreakdown
+      // คืน null ถ้า years ว่าง/ไม่มี)
+      getStudentYLOAchievement(trimmed)
+        .then((data) => setYloYears(data.years))
         .catch(() => {});
     } catch (err) {
       if (err.response?.status === 404) {
@@ -99,7 +113,10 @@ export default function PLOAchievement() {
 
           <PLORadarChart achievements={result.plo_achievements} />
 
+          <StudentYearBreakdown years={yloYears} />
+
           <div className="student-summary">
+            <h2 className="student-year-breakdown-title">PLO แต่ละข้อ</h2>
             <p className="achievement-count">
               บรรลุ {achievedCount} จาก {totalCount} ข้อ
             </p>

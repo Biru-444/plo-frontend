@@ -2581,6 +2581,86 @@ tr.student-table-row.expandable:hover {
   color: var(--color-red-700);
 }
 
+.badge-muted {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--color-gray-100);
+  color: var(--color-gray-500);
+}
+
+.student-year-breakdown {
+  margin: 24px 0;
+}
+
+.student-year-breakdown-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--heading-color);
+  margin-bottom: 12px;
+}
+
+.student-year-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.student-year-card {
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 18px 20px;
+}
+
+.student-year-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.student-year-card-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--heading-color);
+}
+
+.student-year-ylo-desc {
+  font-size: 0.85rem;
+  color: var(--color-gray-600);
+  margin: 0 0 12px;
+}
+
+.student-year-course-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-year-course-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+  font-size: 0.85rem;
+}
+
+.student-year-course-name {
+  flex: 1;
+}
+
 .workspace-muted {
   font-size: 0.78rem;
   color: var(--color-gray-400);

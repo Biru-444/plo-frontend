@@ -357,6 +357,18 @@ export async function getYLOAchievement(curriculumId, yearLevel, cohortYear) {
   return data;
 }
 
+/**
+ * เวอร์ชันรายบุคคลของ getYLOAchievement - ทุกปี (1-4) ของนักศึกษาคนเดียว พร้อมรายวิชาของแต่ละปีและ
+ * pass/fail ต่อวิชา ใช้ในหน้า /student-plo (PLOAchievement.jsx) สำหรับ hierarchy รายวิชา -> YLO -> PLO
+ * Backend: GET /ylo/achievement/student?student_id=...
+ */
+export async function getStudentYLOAchievement(studentId) {
+  const { data } = await api.get("/ylo/achievement/student", {
+    params: { student_id: studentId },
+  });
+  return data;
+}
+
 export async function createYLO(payload) {
   const { data } = await api.post("/ylo", payload);
   return data;
