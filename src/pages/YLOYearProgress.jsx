@@ -196,12 +196,34 @@ export default function YLOYearProgress() {
             <div className="year-progress-card">
               <div className="year-progress-header">
                 <h2>ชั้นปีที่ {selectedYearLevel}</h2>
+                {achievement && achievement.courses.length > 0 && (
+                  <span className="year-progress-course-count">{achievement.courses.length} วิชา</span>
+                )}
               </div>
 
               <div className="ylo-description-box">
                 <span className="ylo-description-label">เป้าหมายของปีนี้ (YLO)</span>
                 <p>{currentYlo?.description || "ไม่มีข้อมูล YLO สำหรับปีนี้"}</p>
               </div>
+
+              {!loadingAchievement && achievement && achievement.courses.length > 0 && (
+                <div className="year-progress-courses">
+                  <span className="year-progress-courses-label">รายวิชาประจำปีนี้ (ตามแผนการศึกษา)</span>
+                  <div className="year-progress-course-row">
+                    {achievement.courses.map((c) => (
+                      <span key={c.course_id} className="year-progress-course-chip">
+                        <span className="year-progress-course-chip-code">{c.course_code}</span>
+                        {c.name_th}
+                        <span className="year-progress-course-chip-credit">({c.credit} หน่วยกิต)</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {!loadingAchievement && achievement && achievement.courses.length === 0 && (
+                <p className="student-list-empty">ยังไม่มีแผนการศึกษา (study plan) กำหนดไว้สำหรับชั้นปีนี้</p>
+              )}
 
               {loadingAchievement && <p className="loading-message">กำลังโหลดข้อมูล...</p>}
 

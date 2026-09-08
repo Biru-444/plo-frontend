@@ -1707,6 +1707,46 @@ tr.student-table-row.expandable:hover {
   margin-bottom: 4px;
 }
 
+.year-progress-courses {
+  margin-bottom: 16px;
+}
+
+.year-progress-courses-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.year-progress-course-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.year-progress-course-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-soft);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  color: var(--color-text);
+}
+
+.year-progress-course-chip-code {
+  font-weight: 700;
+}
+
+.year-progress-course-chip-credit {
+  color: var(--color-gray-500);
+  font-size: 0.75rem;
+}
+
 .plo-expanded-detail {
   display: flex;
   flex-direction: column;
