@@ -28,9 +28,9 @@ import {
   deleteCLO,
   listEnrollments,
   createEnrollment,
-  updateEnrollment,
   deleteEnrollment,
   bulkEnrollByCohort,
+  bulkRemoveByCohort,
   getSiblingSectionEnrollments,
   listStudents,
 } from "../../api/client.js";
@@ -314,8 +314,6 @@ export default function CourseOfferingWorkspace() {
 }
 
 function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, allStudents, onChanged }) {
-  const [gradeEdits, setGradeEdits] = useState({});
-  const [rowError, setRowError] = useState({});
   const [addSearch, setAddSearch] = useState("");
   const [addStudentId, setAddStudentId] = useState("");
   const [addError, setAddError] = useState("");
@@ -325,6 +323,11 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
   const [cohortSubmitting, setCohortSubmitting] = useState(false);
   const [cohortError, setCohortError] = useState("");
   const [cohortResultMessage, setCohortResultMessage] = useState("");
+
+  const [removeCohortYear, setRemoveCohortYear] = useState("");
+  const [removeCohortSubmitting, setRemoveCohortSubmitting] = useState(false);
+  const [removeCohortError, setRemoveCohortError] = useState("");
+  const [removeCohortResultMessage, setRemoveCohortResultMessage] = useState("");
 
   // รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้ไปแล้วในหมู่/section อื่น (วิชาเดียวกัน ภาคเรียนเดียวกัน)
   // ใช้แยกไม่ให้ปนกับคนที่ยังไม่ได้ลงทะเบียนเลย เช่น รุ่น 69 ที่แบ่งเป็น 2 หมู่เพราะคนเยอะ
@@ -393,6 +396,19 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     [cohortCandidates, otherSectionMap]
   );
 
+  // รุ่นที่มีนักศึกษาลงทะเบียนวิชานี้อยู่จริง - ใช้เป็นตัวเลือกสำหรับ "ลบรายชื่อทั้งรุ่น"
+  const enrolledCohortOptions = useMemo(() => {
+    const years = new Set(
+      enrolledRoster.map(({ student }) => student.cohort_year).filter((y) => y != null)
+    );
+    return Array.from(years).sort((a, b) => a - b);
+  }, [enrolledRoster]);
+
+  const removeCohortCandidates = useMemo(() => {
+    if (!removeCohortYear) return [];
+    return enrolledRoster.filter(({ student }) => student.cohort_year === Number(removeCohortYear));
+  }, [enrolledRoster, removeCohortYear]);
+
   async function handleBulkByCohort() {
     if (!cohortYear) return;
     if (
@@ -423,18 +439,26 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     }
   }
 
-  function gradeValue(enrollment) {
-    if (gradeEdits[enrollment.id] !== undefined) return gradeEdits[enrollment.id];
-    return enrollment.final_grade ?? "";
-  }
-
-  async function handleSaveGrade(enrollment) {
-    setRowError((prev) => ({ ...prev, [enrollment.id]: "" }));
+  async function handleBulkRemoveByCohort() {
+    if (!removeCohortYear) return;
+    if (
+      !window.confirm(
+        `ยืนยันลบนักศึกษารุ่น ${removeCohortYear} ทั้งหมด ${removeCohortCandidates.length} คน ออกจากวิชานี้? การกระทำนี้ย้อนกลับไม่ได้`
+      )
+    )
+      return;
+    setRemoveCohortSubmitting(true);
+    setRemoveCohortError("");
+    setRemoveCohortResultMessage("");
     try {
-      await updateEnrollment(enrollment.id, { final_grade: gradeValue(enrollment) || null });
+      const result = await bulkRemoveByCohort(offeringId, Number(removeCohortYear));
+      setRemoveCohortResultMessage(`ลบสำเร็จ ${result.removed_count} คน`);
+      setRemoveCohortYear("");
       await onChanged();
-    } catch {
-      setRowError((prev) => ({ ...prev, [enrollment.id]: "บันทึกไม่สำเร็จ" }));
+    } catch (err) {
+      setRemoveCohortError(err?.response?.data?.detail || "ลบนักศึกษารุ่นนี้ไม่สำเร็จ");
+    } finally {
+      setRemoveCohortSubmitting(false);
     }
   }
 
@@ -479,7 +503,6 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
           <tr>
             <th>รหัสนักศึกษา</th>
             <th>ชื่อ-นามสกุล</th>
-            <th>เกรด (final_grade)</th>
             <th></th>
           </tr>
         </thead>
@@ -489,22 +512,6 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
               <td className="student-table-cell">{student.id}</td>
               <td className="student-table-cell">
                 {student.first_name} {student.last_name}
-              </td>
-              <td className="student-table-cell">
-                <input
-                  type="text"
-                  className="score-input"
-                  value={gradeValue(enrollment)}
-                  onChange={(e) =>
-                    setGradeEdits((prev) => ({ ...prev, [enrollment.id]: e.target.value }))
-                  }
-                />
-                <button type="button" onClick={() => handleSaveGrade(enrollment)}>
-                  บันทึก
-                </button>
-                {rowError[enrollment.id] && (
-                  <p className="error-message score-row-error">{rowError[enrollment.id]}</p>
-                )}
               </td>
               <td className="student-table-cell">
                 <button
@@ -619,7 +626,53 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
         {cohortResultMessage && <p className="success-message">{cohortResultMessage}</p>}
       </div>
 
-      <BulkEnrollPanel offeringId={offeringId} allStudents={allStudents} onChanged={onChanged} />
+      <div className="workspace-section">
+        <h2>
+          <Users size={18} strokeWidth={2} /> ลบรายชื่อทั้งรุ่น
+        </h2>
+        {removeCohortError && <p className="error-message">{removeCohortError}</p>}
+        <div className="workspace-inline-form">
+          <div className="form-field">
+            <label htmlFor="remove-cohort-select">เลือกรุ่น (cohort_year)</label>
+            <select
+              id="remove-cohort-select"
+              value={removeCohortYear}
+              onChange={(e) => {
+                setRemoveCohortYear(e.target.value);
+                setRemoveCohortResultMessage("");
+              }}
+            >
+              <option value="">-- เลือกรุ่น --</option>
+              {enrolledCohortOptions.map((y) => (
+                <option key={y} value={y}>
+                  รุ่น {y}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={handleBulkRemoveByCohort}
+            disabled={!removeCohortYear || removeCohortSubmitting}
+          >
+            {removeCohortSubmitting ? "กำลังลบ..." : "ลบนักศึกษารุ่นนี้ทั้งหมด"}
+          </button>
+        </div>
+        {removeCohortYear && (
+          <p className="workspace-hint-inline">
+            จะลบนักศึกษา {removeCohortCandidates.length} คน (รุ่น {removeCohortYear} ที่ลงทะเบียนวิชานี้อยู่)
+            ออกจากการลงทะเบียนวิชานี้
+          </p>
+        )}
+        {removeCohortResultMessage && <p className="success-message">{removeCohortResultMessage}</p>}
+      </div>
+
+      <BulkEnrollPanel
+        offeringId={offeringId}
+        allStudents={allStudents}
+        onChanged={onChanged}
+        showMultiSelect={false}
+      />
     </>
   );
 }

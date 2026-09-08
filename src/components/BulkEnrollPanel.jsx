@@ -17,7 +17,7 @@ import {
  * offeringId, allStudents (รายชื่อนักศึกษาทั้งหมดในระบบแบบดิบ ไม่ต้องกรองมาก่อน) และ onChanged
  * (เรียกหลังลงทะเบียนสำเร็จ เผื่อผู้เรียกต้อง refresh ข้อมูลของตัวเอง)
  */
-export default function BulkEnrollPanel({ offeringId, allStudents, onChanged }) {
+export default function BulkEnrollPanel({ offeringId, allStudents, onChanged, showMultiSelect = true }) {
   const [enrolledIds, setEnrolledIds] = useState(() => new Set());
   const [otherSectionMap, setOtherSectionMap] = useState({});
 
@@ -147,52 +147,54 @@ export default function BulkEnrollPanel({ offeringId, allStudents, onChanged }) 
 
   return (
     <>
-      <div className="workspace-section">
-        <h2>
-          <Users size={18} strokeWidth={2} /> เลือกหลายคนพร้อมกัน
-        </h2>
-        {multiError && <p className="error-message">{multiError}</p>}
-        <div className="workspace-inline-form">
-          <button type="button" onClick={toggleSelectAllVisible} disabled={availableStudents.length === 0}>
-            {allVisibleSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
+      {showMultiSelect && (
+        <div className="workspace-section">
+          <h2>
+            <Users size={18} strokeWidth={2} /> เลือกหลายคนพร้อมกัน
+          </h2>
+          {multiError && <p className="error-message">{multiError}</p>}
+          <div className="workspace-inline-form">
+            <button type="button" onClick={toggleSelectAllVisible} disabled={availableStudents.length === 0}>
+              {allVisibleSelected ? "ยกเลิกทั้งหมด" : "เลือกทั้งหมด"}
+            </button>
+          </div>
+          <div className="enroll-multiselect-list">
+            {availableStudents.map((s) => (
+              <label key={s.id} className="enroll-multiselect-item">
+                <input type="checkbox" checked={selectedIds.has(s.id)} onChange={() => toggleOne(s.id)} />
+                {s.id} {s.first_name} {s.last_name}
+              </label>
+            ))}
+            {availableStudents.length === 0 && (
+              <p className="student-list-empty">ไม่พบนักศึกษาที่ยังไม่ได้ลงทะเบียน</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleAddSelected}
+            disabled={selectedIds.size === 0 || multiSubmitting}
+          >
+            {multiSubmitting ? "กำลังเพิ่ม..." : `เพิ่มที่เลือก (${selectedIds.size} คน)`}
           </button>
-        </div>
-        <div className="enroll-multiselect-list">
-          {availableStudents.map((s) => (
-            <label key={s.id} className="enroll-multiselect-item">
-              <input type="checkbox" checked={selectedIds.has(s.id)} onChange={() => toggleOne(s.id)} />
-              {s.id} {s.first_name} {s.last_name}
-            </label>
-          ))}
-          {availableStudents.length === 0 && (
-            <p className="student-list-empty">ไม่พบนักศึกษาที่ยังไม่ได้ลงทะเบียน</p>
+          {multiResultMessage && <p className="success-message">{multiResultMessage}</p>}
+
+          {otherSectionAvailableStudents.length > 0 && (
+            <div className="enroll-other-section-note">
+              <p className="workspace-hint-inline">
+                นักศึกษาที่ลงทะเบียนวิชานี้ไปแล้วที่หมู่อื่น ({otherSectionAvailableStudents.length} คน —
+                ไม่แสดงในรายการด้านบนเพื่อไม่ให้เพิ่มซ้ำ):
+              </p>
+              <ul className="enroll-other-section-list">
+                {otherSectionAvailableStudents.map((s) => (
+                  <li key={s.id}>
+                    {s.id} {s.first_name} {s.last_name} — หมู่ {otherSectionMap[s.id]}
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
-        <button
-          type="button"
-          onClick={handleAddSelected}
-          disabled={selectedIds.size === 0 || multiSubmitting}
-        >
-          {multiSubmitting ? "กำลังเพิ่ม..." : `เพิ่มที่เลือก (${selectedIds.size} คน)`}
-        </button>
-        {multiResultMessage && <p className="success-message">{multiResultMessage}</p>}
-
-        {otherSectionAvailableStudents.length > 0 && (
-          <div className="enroll-other-section-note">
-            <p className="workspace-hint-inline">
-              นักศึกษาที่ลงทะเบียนวิชานี้ไปแล้วที่หมู่อื่น ({otherSectionAvailableStudents.length} คน —
-              ไม่แสดงในรายการด้านบนเพื่อไม่ให้เพิ่มซ้ำ):
-            </p>
-            <ul className="enroll-other-section-list">
-              {otherSectionAvailableStudents.map((s) => (
-                <li key={s.id}>
-                  {s.id} {s.first_name} {s.last_name} — หมู่ {otherSectionMap[s.id]}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="workspace-section">
         <h2>

@@ -212,6 +212,20 @@ export async function bulkEnrollByCohort(offeringId, cohortYear) {
 }
 
 /**
+ * Remove every currently-enrolled student of one cohort_year (matching the
+ * offering's curriculum) from an offering at once.
+ * Backend: POST /enrollments/bulk-by-cohort-delete
+ * Returns: { removed_count, removed_students: [{id, first_name, last_name}] }
+ */
+export async function bulkRemoveByCohort(offeringId, cohortYear) {
+  const { data } = await api.post("/enrollments/bulk-by-cohort-delete", {
+    offering_id: offeringId,
+    cohort_year: cohortYear,
+  });
+  return data;
+}
+
+/**
  * Enroll a specific list of student IDs into an offering at once.
  * Backend: POST /enrollments/bulk
  * Returns: { added_count, already_enrolled: [...ids], not_found: [...ids], wrong_curriculum: [...ids],
