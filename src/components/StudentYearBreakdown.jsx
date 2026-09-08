@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Info, X } from "lucide-react";
 import { getStudentCourseCLOBreakdown } from "../api/client.js";
 
 /**
  * ไล่ดูผล "รายวิชา -> YLO (รายปี)" ของนักศึกษาคนเดียว ต่อจาก StudentProfileCard/PLOSummaryStats/
- * PLORadarChart ในหน้า /student-plo (PLOAchievement.jsx) - ก่อนหน้านี้หน้านี้เห็นแค่ % บรรลุ PLO
- * ภาพรวม ไม่มีทางไล่ลงไปดูว่าวิชาไหนผ่าน/ไม่ผ่าน หรือ YLO ปีไหนบรรลุหรือยัง (ต้องเดาจากคะแนนดิบเอง)
+ * PLOChipGrid ในหน้า /student-plo (PLOAchievement.jsx) - เดิมหน้านี้เห็นแค่ % บรรลุ PLO ภาพรวม ไม่มีทาง
+ * ไล่ลงไปดูว่าวิชาไหนผ่าน/ไม่ผ่าน หรือ YLO ปีไหนบรรลุหรือยัง (ต้องเดาจากคะแนนดิบเอง)
  * ข้อมูลมาจาก getStudentYLOAchievement (GET /ylo/achievement/student) - แยกจาก PLO ที่ยังคงดึงจาก
  * getStudentPLOAchievement เหมือนเดิม (คนละ endpoint, คนละ tier ของ hierarchy)
  *
@@ -13,8 +13,19 @@ import { getStudentCourseCLOBreakdown } from "../api/client.js";
  * CLO ข้อไหนผ่าน/ไม่ผ่าน และแต่ละ CLO คำนวณมาจากชิ้นงานไหนบ้าง (getStudentCourseCLOBreakdown) - โหลด
  * แบบ lazy ตอนกดขยายครั้งแรกเท่านั้น (ไม่โหลดล่วงหน้าทุกวิชาพร้อมกัน อาจมีเป็นสิบวิชาต่อหน้า) แล้ว cache
  * ไว้ในหน่วยความจำระหว่างเปิด-ปิดแถวเดิมซ้ำ
+ *
+ * selectedPloFilter/courseToPlos: ตอนกด PLO chip ฝั่งซ้าย (PLOChipGrid) กรองให้เหลือเฉพาะวิชาที่เป็น
+ * primary ของ PLO ข้อนั้น - ปีที่ไม่เหลือวิชาเลยหลังกรองจะถูกซ่อนทั้งการ์ด (กันการ์ดว่างเปล่ารกจอ)
+ * คำอธิบาย YLO ย้ายจากข้อความเต็มที่กางไว้ตลอด มาเป็น title tooltip ของไอคอน (i) แทน (ตามที่ตกลงกัน
+ * 2026-09-08 - ประหยัดพื้นที่แนวตั้งสำหรับ one-screen dashboard)
  */
-export default function StudentYearBreakdown({ studentId, years }) {
+export default function StudentYearBreakdown({
+  studentId,
+  years,
+  courseToPlos = {},
+  selectedPloFilter = null,
+  onClearFilter,
+}) {
   const [expandedCourseIds, setExpandedCourseIds] = useState(() => new Set());
   const [courseDetails, setCourseDetails] = useState({});
 
@@ -47,14 +58,41 @@ export default function StudentYearBreakdown({ studentId, years }) {
 
   if (!years || years.length === 0) return null;
 
+  function coursesForYear(year) {
+    if (!selectedPloFilter) return year.courses;
+    return year.courses.filter((c) => courseToPlos[c.course_id]?.has(selectedPloFilter));
+  }
+
+  const visibleYears = years
+    .map((year) => ({ year, visibleCourses: coursesForYear(year) }))
+    .filter(({ visibleCourses }) => !selectedPloFilter || visibleCourses.length > 0);
+
   return (
     <div className="student-year-breakdown">
-      <h2 className="student-year-breakdown-title">รายวิชา และ YLO ตามชั้นปี</h2>
+      <div className="student-year-breakdown-header">
+        <h2 className="student-year-breakdown-title">รายวิชา และ YLO ตามชั้นปี</h2>
+        {selectedPloFilter && (
+          <button type="button" className="student-plo-filter-chip" onClick={onClearFilter}>
+            กรอง: {selectedPloFilter}
+            <X size={12} />
+          </button>
+        )}
+      </div>
+
+      {selectedPloFilter && visibleYears.length === 0 && (
+        <p className="student-list-empty">ไม่มีวิชาที่เกี่ยวข้องกับ {selectedPloFilter} ในแผนการเรียน</p>
+      )}
+
       <div className="student-year-list">
-        {years.map((year) => (
+        {visibleYears.map(({ year, visibleCourses }) => (
           <div key={year.year_level} className="student-year-card">
             <div className="student-year-card-header">
-              <h3>ชั้นปีที่ {year.year_level}</h3>
+              <h3>
+                ชั้นปีที่ {year.year_level}
+                {year.ylo_description && (
+                  <Info size={12} className="student-year-ylo-info" title={year.ylo_description} />
+                )}
+              </h3>
               {year.is_reached ? (
                 <span className={year.is_achieved ? "badge-pass" : "badge-fail"}>
                   {year.is_achieved ? "บรรลุ YLO" : "ยังไม่บรรลุ YLO"}
@@ -64,15 +102,11 @@ export default function StudentYearBreakdown({ studentId, years }) {
               )}
             </div>
 
-            {year.ylo_description && (
-              <p className="student-year-ylo-desc">{year.ylo_description}</p>
-            )}
-
-            {year.courses.length === 0 ? (
+            {visibleCourses.length === 0 ? (
               <p className="student-list-empty">ยังไม่มีแผนการศึกษา (study plan) กำหนดไว้สำหรับชั้นปีนี้</p>
             ) : (
               <ul className="student-year-course-list">
-                {year.courses.map((course) => {
+                {visibleCourses.map((course) => {
                   const isExpanded = expandedCourseIds.has(course.course_id);
                   const detail = courseDetails[course.course_id];
                   return (

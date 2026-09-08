@@ -115,29 +115,6 @@ body {
   border-radius: var(--radius-sm);
 }
 
-.student-summary {
-  background: white;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  margin-bottom: 20px;
-}
-
-.student-summary h2 {
-  margin: 0 0 6px 0;
-}
-
-.achievement-count {
-  font-weight: 600;
-  color: var(--color-purple-700);
-}
-
-.plo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
 .plo-bar-row {
   background: white;
   border: 1px solid var(--color-border);
@@ -168,12 +145,6 @@ body {
   color: var(--color-purple-700);
 }
 
-.plo-description {
-  flex: 1;
-  color: var(--color-gray-800);
-  font-size: 0.92rem;
-}
-
 .plo-keyword {
   margin: 0 0 10px;
   color: var(--color-gray-600);
@@ -201,26 +172,6 @@ body {
 
 .plo-achieved-empty {
   color: var(--color-gray-400);
-}
-
-.plo-bar-track {
-  background: var(--color-gray-100);
-  border-radius: 999px;
-  height: 17px;
-  overflow: hidden;
-}
-
-.plo-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-}
-
-.plo-bar-fill.achieved {
-  background: var(--color-green-700);
-}
-
-.plo-bar-fill.not-achieved {
-  background: var(--color-red-700);
 }
 
 .plo-bar-percent {
@@ -1572,10 +1523,127 @@ tr.student-table-row.expandable:hover {
   color: var(--color-gray-900);
 }
 
+/* --- /student-plo one-screen split layout (ตัดสินใจร่วมกับผู้ใช้ 2026-09-08) ---
+   ซ้าย 30-40% (สรุป + PLO chip grid) / ขวา 60-70% (รายวิชา+YLO ตามชั้นปี, scroll ในกล่องตัวเอง) แทน
+   การ scroll ทั้งหน้า - จอแคบ (มือถือ/แท็บเล็ตแนวตั้ง) fallback เป็น stack แนวตั้งธรรมดา ไม่ใช่ tab
+   (ขัดกับเป้าหมาย "เห็นภาพรวม+เจาะลึกพร้อมกัน") */
+
+.student-plo-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.student-plo-topbar .student-profile-card {
+  flex: 1;
+  min-width: 280px;
+  margin-bottom: 0;
+}
+
+.student-plo-topbar-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.student-plo-topbar-actions .plo-admin-actions {
+  margin-top: 0;
+}
+
+.student-plo-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 36%) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.student-plo-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+.student-plo-right {
+  /* 480px วัดจริงจาก topbar+padding+h1+search-form+profile-card ที่ viewport 900px (ดู 2026-09-08
+     commit message) - อาจคลาดเคลื่อนได้ถ้าการ์ดโปรไฟล์ยาวกว่าปกติ (ชื่อหลักสูตรยาวจนขึ้น 2 บรรทัด) แต่
+     ดีกว่าเผื่อน้อยเกินไปจนกล่องนี้ล้น viewport เสมอ (ที่เกิดขึ้นจริงตอนใช้ 230px) */
+  max-height: calc(100vh - 480px);
+  min-height: 300px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+@media (max-width: 900px) {
+  .student-plo-split {
+    grid-template-columns: 1fr;
+  }
+
+  .student-plo-left {
+    position: static;
+  }
+
+  .student-plo-right {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+}
+
+.plo-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.plo-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 12px 6px;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.plo-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.plo-chip.achieved {
+  background: var(--color-green-100);
+  color: var(--color-green-700);
+}
+
+.plo-chip.not-achieved {
+  background: var(--color-gray-100);
+  color: var(--color-gray-600);
+}
+
+.plo-chip.selected {
+  border-color: var(--color-purple-700);
+}
+
+.plo-chip-info {
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
 .plo-summary-stats {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .stat-tile {
@@ -1607,26 +1675,6 @@ tr.student-table-row.expandable:hover {
   color: var(--color-gray-500);
 }
 
-.plo-radar-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: white;
-  border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.plo-radar-tooltip {
-  margin-top: 8px;
-  padding: 8px 14px;
-  background: var(--color-gray-900);
-  color: white;
-  border-radius: var(--radius-sm);
-  font-size: 0.85rem;
-}
-
 .plo-admin-actions {
   display: flex;
   gap: 12px;
@@ -1654,6 +1702,23 @@ tr.student-table-row.expandable:hover {
   .plo-admin-actions,
   .export-pdf-button {
     display: none !important;
+  }
+
+  /* split-screen ฝั่งขวามี max-height + overflow-y:auto สำหรับ one-screen dashboard บนจอ - ถ้าไม่รีเซ็ต
+     ตอนพิมพ์ เนื้อหาที่ scroll พ้นกรอบไปจะถูกตัดหายจาก PDF (เบราว์เซอร์พิมพ์เฉพาะส่วนที่มองเห็นในกรอบ
+     overflow ไม่ใช่เนื้อหาทั้งหมด) - รีเซ็ตกลับเป็นคอลัมน์เดียว สูงเท่าเนื้อหาจริง ให้ Export PDF เห็นครบ */
+  .student-plo-split {
+    display: block;
+  }
+
+  .student-plo-left {
+    position: static;
+    margin-bottom: 16px;
+  }
+
+  .student-plo-right {
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -2592,20 +2657,43 @@ tr.student-table-row.expandable:hover {
 }
 
 .student-year-breakdown {
-  margin: 24px 0;
+  margin: 0;
+}
+
+.student-year-breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .student-year-breakdown-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--heading-color);
-  margin-bottom: 12px;
+  margin: 0;
+}
+
+.student-plo-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-purple-700);
+  background: var(--color-purple-100);
+  color: var(--color-purple-700);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .student-year-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .student-year-card {
@@ -2613,7 +2701,7 @@ tr.student-table-row.expandable:hover {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
-  padding: 18px 20px;
+  padding: 10px 14px;
 }
 
 .student-year-card-header {
@@ -2621,20 +2709,23 @@ tr.student-table-row.expandable:hover {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .student-year-card-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 700;
   color: var(--heading-color);
+  display: flex;
+  align-items: center;
 }
 
-.student-year-ylo-desc {
-  font-size: 0.85rem;
-  color: var(--color-gray-600);
-  margin: 0 0 12px;
+.student-year-ylo-info {
+  margin-left: 6px;
+  color: var(--color-gray-500);
+  cursor: help;
+  flex-shrink: 0;
 }
 
 .student-year-course-list {
@@ -2643,7 +2734,7 @@ tr.student-table-row.expandable:hover {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .student-year-course-item {
@@ -2651,10 +2742,10 @@ tr.student-table-row.expandable:hover {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 10px;
+  padding: 4px 8px;
   border-radius: var(--radius-sm);
   background: var(--color-surface-soft);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .student-year-course-item.clickable {

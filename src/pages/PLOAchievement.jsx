@@ -5,12 +5,12 @@ import {
   getStudent,
   getStudentPLOAchievement,
   getStudentYLOAchievement,
+  listCoursePLO,
 } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import PLOBar from "../components/PLOBar.jsx";
 import StudentProfileCard from "../components/StudentProfileCard.jsx";
 import PLOSummaryStats from "../components/PLOSummaryStats.jsx";
-import PLORadarChart from "../components/PLORadarChart.jsx";
+import PLOChipGrid from "../components/PLOChipGrid.jsx";
 import StudentYearBreakdown from "../components/StudentYearBreakdown.jsx";
 
 export default function PLOAchievement() {
@@ -21,6 +21,8 @@ export default function PLOAchievement() {
   const [student, setStudent] = useState(null);
   const [curriculumName, setCurriculumName] = useState(null);
   const [yloYears, setYloYears] = useState(null);
+  const [courseToPlos, setCourseToPlos] = useState({});
+  const [selectedPloFilter, setSelectedPloFilter] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -34,6 +36,8 @@ export default function PLOAchievement() {
     setStudent(null);
     setCurriculumName(null);
     setYloYears(null);
+    setCourseToPlos({});
+    setSelectedPloFilter(null);
 
     try {
       const [achievement, studentData] = await Promise.all([
@@ -52,6 +56,26 @@ export default function PLOAchievement() {
       // คืน null ถ้า years ว่าง/ไม่มี)
       getStudentYLOAchievement(trimmed)
         .then((data) => setYloYears(data.years))
+        .catch(() => {});
+
+      // สร้าง course_id -> Set(plo_code) จาก course_plo (เฉพาะ primary) เพื่อให้กด PLO chip แล้วกรอง
+      // รายวิชาฝั่งขวาได้ - ทำ client-side จาก endpoint ที่มีอยู่แล้ว (listCoursePLO) ไม่ต้องเพิ่ม backend
+      // ใหม่ ผูก plo_id -> plo_code จาก achievement.plo_achievements ที่ได้มาแล้วด้านบน
+      const ploCodeByPloId = Object.fromEntries(
+        achievement.plo_achievements.map((p) => [p.plo_id, p.plo_code])
+      );
+      listCoursePLO()
+        .then((rows) => {
+          const map = {};
+          rows.forEach((cp) => {
+            if (cp.responsibility_level !== "primary") return;
+            const code = ploCodeByPloId[cp.plo_id];
+            if (!code) return;
+            if (!map[cp.course_id]) map[cp.course_id] = new Set();
+            map[cp.course_id].add(code);
+          });
+          setCourseToPlos(map);
+        })
         .catch(() => {});
     } catch (err) {
       if (err.response?.status === 404) {
@@ -78,9 +102,6 @@ export default function PLOAchievement() {
     fetchPLOAchievement(studentId);
   }
 
-  const achievedCount = result?.plo_achievements.filter((p) => p.is_achieved).length ?? 0;
-  const totalCount = result?.plo_achievements.length ?? 0;
-
   return (
     <div className="page">
       <h1>ผลการบรรลุ PLO รายบุคคล</h1>
@@ -103,49 +124,46 @@ export default function PLOAchievement() {
 
       {result && (
         <div className="result">
-          <button type="button" className="export-pdf-button" onClick={() => window.print()}>
-            Export PDF
-          </button>
-
-          <StudentProfileCard student={student} curriculumName={curriculumName} />
-
-          <PLOSummaryStats achievements={result.plo_achievements} />
-
-          <PLORadarChart achievements={result.plo_achievements} />
-
-          <StudentYearBreakdown studentId={student?.id} years={yloYears} />
-
-          <div className="student-summary">
-            <h2 className="student-year-breakdown-title">PLO แต่ละข้อ</h2>
-            <p className="achievement-count">
-              บรรลุ {achievedCount} จาก {totalCount} ข้อ
-            </p>
-          </div>
-
-          <div className="plo-list">
-            {result.plo_achievements.map((plo) => (
-              <PLOBar
-                key={plo.plo_id}
-                code={plo.plo_code}
-                description={plo.description}
-                achievedPercent={plo.achieved_percent}
-                isAchieved={plo.is_achieved}
-              />
-            ))}
-          </div>
-
-          {(user?.role === "admin" || user?.role === "instructor") && (
-            <div className="plo-admin-actions">
-              <Link to={`/scores?student_id=${studentId}`} className="button-secondary">
-                แก้ไขคะแนนนักศึกษาคนนี้
-              </Link>
-              {user?.role === "admin" && (
-                <Link to="/admin/students" className="button-secondary">
-                  แก้ไขข้อมูลนักศึกษา
-                </Link>
+          <div className="student-plo-topbar">
+            <StudentProfileCard student={student} curriculumName={curriculumName} />
+            <div className="student-plo-topbar-actions">
+              <button type="button" className="export-pdf-button" onClick={() => window.print()}>
+                Export PDF
+              </button>
+              {(user?.role === "admin" || user?.role === "instructor") && (
+                <div className="plo-admin-actions">
+                  <Link to={`/scores?student_id=${studentId}`} className="button-secondary">
+                    แก้ไขคะแนนนักศึกษาคนนี้
+                  </Link>
+                  {user?.role === "admin" && (
+                    <Link to="/admin/students" className="button-secondary">
+                      แก้ไขข้อมูลนักศึกษา
+                    </Link>
+                  )}
+                </div>
               )}
             </div>
-          )}
+          </div>
+
+          <div className="student-plo-split">
+            <div className="student-plo-left">
+              <PLOSummaryStats achievements={result.plo_achievements} />
+              <PLOChipGrid
+                achievements={result.plo_achievements}
+                selected={selectedPloFilter}
+                onSelect={setSelectedPloFilter}
+              />
+            </div>
+            <div className="student-plo-right">
+              <StudentYearBreakdown
+                studentId={student?.id}
+                years={yloYears}
+                courseToPlos={courseToPlos}
+                selectedPloFilter={selectedPloFilter}
+                onClearFilter={() => setSelectedPloFilter(null)}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
