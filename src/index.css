@@ -1338,42 +1338,15 @@ tr.student-table-row.expandable:hover {
   max-width: 62em;
 }
 
-.admin-home-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.admin-home-group {
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-card);
-  padding: 16px 20px;
-}
-
-.admin-home-group-heading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-purple-700);
-}
-
-.admin-home-group h2 {
-  margin: 0 0 4px 0;
-  font-size: 1.05rem;
-  color: var(--color-text);
-}
-
-.admin-home-group-desc {
-  margin: 0 0 12px 0;
-  font-size: 0.82rem;
-  color: var(--color-text);
-  opacity: 0.65;
-}
-
 .admin-home-section {
   margin-bottom: 28px;
+}
+
+.admin-home-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .admin-home-section-title {
@@ -1382,14 +1355,64 @@ tr.student-table-row.expandable:hover {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--color-purple-700);
-  margin: 0 0 4px 0;
+  margin: 0;
 }
 
-.admin-home-section-desc {
-  margin: 0 0 14px 0;
-  font-size: 0.85rem;
+.admin-home-info-icon {
+  color: var(--color-gray-400);
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.admin-home-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.admin-home-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+  text-decoration: none;
   color: var(--color-text);
-  opacity: 0.6;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-home-card:hover {
+  border-color: var(--color-purple-600);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.admin-home-card-icon {
+  flex-shrink: 0;
+  color: var(--color-purple-700);
+  margin-top: 1px;
+}
+
+.admin-home-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-home-card-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--color-text);
+}
+
+.admin-home-card-subtitle {
+  font-size: 0.78rem;
+  color: var(--color-gray-500);
+  line-height: 1.4;
 }
 
 .admin-home-primary-card {
@@ -1415,10 +1438,18 @@ tr.student-table-row.expandable:hover {
   opacity: 0.8;
 }
 
+.admin-home-primary-card-info {
+  flex-shrink: 0;
+  opacity: 0.75;
+  cursor: help;
+}
+
 .admin-home-primary-card div {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .admin-home-primary-card strong {
@@ -1435,26 +1466,6 @@ tr.student-table-row.expandable:hover {
   background: var(--color-purple-900);
   box-shadow: var(--shadow-card-hover);
   transform: translateY(-2px);
-}
-
-.admin-home-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.admin-home-links a {
-  padding: 8px 14px;
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-sm);
-  color: var(--color-purple-700);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.88rem;
-}
-
-.admin-home-links a:hover {
-  background: var(--color-surface-soft);
 }
 
 .export-pdf-button {
