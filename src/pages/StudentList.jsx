@@ -2,6 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, ArrowLeft, ChevronRight } from "lucide-react";
 import { listStudents, listCurricula } from "../api/client.js";
+import { SortSelect, YearLevelFilter } from "../components/StudentFilterControls.jsx";
+import { ROSTER_SORT_OPTIONS } from "../utils/studentFilters.js";
+
+// เรียงรายชื่อนักศึกษา - สอดคล้องกับ sortKey เดียวกับที่หน้าภาพรวม PLO/YLO ใช้ (ROSTER_SORT_OPTIONS:
+// id/name/year) แค่ field ของ Student ดิบต่างจาก achievement row shape ที่ compareStudentRows ในหน้า
+// นั้นๆ ใช้ (studentId/studentName/yearLevel) จึงเขียน comparator แยกของตัวเองที่นี่แทนการฝืนใช้ร่วมกัน
+function compareRoster(a, b, sortKey) {
+  switch (sortKey) {
+    case "name":
+      return `${a.first_name}${a.last_name}`.localeCompare(`${b.first_name}${b.last_name}`, "th");
+    case "year":
+      return a.current_year_level - b.current_year_level;
+    case "id":
+    default:
+      return Number(a.id) - Number(b.id);
+  }
+}
 
 const STATUS_BADGE_CLASS = {
   กำลังศึกษา: "status-active",
@@ -22,6 +39,9 @@ export default function StudentList() {
   const [selectedCohort, setSelectedCohort] = useState(null);
   // "all" = ดูทุกหมู่ในรุ่นนั้น, "__unspecified__" = เฉพาะคนที่ยังไม่มีข้อมูลหมู่, อื่นๆ = ค่า section ตรงตัว
   const [selectedSection, setSelectedSection] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedYearLevel, setSelectedYearLevel] = useState(null);
+  const [sortKey, setSortKey] = useState("id");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -117,6 +137,15 @@ export default function StudentList() {
     [studentsInCohort]
   );
 
+  // ตัวเลือกสถานะ derive จากข้อมูลจริงในรุ่นที่เลือกอยู่เท่านั้น (เหมือน sectionOptions ด้านบน) ไม่
+  // hardcode ลำดับ/ชุดค่าคงที่ เผื่อมีสถานะอื่นเพิ่มเข้ามาในอนาคตโดยไม่ต้องแก้โค้ดหน้านี้
+  const statusOptions = useMemo(
+    () => [...new Set(studentsInCohort.map((s) => s.status).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, "th")
+    ),
+    [studentsInCohort]
+  );
+
   const filteredStudents = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
     return studentsInCohort.filter((student) => {
@@ -127,6 +156,8 @@ export default function StudentList() {
           return false;
         }
       }
+      if (selectedStatus !== "all" && student.status !== selectedStatus) return false;
+      if (selectedYearLevel !== null && student.current_year_level !== selectedYearLevel) return false;
       if (!trimmed) return true;
       const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
       const curriculumName = (curriculumById[student.curriculum_id]?.name ?? "").toLowerCase();
@@ -136,7 +167,20 @@ export default function StudentList() {
         curriculumName.includes(trimmed)
       );
     });
-  }, [studentsInCohort, query, selectedSection, sectionOptions, curriculumById]);
+  }, [
+    studentsInCohort,
+    query,
+    selectedSection,
+    sectionOptions,
+    selectedStatus,
+    selectedYearLevel,
+    curriculumById,
+  ]);
+
+  const sortedStudents = useMemo(
+    () => [...filteredStudents].sort((a, b) => compareRoster(a, b, sortKey)),
+    [filteredStudents, sortKey]
+  );
 
   return (
     <div className="page">
@@ -258,6 +302,28 @@ export default function StudentList() {
                     />
                   </div>
 
+                  <div className="student-filter-toolbar">
+                    {statusOptions.length > 0 && (
+                      <label className="plo-cohort-prefix-filter">
+                        สถานะ
+                        <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)}>
+                          <option value="all">ทั้งหมด</option>
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <YearLevelFilter
+                      value={selectedYearLevel}
+                      onChange={setSelectedYearLevel}
+                      label="ชั้นปีที่เรียน"
+                    />
+                    <SortSelect value={sortKey} onChange={setSortKey} options={ROSTER_SORT_OPTIONS} />
+                  </div>
+
                   <table className="student-table">
                     <thead>
                       <tr>
@@ -270,7 +336,7 @@ export default function StudentList() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredStudents.map((student) => (
+                      {sortedStudents.map((student) => (
                         <Link
                           key={student.id}
                           to={`/student-plo?student_id=${encodeURIComponent(student.id)}`}
@@ -298,8 +364,8 @@ export default function StudentList() {
                     </tbody>
                   </table>
 
-                  {filteredStudents.length === 0 && (
-                    <p className="student-list-empty">ไม่พบนักศึกษาที่ตรงกับคำค้นหา</p>
+                  {sortedStudents.length === 0 && (
+                    <p className="student-list-empty">ไม่พบนักศึกษาที่ตรงกับตัวกรองที่เลือก</p>
                   )}
                 </>
               )}

@@ -1873,6 +1873,14 @@ tr.student-table-row.expandable:hover {
   color: var(--color-gray-400);
 }
 
+.student-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 12px 0 14px;
+}
+
 .plo-cohort-prefix-filter {
   display: inline-flex;
   align-items: center;
