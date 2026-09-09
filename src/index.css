@@ -2791,13 +2791,22 @@ tr.student-table-row.expandable:hover {
   gap: 10px;
 }
 
-.student-year-clo-block {
+/* --- CourseCLOBreakdown.jsx: เจาะลึก CLO -> คะแนน ของนักศึกษาคนหนึ่งในวิชาหนึ่ง - component เดียว
+   ใช้ร่วมกันทั้งหน้า /student-plo (ใน .student-year-course-detail) และหน้า "ภาพรวม PLO"
+   (PLOStudentBreakdown.jsx) ตามหลักการที่ตกลงกันว่าตรรกะ course->CLO->คะแนน ต้องเป็นชุดเดียว */
+.clo-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clo-breakdown-block {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.student-year-clo-header {
+.clo-breakdown-header {
   display: flex;
   align-items: center;
   justify-content: space-between;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ChevronRight, Info, X } from "lucide-react";
-import { getStudentCourseCLOBreakdown } from "../api/client.js";
+import CourseCLOBreakdown from "./CourseCLOBreakdown.jsx";
 
 /**
  * ไล่ดูผล "รายวิชา -> YLO (รายปี)" ของนักศึกษาคนเดียว ต่อจาก StudentProfileCard/PLOSummaryStats/
@@ -27,31 +27,16 @@ export default function StudentYearBreakdown({
   onClearFilter,
 }) {
   const [expandedCourseIds, setExpandedCourseIds] = useState(() => new Set());
-  const [courseDetails, setCourseDetails] = useState({});
 
   useEffect(() => {
     setExpandedCourseIds(new Set());
-    setCourseDetails({});
   }, [studentId]);
 
   function toggleCourse(courseId) {
     setExpandedCourseIds((prev) => {
       const next = new Set(prev);
-      if (next.has(courseId)) {
-        next.delete(courseId);
-      } else {
-        next.add(courseId);
-        if (!courseDetails[courseId]) {
-          setCourseDetails((prevDetails) => ({ ...prevDetails, [courseId]: { status: "loading" } }));
-          getStudentCourseCLOBreakdown(studentId, courseId)
-            .then((data) =>
-              setCourseDetails((prevDetails) => ({ ...prevDetails, [courseId]: { status: "ready", data } }))
-            )
-            .catch(() =>
-              setCourseDetails((prevDetails) => ({ ...prevDetails, [courseId]: { status: "error" } }))
-            );
-        }
-      }
+      if (next.has(courseId)) next.delete(courseId);
+      else next.add(courseId);
       return next;
     });
   }
@@ -108,7 +93,6 @@ export default function StudentYearBreakdown({
               <ul className="student-year-course-list">
                 {visibleCourses.map((course) => {
                   const isExpanded = expandedCourseIds.has(course.course_id);
-                  const detail = courseDetails[course.course_id];
                   return (
                     <li key={course.course_id} className="student-year-course-block">
                       <div
@@ -135,49 +119,7 @@ export default function StudentYearBreakdown({
 
                       {isExpanded && (
                         <div className="student-year-course-detail">
-                          {(!detail || detail.status === "loading") && (
-                            <p className="loading-message">กำลังโหลดข้อมูล...</p>
-                          )}
-                          {detail?.status === "error" && (
-                            <p className="error-message">โหลดรายละเอียดไม่สำเร็จ ลองใหม่อีกครั้ง</p>
-                          )}
-                          {detail?.status === "ready" && detail.data.clos.length === 0 && (
-                            <p className="student-list-empty">วิชานี้ยังไม่มี CLO กำหนดไว้</p>
-                          )}
-                          {detail?.status === "ready" &&
-                            detail.data.clos.map((clo) => (
-                              <div key={clo.clo_id} className="student-year-clo-block">
-                                <div className="student-year-clo-header">
-                                  <span className="clo-trace-item-name">
-                                    {clo.clo_code} — {clo.description}
-                                  </span>
-                                  <span className={clo.passed ? "badge-pass" : "badge-fail"}>
-                                    {clo.mastery_percent != null
-                                      ? `${clo.mastery_percent}% (เกณฑ์ ${clo.pass_threshold_percent}%)`
-                                      : "ไม่มีข้อมูลคะแนน"}
-                                  </span>
-                                </div>
-                                {clo.items.length === 0 ? (
-                                  <p className="workspace-muted">CLO นี้ยังไม่ได้ผูกกับชิ้นงานประเมินใด</p>
-                                ) : (
-                                  <ul className="clo-trace-list">
-                                    {clo.items.map((item) => (
-                                      <li key={item.item_id}>
-                                        <span className="clo-trace-item-name">
-                                          {item.item_name} ({item.item_type})
-                                        </span>
-                                        <span className="clo-trace-item-weight">
-                                          {item.score_obtained != null
-                                            ? `${item.score_obtained}/${item.total_score}`
-                                            : "ยังไม่มีคะแนน"}{" "}
-                                          · น้ำหนัก {item.weight_percent}%
-                                        </span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                )}
-                              </div>
-                            ))}
+                          <CourseCLOBreakdown studentId={studentId} courseId={course.course_id} />
                         </div>
                       )}
                     </li>

@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { getStudentPLOCourseBreakdown } from "../api/client.js";
+import CourseCLOBreakdown from "./CourseCLOBreakdown.jsx";
 
 /**
  * Per-student breakdown table for one PLO, rendered under a PLOCohortBar
@@ -12,11 +13,28 @@ import { getStudentPLOCourseBreakdown } from "../api/client.js";
  * /plo/{id}/students/{id}/course-breakdown endpoint that reuses
  * _student_passed_course_for_plo from plo_calculation.py, so this can never
  * drift from the "% บรรลุ" number shown on the row itself.
+ *
+ * แต่ละวิชาในลิสต์ที่ขยายออกมากดต่อได้อีกชั้น (2026-09-09) เพื่อดูว่า CLO ข้อไหนไม่ผ่านและมาจากคะแนน
+ * ชิ้นงานไหน - reuse CourseCLOBreakdown ตัวเดียวกับที่หน้า /student-plo ใช้ (StudentYearBreakdown.jsx)
+ * ไม่เขียนตรรกะ course -> CLO -> คะแนน แยกกันคนละชุด ให้สาย CLO<->รายวิชา<->YLO<->PLO เชื่อมกันทั้งระบบ
+ * key ของ state การขยายชั้นนี้คือ "studentId:courseId" (คนละคีย์กับการขยายแถวนักศึกษาชั้นนอก) เพราะ
+ * นักศึกษาหลายคนขยายพร้อมกันได้ แต่ละคนก็มีหลายวิชาให้ขยายพร้อมกันได้เช่นกัน
  */
 export default function PLOStudentBreakdown({ ploId, students }) {
   const [expandedStudentIds, setExpandedStudentIds] = useState(new Set());
   // { [studentId]: { status: 'loading'|'ready'|'error', courses: [] } }
   const [breakdownByStudentId, setBreakdownByStudentId] = useState({});
+  const [expandedCourseKeys, setExpandedCourseKeys] = useState(() => new Set());
+
+  function toggleCourse(studentId, courseId) {
+    const key = `${studentId}:${courseId}`;
+    setExpandedCourseKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const rows = students
     .map((student) => {
@@ -108,17 +126,35 @@ export default function PLOStudentBreakdown({ ploId, students }) {
                       (breakdown.courses.length === 0 ? (
                         <p className="student-list-empty">ไม่มีวิชาที่เกี่ยวข้องกับ PLO ข้อนี้</p>
                       ) : (
-                        <ul className="clo-trace-list">
-                          {breakdown.courses.map((c) => (
-                            <li key={c.course_id}>
-                              <span className="clo-trace-item-name">
-                                {c.course_code} {c.name_th}
-                              </span>
-                              <span className={`plo-badge ${c.passed ? "achieved" : "not-achieved"}`}>
-                                {c.passed ? "ผ่าน" : "ไม่ผ่าน"}
-                              </span>
-                            </li>
-                          ))}
+                        <ul className="student-year-course-list">
+                          {breakdown.courses.map((c) => {
+                            const courseKey = `${row.studentId}:${c.course_id}`;
+                            const isCourseExpanded = expandedCourseKeys.has(courseKey);
+                            return (
+                              <li key={c.course_id} className="student-year-course-block">
+                                <div
+                                  className="student-year-course-item clickable"
+                                  onClick={() => toggleCourse(row.studentId, c.course_id)}
+                                >
+                                  <ChevronRight
+                                    size={14}
+                                    className={`expand-icon-plain ${isCourseExpanded ? "expanded" : ""}`}
+                                  />
+                                  <span className="student-year-course-name">
+                                    {c.course_code} {c.name_th}
+                                  </span>
+                                  <span className={`plo-badge ${c.passed ? "achieved" : "not-achieved"}`}>
+                                    {c.passed ? "ผ่าน" : "ไม่ผ่าน"}
+                                  </span>
+                                </div>
+                                {isCourseExpanded && (
+                                  <div className="student-year-course-detail">
+                                    <CourseCLOBreakdown studentId={row.studentId} courseId={c.course_id} />
+                                  </div>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       ))}
                   </td>
