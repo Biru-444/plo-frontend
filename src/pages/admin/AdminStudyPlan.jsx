@@ -9,6 +9,10 @@ import {
   deleteStudyPlan,
 } from "../../api/client.js";
 
+/**
+ * จัดการตาราง Study Plan (แผนการศึกษา - วิชาไหนอยู่ปี/ภาคเรียนไหนของหลักสูตร) ผ่าน CrudManager
+ * จัดกลุ่มแถวตาม (ชั้นปี, ภาคเรียน) ให้ดูง่ายว่าแต่ละเทอมมีวิชาอะไรบ้าง
+ */
 export default function AdminStudyPlan() {
   const curriculumOptions = useOptions(listCurricula, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))

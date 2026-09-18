@@ -10,10 +10,14 @@ import {
   deleteYLOPLOMapping,
 } from "../../api/client.js";
 
+/** จัดการตารางเชื่อมโยง YLO กับ PLO (ylo_plo_mapping) ผ่าน CrudManager - ไม่มีปุ่มแก้ไข มีแค่เพิ่ม/ลบ */
 export default function AdminYLOPLOMapping() {
   const [yloOptions, setYloOptions] = useState([]);
   const ploOptions = useOptions(listPLO, (data) => data.map((p) => ({ value: p.id, label: p.code })));
 
+  // ตัวเลือก YLO ต้อง join ชื่อหลักสูตรมาด้วย (ไม่ใช่แค่ปีที่) ไม่งั้นแยกไม่ออกว่า "ปีที่ 1" ของ
+  // หลักสูตรไหนถ้ามีหลายหลักสูตร - รูปข้อมูลนี้ประกอบจาก 2 endpoint (listYLO + listCurricula) จึงเขียน
+  // แยกจาก useOptions ทั่วไป (ที่รองรับแค่ 1 endpoint ต่อครั้ง) ไม่ใช้ hook ร่วมกับ ploOptions ด้านบน
   useEffect(() => {
     Promise.all([listYLO(), listCurricula()]).then(([ylos, curricula]) => {
       const curriculumById = {};

@@ -11,6 +11,11 @@ import {
   deleteItemCLO,
 } from "../../api/client.js";
 
+/**
+ * จัดการตารางเชื่อมโยงงานประเมินกับ CLO (item_clo - กำหนดว่างานประเมินชิ้นไหนใช้วัด CLO ข้อไหน ด้วย
+ * น้ำหนักเท่าไร) ผ่าน CrudManager - หน้านี้เป็นทางเลือกสำรอง (ปกติทำผ่านหน้า "จัดการวิชาที่สอน" แทน)
+ * ตัวเลือกทั้งสองฝั่ง (งานประเมิน/CLO) join ชื่อวิชาที่เกี่ยวข้องมาแสดงด้วย กันเลือกผิดวิชา
+ */
 export default function AdminItemCLO() {
   const [itemOptions, setItemOptions] = useState([]);
   const [cloOptions, setCloOptions] = useState([]);

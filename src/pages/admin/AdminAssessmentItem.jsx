@@ -17,6 +17,11 @@ const TYPE_OPTIONS = [
   { value: "project", label: "โปรเจกต์ (Project)" },
 ];
 
+/**
+ * จัดการตารางงานประเมิน (assessment_item) ผ่าน CrudManager - หน้านี้เป็นทางเลือกสำรอง (ปกติสร้าง/แก้ไข
+ * งานประเมินทำผ่านหน้า "จัดการวิชาที่สอน" แทน) ตัวเลือก "วิชาที่เปิดสอน" join ชื่อวิชา+ภาคเรียน+หมู่
+ * มาแสดงด้วย (ไม่ใช่แค่ offering_id ดิบๆ)
+ */
 export default function AdminAssessmentItem() {
   const [offeringOptions, setOfferingOptions] = useState([]);
 

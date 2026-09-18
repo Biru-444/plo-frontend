@@ -134,6 +134,11 @@ function ItemCard({ to, label, sublabel, icon: Icon }) {
   );
 }
 
+/**
+ * หน้า "จัดการระบบ" (route /admin) - ศูนย์กลางลิงก์ไปทุกหน้า CRUD ย่อยของ admin จัดกลุ่มเป็น section
+ * (โครงสร้างหลักสูตร/จัดการเรียนการสอน/นักศึกษา&ลงทะเบียน/ผู้ใช้งาน) พร้อมการ์ดไฮไลต์ 2 อัน (กรอกคะแนน+
+ * ผลบรรลุ CLO, นำเข้ารายชื่อจาก Excel) แนะนำให้ใช้เป็นทางลัดหลักสำหรับงานประจำภาคเรียน
+ */
 export default function AdminHome() {
   return (
     <div className="page">

@@ -6,6 +6,10 @@ const ROLE_OPTIONS = [
   { value: "instructor", label: "instructor" },
 ];
 
+/**
+ * จัดการตารางผู้ใช้งาน (admin/instructor) ผ่าน CrudManager - ช่องรหัสผ่านเว้นว่างตอนแก้ไขได้
+ * (omitIfEmptyOnUpdate: true) หมายถึง "ไม่เปลี่ยนรหัสผ่านเดิม" ไม่ใช่ตั้งเป็นค่าว่าง
+ */
 export default function AdminUsers() {
   const columns = [
     { key: "username", label: "Username", type: "text", required: true },

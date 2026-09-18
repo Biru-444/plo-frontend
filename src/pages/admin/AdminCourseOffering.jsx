@@ -9,6 +9,11 @@ import {
   deleteCourseOffering,
 } from "../../api/client.js";
 
+/**
+ * จัดการตารางการเปิดสอนรายวิชา (course_offering - วิชา×ภาคเรียน×หมู่×ผู้สอน) ผ่าน CrudManager
+ * จัดกลุ่มแถวตาม (ปีการศึกษา, ภาคเรียน) - ผู้สอนเว้นว่างได้ตั้งใจ (รออาจารย์มา "จับจอง" เองที่หน้าหลัก
+ * ผู้สอน)
+ */
 export default function AdminCourseOffering() {
   const courseOptions = useOptions(listCourses, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))
