@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import { listCourses, listCLO, createCLO, updateCLO, deleteCLO } from "../../api/client.js";
 
 export default function AdminCLO() {
-  const [courseOptions, setCourseOptions] = useState([]);
-
-  useEffect(() => {
-    listCourses().then((data) =>
-      setCourseOptions(data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` })))
-    );
-  }, []);
+  const courseOptions = useOptions(listCourses, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))
+  );
 
   const columns = [
     { key: "course_id", label: "รายวิชา", type: "select", options: courseOptions, required: true },

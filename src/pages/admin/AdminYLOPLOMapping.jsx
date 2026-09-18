@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import {
   listYLO,
   listPLO,
@@ -11,7 +12,7 @@ import {
 
 export default function AdminYLOPLOMapping() {
   const [yloOptions, setYloOptions] = useState([]);
-  const [ploOptions, setPloOptions] = useState([]);
+  const ploOptions = useOptions(listPLO, (data) => data.map((p) => ({ value: p.id, label: p.code })));
 
   useEffect(() => {
     Promise.all([listYLO(), listCurricula()]).then(([ylos, curricula]) => {
@@ -27,7 +28,6 @@ export default function AdminYLOPLOMapping() {
         })
       );
     });
-    listPLO().then((data) => setPloOptions(data.map((p) => ({ value: p.id, label: p.code }))));
   }, []);
 
   const columns = [

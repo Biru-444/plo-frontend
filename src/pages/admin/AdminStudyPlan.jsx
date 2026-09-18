@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import {
   listCurricula,
   listCourses,
@@ -10,17 +10,12 @@ import {
 } from "../../api/client.js";
 
 export default function AdminStudyPlan() {
-  const [curriculumOptions, setCurriculumOptions] = useState([]);
-  const [courseOptions, setCourseOptions] = useState([]);
-
-  useEffect(() => {
-    listCurricula().then((data) =>
-      setCurriculumOptions(data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` })))
-    );
-    listCourses().then((data) =>
-      setCourseOptions(data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` })))
-    );
-  }, []);
+  const curriculumOptions = useOptions(listCurricula, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))
+  );
+  const courseOptions = useOptions(listCourses, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))
+  );
 
   const columns = [
     { key: "curriculum_id", label: "หลักสูตร", type: "select", options: curriculumOptions, required: true },

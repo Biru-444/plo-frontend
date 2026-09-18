@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import { listCurricula, listCourses, createCourse, updateCourse, deleteCourse } from "../../api/client.js";
 
 export default function AdminCourse() {
-  const [curriculumOptions, setCurriculumOptions] = useState([]);
-
-  useEffect(() => {
-    listCurricula().then((data) =>
-      setCurriculumOptions(data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` })))
-    );
-  }, []);
+  const curriculumOptions = useOptions(listCurricula, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))
+  );
 
   const columns = [
     { key: "curriculum_id", label: "หลักสูตร", type: "select", options: curriculumOptions, required: true },
