@@ -35,6 +35,12 @@ function actionBadgeClass(action) {
   return "roster-badge";
 }
 
+/**
+ * แสดงผลลัพธ์การนำเข้าไฟล์ 1 ครั้ง (ทั้งโหมด preview/dry-run และหลังบันทึกจริงแล้ว - result shape
+ * เหมือนกัน) แบ่งเป็น 4 ส่วน: ข้อมูลวิชา/การเปิดสอน, ผู้สอน, บัญชีอาจารย์ที่สร้างใหม่ (พร้อมรหัสผ่าน
+ * ชั่วคราว - แสดงได้ครั้งเดียว), รายชื่อนักศึกษาทีละแถวพร้อม badge สถานะ (สร้างใหม่/แก้ไข/ตรงอยู่แล้ว/
+ * ข้าม)
+ */
 function ResultPanel({ result }) {
   const s = result.summary || {};
   return (
@@ -187,6 +193,11 @@ function ResultPanel({ result }) {
   );
 }
 
+/**
+ * หน้า "นำเข้ารายชื่อจากไฟล์ Excel มหาวิทยาลัย" (route /admin/roster-import) - เลือกไฟล์แล้วเรียก
+ * importRoster ด้วย dryRun=true ทันทีเพื่อแสดงตัวอย่างผลลัพธ์ก่อนเสมอ (ยังไม่บันทึกอะไรจริง) ผู้ใช้
+ * ต้องกด "ยืนยันนำเข้าจริง" เองถึงจะเรียกซ้ำด้วย dryRun=false เพื่อบันทึกจริง
+ */
 export default function AdminRosterImport() {
   const [file, setFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
