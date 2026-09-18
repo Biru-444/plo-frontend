@@ -13,6 +13,12 @@ import {
   getOfferingCLOAchievement,
 } from "../api/client.js";
 
+/**
+ * หน้าหลักของอาจารย์ (route / เมื่อ role = instructor) - การ์ดสรุปวิชาที่ตัวเองสอน (จำนวนนักศึกษา/
+ * งานประเมิน/% บรรลุ CLO เฉลี่ย) พร้อมลิงก์ตรงไปหน้า "จัดการวิชาที่สอน" ของวิชานั้น และตาราง "วิชาที่
+ * เปิดให้จับจอง" (วิชาที่ยังไม่มีผู้สอน กดจับจองเป็นผู้สอนเองได้) - admin เข้าหน้านี้ได้เหมือนกันแต่เห็น
+ * ทุกวิชาในระบบ (ไม่ใช่แค่ของตัวเอง) และไม่มีส่วนจับจอง/ปล่อยคืนวิชา (มอบหมายวิชาเป็นหน้าที่แอดมินโดยตรง)
+ */
 export default function InstructorHome() {
   const { user, isAdmin } = useAuth();
   const [offerings, setOfferings] = useState([]);
@@ -125,8 +131,8 @@ export default function InstructorHome() {
     const allRates = offerings.flatMap((o) =>
       o.avgCloAchievement === null ? [] : [o.avgCloAchievement]
     );
-    // Weight by number of CLOs isn't tracked here, so average the per-offering
-    // averages - good enough for a summary tile, not used for grading.
+    // เฉลี่ยจากค่าเฉลี่ยของแต่ละวิชา (ไม่ได้ถ่วงน้ำหนักตามจำนวน CLO ของแต่ละวิชา เพราะไม่มีข้อมูลนี้อยู่
+    // ในมือ ณ จุดนี้) เพียงพอสำหรับการ์ดสรุปภาพรวม ไม่ได้เอาไปใช้ตัดเกรดจริง
     return allRates.length > 0 ? allRates.reduce((s, v) => s + v, 0) / allRates.length : null;
   }, [offerings]);
 

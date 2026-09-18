@@ -8,6 +8,11 @@ const YEAR_LEVELS = [1, 2, 3, 4];
 // เกณฑ์เดียวกับที่ใช้ตัดสินสีวงแหวน/badge ระดับกลุ่มในหน้า PLO (COHORT_ACHIEVED_THRESHOLD)
 const COHORT_ACHIEVED_THRESHOLD = 50;
 
+/**
+ * หน้า "YLO ตามชั้นปี" (route /ylo-by-year) - เลือกหลักสูตร แล้วแท็บสลับดูผลบรรลุ YLO ทีละชั้นปี
+ * (1-4) พร้อมรายวิชาประจำปีนั้นตามแผนการศึกษา และรายชื่อนักศึกษาที่บรรลุ/ไม่บรรลุ (ซ่อนไว้ก่อน กดปุ่ม
+ * ถึงเปิด)
+ */
 export default function YLOYearProgress() {
   const [curricula, setCurricula] = useState([]);
   const [selectedCurriculumId, setSelectedCurriculumId] = useState(null);
