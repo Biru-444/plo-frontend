@@ -1,13 +1,13 @@
 /**
  * ทำอะไร : หน้าแรกของอาจารย์ (route "/" เมื่อ role=instructor) — การ์ดสรุปวิชาที่สอน + จำนวนนักศึกษา
  *          ไม่ซ้ำคน + CLO บรรลุเฉลี่ย ตามด้วยตาราง "วิชาที่เปิดให้จับจอง" (เฉพาะ instructor ไม่ใช่ admin)
- *          admin ก็เข้าหน้านี้ได้เหมือนกันถ้าเปลี่ยน role มาดู (ดู isAdmin) แต่จะไม่เห็นส่วนจับจอง/ปล่อยคืน
+ *          admin ก็เข้าหน้านี้ได้เหมือนกันถ้าเปลี่ยน role มาดู (ดู isAdmin) แต่จะไม่เห็นส่วนจับจอง
  *
  * เชื่อมกับ : ต่อ offering หนึ่งตัวต้องยิง 3 endpoint เพิ่ม (enrollments, assessment items, CLO
  *             achievement) เพื่อคำนวณสถิติการ์ด - ทำแบบ N+1 request ต่อ offering ตั้งใจ เพราะจำนวน
  *             วิชาที่อาจารย์คนหนึ่งสอนมีไม่มาก (ไม่ใช่ทั้งหลักสูตรแบบหน้า cohort ที่ backend ต้อง batch)
  *
- * ถ้าแก้ : claim/release เรียก loadMyOfferings + loadUnassignedOfferings ใหม่ทั้งคู่เสมอหลังสำเร็จ
+ * ถ้าแก้ : claim เรียก loadMyOfferings + loadUnassignedOfferings ใหม่ทั้งคู่เสมอหลังสำเร็จ
  *          เพื่อให้การ์ดวิชาที่สอนและตารางจับจองซิงค์กันทันที (ไม่ใช้ optimistic update)
  */
 import { useEffect, useMemo, useState } from "react";
@@ -18,7 +18,6 @@ import {
   listCourseOfferings,
   listUnassignedCourseOfferings,
   claimCourseOffering,
-  releaseCourseOffering,
   listCourses,
   listEnrollments,
   listAssessmentItems,
@@ -33,12 +32,10 @@ export default function InstructorHome() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // วิชาที่เปิดสอนแต่ยังไม่มีผู้สอน (สำหรับตาราง "จับจอง") + สถานะระหว่างกด claim/release
+  // วิชาที่เปิดสอนแต่ยังไม่มีผู้สอน (สำหรับตาราง "จับจอง") + สถานะระหว่างกด claim
   const [unassignedOfferings, setUnassignedOfferings] = useState([]);
   const [claimingId, setClaimingId] = useState(null);
   const [claimError, setClaimError] = useState("");
-  const [releasingId, setReleasingId] = useState(null);
-  const [releaseError, setReleaseError] = useState("");
 
   // โหลดวิชาที่สอน (ของอาจารย์คนนี้ หรือทุกวิชาถ้าเป็น admin) แล้วยิง request เพิ่มต่อวิชาเพื่อคำนวณ
   // จำนวนนักศึกษา/ชิ้นงาน/CLO บรรลุเฉลี่ยมาประกอบเป็นการ์ดสรุป
@@ -111,23 +108,6 @@ export default function InstructorHome() {
       await loadUnassignedOfferings(); // เผื่อมีคนอื่นจับจองไปแล้ว รีเฟรชให้รายการตรงกับความจริง
     } finally {
       setClaimingId(null);
-    }
-  }
-
-  async function handleRelease(offering) {
-    const courseLabel = offering.course
-      ? `${offering.course.course_code} ${offering.course.name_th} หมู่ ${offering.section}`
-      : `วิชา #${offering.id}`;
-    if (!window.confirm(`ยืนยันปล่อยคืนวิชา "${courseLabel}"? คุณจะไม่ใช่ผู้สอนวิชานี้อีกต่อไป`)) return;
-    setReleasingId(offering.id);
-    setReleaseError("");
-    try {
-      await releaseCourseOffering(offering.id);
-      await Promise.all([loadMyOfferings(courseById), loadUnassignedOfferings()]);
-    } catch (err) {
-      setReleaseError(err?.response?.data?.detail || "ปล่อยคืนวิชานี้ไม่สำเร็จ");
-    } finally {
-      setReleasingId(null);
     }
   }
 
@@ -228,22 +208,10 @@ export default function InstructorHome() {
                       จัดการ CLO และเกณฑ์ผ่าน
                     </Link>
                   </div>
-                  {!isAdmin && (
-                    <button
-                      type="button"
-                      className="instructor-course-release-btn"
-                      disabled={releasingId === offering.id}
-                      onClick={() => handleRelease(offering)}
-                    >
-                      {releasingId === offering.id ? "กำลังปล่อยคืน..." : "ปล่อยคืนวิชานี้"}
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
           )}
-
-          {releaseError && <p className="error-message">{releaseError}</p>}
 
           {!isAdmin && (
             <div className="workspace-section instructor-claim-section">

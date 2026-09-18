@@ -2946,27 +2946,6 @@ tr.student-table-row.expandable:hover {
   background: var(--color-purple-100);
 }
 
-.instructor-course-release-btn {
-  align-self: flex-start;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-gray-400);
-  font-size: 0.8rem;
-}
-
-.instructor-course-release-btn:hover {
-  border-color: var(--color-red-700);
-  color: var(--color-red-700);
-  background: var(--color-red-100);
-}
-
-.instructor-course-release-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .instructor-claim-section {
   margin-top: 8px;
 }

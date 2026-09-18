@@ -513,15 +513,6 @@ export async function claimCourseOffering(offeringId) {
   return data;
 }
 
-/**
- * อาจารย์ปล่อยคืนวิชาที่ตัวเองจับจองไว้ (กลับไปว่างให้คนอื่นจับจองต่อได้)
- * Backend: POST /course-offerings/{id}/release
- */
-export async function releaseCourseOffering(offeringId) {
-  const { data } = await api.post(`/course-offerings/${offeringId}/release`);
-  return data;
-}
-
 // --- CLO ---
 
 export async function listCLO() {
