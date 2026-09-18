@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
+/** หน้าเข้าสู่ระบบ - เรียก login() จาก AuthContext แล้วพาไปหน้าแรก (/) ถ้าสำเร็จ */
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();

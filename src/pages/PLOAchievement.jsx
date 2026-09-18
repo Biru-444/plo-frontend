@@ -13,6 +13,12 @@ import PLOSummaryStats from "../components/PLOSummaryStats.jsx";
 import PLOChipGrid from "../components/PLOChipGrid.jsx";
 import StudentYearBreakdown from "../components/StudentYearBreakdown.jsx";
 
+/**
+ * หน้ารายละเอียด PLO/YLO/รายวิชาของนักศึกษาคนเดียว (route /student-plo) - ค้นหาด้วยรหัสนักศึกษา หรือ
+ * เข้าถึงผ่าน query param student_id (เช่น คลิกชื่อจากหน้ารายชื่อนักศึกษา) โหลดหลายอย่างพร้อมกันแบบ
+ * ไม่ block กัน (ผลบรรลุ PLO บังคับรอ แต่ชื่อหลักสูตร/YLO ตามชั้นปี/course-to-PLO mapping ถ้าโหลดไม่
+ * สำเร็จแค่ส่วนนั้นหายไปเงียบๆ ไม่ทำให้ทั้งหน้าพัง)
+ */
 export default function PLOAchievement() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();

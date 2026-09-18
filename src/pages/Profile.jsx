@@ -1,5 +1,6 @@
 import { useAuth } from "../context/AuthContext.jsx";
 
+/** หน้าโปรไฟล์ของผู้ใช้ที่ล็อกอินอยู่ (อ่านอย่างเดียว - แก้ไขข้อมูลตัวเองไม่ได้จากหน้านี้) */
 export default function Profile() {
   const { user } = useAuth();
 
