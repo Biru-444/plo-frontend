@@ -1,3 +1,16 @@
+/**
+ * ทำอะไร : หน้า "ภาพรวม PLO ทั้งหลักสูตร" (route /dashboard) — สรุปวงแหวนใหญ่ "บรรลุ PLO ครบทุกข้อ"
+ *          บวกการ์ด PLO แต่ละข้อ (กด filter pill กรองเป็นบรรลุแล้ว/ต้องเฝ้าระวังได้) เป็นหน้าแรกของ
+ *          admin หลัง login (ดู App.jsx route "/")
+ *
+ * เชื่อมกับ : เรียก getCohortPLOAchievement (ตัวเลข % หลัก) คู่กับ getPLOAchievementByYear (เอาแค่
+ *             course_count มารวมเป็นป้าย "N วิชาที่ใช้คำนวณ") — หลักสูตร/รุ่นที่เลือกเก็บใน URL query
+ *             param เสมอ (ไม่ใช่ local state) เพื่อให้กดการ์ด PLO ไปหน้ารายละเอียดแล้วกด "กลับ" ยังเจอ
+ *             filter เดิม และ refresh/แชร์ลิงก์ได้ตรง
+ *
+ * ถ้าแก้ : COHORT_ACHIEVED_THRESHOLD (50%) ใช้ตัดสินสีการ์ด/filter pill "บรรลุแล้ว" เท่านั้น ไม่ใช่
+ *          เกณฑ์ที่ backend ใช้ตัดสินผลบรรลุรายบุคคล (all-or-nothing คนละเรื่องกัน)
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getCohortPLOAchievement, getPLOAchievementByYear, listCurricula } from "../api/client.js";

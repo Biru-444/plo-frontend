@@ -1,3 +1,13 @@
+/**
+ * ทำอะไร : หน้า "YLO ตามชั้นปี" (route /ylo-by-year) — แสดงเป้าหมาย YLO + รายวิชาของชั้นปีที่เลือก +
+ *          วงแหวน % บรรลุ YLO ปีนั้น พร้อมตารางรายชื่อนักศึกษาที่กดเปิดดูได้
+ *
+ * เชื่อมกับ : เรียก getYLOAchievement ใหม่ทุกครั้งที่เปลี่ยนหลักสูตร/ชั้นปี/รุ่น — listYLO แยกต่างหาก
+ *             เพราะ endpoint คำนวณผลบรรลุ (getYLOAchievement) ไม่ได้คืนข้อความคำอธิบาย YLO เต็มๆ กลับมา
+ *
+ * ถ้าแก้ : เปลี่ยนหลักสูตรจะ reset ชั้นปี/รุ่น/ตารางนักศึกษากลับค่าเริ่มต้นเสมอ (handleSelectCurriculum)
+ *          กันข้อมูลของหลักสูตรเก่าค้างปนกับหลักสูตรใหม่ที่เพิ่งเลือก
+ */
 import { useEffect, useState } from "react";
 import { getYLOAchievement, listYLO, listCurricula } from "../api/client.js";
 import PLODonut from "../components/PLODonut.jsx";
@@ -48,6 +58,7 @@ export default function YLOYearProgress() {
     setShowStudentList((prev) => !prev);
   }
 
+  // โหลดรายชื่อหลักสูตรครั้งเดียวตอนเปิดหน้า แล้วเลือกหลักสูตรแรกให้อัตโนมัติเป็นค่าเริ่มต้น
   useEffect(() => {
     let cancelled = false;
 
@@ -73,6 +84,7 @@ export default function YLOYearProgress() {
     };
   }, []);
 
+  // โหลดรายชื่อ YLO ทุกปีของหลักสูตรที่เลือก (ใช้ดึงข้อความคำอธิบาย YLO มาแสดงในกล่อง "เป้าหมายของปีนี้")
   useEffect(() => {
     if (selectedCurriculumId == null) return;
 
@@ -98,6 +110,9 @@ export default function YLOYearProgress() {
     };
   }, [selectedCurriculumId]);
 
+  // โหลดผลบรรลุ YLO ใหม่ทุกครั้งที่เปลี่ยนหลักสูตร/ชั้นปี/รุ่น - error ที่นี่ไม่ตั้ง error state (แค่
+  // เคลียร์ achievement เป็น null) เพราะ error หลักของหน้าใช้ error state จาก effect โหลดหลักสูตร/YLO
+  // ด้านบนอยู่แล้ว
   useEffect(() => {
     if (selectedCurriculumId == null) return;
 

@@ -21,7 +21,9 @@ export default function SearchableSelect({
   required = false,
   disabled = false,
 }) {
+  // ข้อความที่กำลังพิมพ์ในช่องค้นหา (คนละตัวกับ value ที่ผูกกับฟอร์มภายนอก)
   const [query, setQuery] = useState("");
+  // dropdown ตัวเลือกกำลังเปิดอยู่หรือไม่
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
 

@@ -36,10 +36,14 @@ export default function CrudManager({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null); // null = ปิดฟอร์ม/modal, "new" = กำลังเพิ่ม
+  // ค่าปัจจุบันของฟอร์ม (key ของ column -> ค่าที่พิมพ์/เลือกอยู่) - เก็บทุกค่าเป็น string เสมอ แปลง
+  // เป็นชนิดจริงตอน buildPayload ก่อนส่ง API
   const [form, setForm] = useState({});
   const [saving, setSaving] = useState(false);
+  // ตัวกรองด้านบนตาราง (key ของ column -> ค่าที่เลือกกรอง) - ว่าง/ไม่มี key = ไม่กรองคอลัมน์นั้น
   const [filters, setFilters] = useState({});
 
+  // โหลดข้อมูลทั้งตารางใหม่จาก api.list() - เรียกตอนเปิดหน้าครั้งแรก และหลังบันทึก/ลบสำเร็จทุกครั้ง
   async function load() {
     setLoading(true);
     setError("");
@@ -57,6 +61,7 @@ export default function CrudManager({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // เปิด modal เพิ่มแถวใหม่ - เริ่มทุกช่องเป็นค่าว่าง
   function startCreate() {
     const initial = {};
     columns.forEach((c) => (initial[c.key] = ""));
@@ -64,6 +69,7 @@ export default function CrudManager({
     setEditingId("new");
   }
 
+  // เปิด modal แก้ไขแถวที่มีอยู่ - เติมค่าปัจจุบันของแถวนั้นลงฟอร์ม
   function startEdit(row) {
     const initial = {};
     columns.forEach((c) => (initial[c.key] = row[c.key] ?? ""));
@@ -71,16 +77,20 @@ export default function CrudManager({
     setEditingId(row[idField]);
   }
 
+  // ปิด modal และล้างฟอร์มทิ้ง (ใช้ทั้งตอนบันทึกสำเร็จและตอนกดยกเลิก)
   function cancelEdit() {
     setEditingId(null);
     setForm({});
   }
 
+  // ปิด modal จากการกระทำของผู้ใช้ (คลิกนอกกล่อง/กด ×/กด Esc) - ห้ามปิดระหว่างกำลังบันทึกอยู่ (saving)
+  // กันข้อมูลที่กำลังส่งหายไปเงียบๆ กลางคัน
   function requestClose() {
     if (saving) return;
     cancelEdit();
   }
 
+  // ปิด modal เมื่อกด Esc (ลงทะเบียน listener เฉพาะตอน modal เปิดอยู่เท่านั้น)
   useEffect(() => {
     if (editingId === null) return;
     function handleKeyDown(e) {
@@ -91,6 +101,7 @@ export default function CrudManager({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingId, saving]);
 
+  // อัปเดตค่าฟอร์มทีละ field ตอนผู้ใช้พิมพ์/เลือก
   function handleChange(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -126,6 +137,8 @@ export default function CrudManager({
     return payload;
   }
 
+  // ส่งฟอร์ม - สร้างใหม่ถ้า editingId เป็น "new" ไม่งั้นแก้ไขแถวเดิม แล้วปิด modal + โหลดตารางใหม่ทั้ง
+  // ชุดเสมอ (ไม่ทำ optimistic update) เพื่อให้ตรงกับข้อมูลจริงในฐานข้อมูล 100%
   async function handleSave(e) {
     e.preventDefault();
     setSaving(true);
@@ -146,6 +159,8 @@ export default function CrudManager({
     }
   }
 
+  // ลบแถว - ยืนยันด้วย window.confirm ก่อนเสมอ (การลบส่วนใหญ่ cascade ลบข้อมูลที่อ้างถึงด้วย ย้อนกลับ
+  // ไม่ได้) 409 จาก backend (แถวนี้ยังถูกอ้างอิงอยู่) แสดงเป็นข้อความอธิบายแทน error ดิบ
   async function handleDelete(row) {
     if (!window.confirm("ยืนยันการลบ? การกระทำนี้ย้อนกลับไม่ได้")) return;
     setError("");
@@ -157,10 +172,15 @@ export default function CrudManager({
     }
   }
 
+  // คอลัมน์ไหนแสดงเป็นตัวกรองด้านบนตาราง - select/searchable-select กรองได้โดย default (ปิดเองได้ด้วย
+  // filterable:false) ส่วน text/number ต้องเปิดเอง (filterable:true) เพราะปกติไม่เหมาะกรองแบบ dropdown
   const filterableColumns = columns.filter((c) =>
     c.type === "select" || c.type === "searchable-select" ? c.filterable !== false : c.filterable === true
   );
 
+  // ตัวเลือกของแต่ละตัวกรอง - column แบบ select/searchable-select ใช้ options ที่กำหนดไว้ตรงๆ ส่วน
+  // column อื่น (เช่น number ที่กรองได้) derive ตัวเลือกจากค่าจริงที่มีอยู่ในแถวข้อมูล (rows) แทน ไม่
+  // hardcode ไว้ล่วงหน้า
   const filterOptionsByKey = useMemo(() => {
     const map = {};
     filterableColumns.forEach((c) => {
@@ -193,10 +213,14 @@ export default function CrudManager({
 
   const activeFilterCount = Object.values(filters).filter((v) => v).length;
 
+  // ทุกตัวกรองที่ตั้งไว้ต้องตรงพร้อมกัน (AND) - ตัวกรองที่ไม่มีค่า (ว่าง) ไม่ตัดอะไรออก
   const filteredRows = rows.filter((row) =>
     Object.entries(filters).every(([key, val]) => !val || String(row[key]) === String(val))
   );
 
+  // จัดกลุ่มแถว (หลังกรองแล้ว) ตาม groupBy.keys ถ้าผู้เรียกระบุมา (เช่น จัดกลุ่ม course_offering ตาม
+  // ปีการศึกษา+เทอม) เรียงกลุ่มด้วยค่า numeric ก่อนถ้าเทียบเป็นตัวเลขได้ ไม่งั้น fallback เป็น string
+  // compare แบบไทย - ไม่มี groupBy = คืน null แล้ว render เป็นตารางเดียวรวด (ดู renderTable ท้ายไฟล์)
   const groups = useMemo(() => {
     if (!groupBy) return null;
     const map = new Map();
@@ -225,6 +249,8 @@ export default function CrudManager({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupBy, filteredRows]);
 
+  // ค่าที่แสดงในตาราง (คนละความหมายกับค่าที่ผูกกับฟอร์ม) - password ซ่อนด้วย bullet เสมอ (ไม่เคยแสดง
+  // ค่าจริง) select/searchable-select แปลง id ที่เก็บอยู่กลับเป็น label ที่มนุษย์อ่านได้
   function displayValue(col, row) {
     if (col.type === "password") return "••••••";
     if (col.type === "select" || col.type === "searchable-select") {

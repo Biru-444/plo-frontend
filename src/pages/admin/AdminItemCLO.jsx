@@ -1,3 +1,13 @@
+/**
+ * ทำอะไร : หน้าเชื่อมโยงงานประเมิน (assessment item) เข้ากับ CLO พร้อมกำหนดน้ำหนัก — config
+ *          ตาราง+ฟอร์มให้ CrudManager รับผิดชอบ UI ถือเป็นจุดตั้งค่าสำคัญของสูตรคำนวณ mastery
+ *
+ * เชื่อมกับ : เรียก GET/POST/PUT/DELETE /item-clo ผ่าน api/client.js — route มาจาก App.jsx เส้นทาง
+ *             "/admin/item-clo" (admin เท่านั้น) backend เช็คเองว่าน้ำหนักรวมต่อ CLO ไม่เกิน 100%
+ *             (ดู _other_mappings_weight_sum ใน routes/item_clo.py)
+ *
+ * ถ้าแก้ : weight_percent ที่ตั้งที่นี่คือตัวถ่วงน้ำหนักในสูตรคำนวณ CLO mastery ของนักศึกษาทุกคน
+ */
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
 import {
@@ -12,9 +22,11 @@ import {
 } from "../../api/client.js";
 
 export default function AdminItemCLO() {
+  // ตัวเลือกงานประเมิน/CLO สำหรับ dropdown ในฟอร์ม (label ประกอบบริบทวิชา/ภาคเรียนให้แยกออกจากกันง่าย)
   const [itemOptions, setItemOptions] = useState([]);
   const [cloOptions, setCloOptions] = useState([]);
 
+  // โหลดข้อมูลมาประกอบ label ที่อ่านง่ายครั้งเดียวตอนเปิดหน้า (2 กลุ่ม request แยกกัน ไม่รอกัน)
   useEffect(() => {
     Promise.all([listCLO(), listCourses()]).then(([clos, courses]) => {
       const courseById = {};

@@ -1,3 +1,14 @@
+/**
+ * ทำอะไร : หน้าเข้าสู่ระบบ — ฟอร์ม username/password เพียงอย่างเดียว ไม่มีฟีเจอร์ "ลืมรหัสผ่าน" หรือ
+ *          "สมัครสมาชิก" เอง (บัญชีสร้างโดย admin ผ่าน AdminUsers.jsx หรือ roster import เท่านั้น)
+ *
+ * เชื่อมกับ : เรียก login() จาก AuthContext.jsx (ซึ่งยิง POST /auth/login ต่ออีกที) สำเร็จแล้ว
+ *             useNavigate() พาไปหน้าแรก "/" ทันที
+ *
+ * ถ้าแก้ : แยกข้อความ error ระหว่าง 401 (username/password ผิด) กับ error อื่นๆ (เช่น เครือข่ายมี
+ *          ปัญหา, backend ล่ม) เพื่อไม่ให้ผู้ใช้เข้าใจผิดว่าตัวเองพิมพ์รหัสผ่านผิดทั้งที่จริงๆ ระบบมี
+ *          ปัญหา
+ */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -8,9 +19,11 @@ export default function Login() {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // กำลังรอผลจาก backend อยู่หรือไม่ - ใช้ปิดปุ่ม submit กันกดซ้ำระหว่างรอ
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // ส่งฟอร์ม login - ดัก 401 แยกจาก error อื่นๆ เพื่อแสดงข้อความที่ตรงประเด็นกว่า
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);

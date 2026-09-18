@@ -20,6 +20,8 @@ const STATUS_BADGE_CLASS = {
   จบการศึกษา: "status-graduated",
 };
 
+// สร้าง label ที่อ่านง่ายของ offering หนึ่งตัว (รวมชื่อวิชา+ปีการศึกษา+เทอม+หมู่) ใช้ทั้งใน dropdown
+// เลือกวิชาและตารางรายวิชาที่ลงทะเบียนแล้ว
 function offeringLabel(offering, courseById) {
   const course = courseById[offering.course_id];
   const courseLabel = course ? `${course.course_code} ${course.name_th}` : `วิชา #${offering.course_id}`;
@@ -56,6 +58,7 @@ export default function AdminEnrollments() {
   // BulkEnrollPanel ใช้เป็นตัวเลือกในโหมดลงทะเบียนแบบกลุ่ม ไม่ต้องโหลดซ้ำ
   const allStudents = useMemo(() => Object.values(studentById), [studentById]);
 
+  // โหลดรายชื่อนักศึกษาและวิชาที่เปิดสอนทั้งหมดครั้งเดียวตอนเปิดหน้า (ใช้ทั้งสองโหมด)
   useEffect(() => {
     listStudents().then((data) => {
       setStudentOptions(data.map((s) => ({ value: s.id, label: `${s.id} ${s.first_name} ${s.last_name}` })));
@@ -74,6 +77,8 @@ export default function AdminEnrollments() {
 
   const selectedStudent = selectedStudentId ? studentById[selectedStudentId] : null;
 
+  // โหลดวิชาที่ลงทะเบียนแล้ว + คำแนะนำวิชาที่ควรลงตามแผนการศึกษา ของนักศึกษาคนที่เลือก (2 request
+  // แยกกัน ไม่รอกัน) เรียกซ้ำทุกครั้งหลังลงทะเบียน/ถอนสำเร็จเพื่อให้ตารางอัปเดตตรงกับความจริง
   function loadStudentData(studentId) {
     setEnrollments({ status: "loading", rows: [] });
     setRecommendations({ status: "loading", rows: [] });
@@ -132,6 +137,8 @@ export default function AdminEnrollments() {
     }
   }
 
+  // ตัดวิชาที่ลงทะเบียนไปแล้วออกจาก dropdown "ลงทะเบียนวิชาใหม่" กันเลือกวิชาซ้ำ (backend เองก็เช็ค
+  // ซ้ำเช่นกัน แต่กรองที่นี่ก่อนให้ UX ดีกว่า ไม่ต้องรอ error กลับมา)
   const enrolledOfferingIds = useMemo(
     () => new Set(enrollments.rows.map((e) => e.offering_id)),
     [enrollments.rows]

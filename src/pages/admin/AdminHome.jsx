@@ -1,3 +1,14 @@
+/**
+ * ทำอะไร : ศูนย์รวมเมนูจัดการระบบของ admin (route "/admin") — การ์ด grid แบ่งเป็น section ตามหมวดงาน
+ *          บวกการ์ดพิเศษ 2 อัน (กรอกคะแนน/ผลบรรลุ CLO และนำเข้ารายชื่อ) ที่ยกไว้ด้านบนสุดเพราะเป็นงาน
+ *          ที่ทำบ่อยที่สุด — ไม่มี logic/state อะไรในหน้านี้เลย เป็นแค่การจัดวาง config ล้วนๆ
+ *
+ * เชื่อมกับ : ทุก item ใน SECTIONS ลิงก์ไปหน้า admin/* ที่ตรงกับ route ใน App.jsx (requireAdmin ทุก
+ *             เส้นทาง)
+ *
+ * ถ้าแก้ : เพิ่มเมนูใหม่ให้เติมใน SECTIONS (หรือสร้าง section ใหม่) ไม่ใช่เขียน JSX แยกในฟังก์ชัน
+ *          AdminHome ตรงๆ เพื่อให้ layout/สไตล์สอดคล้องกันทั้งหน้า
+ */
 import { Link } from "react-router-dom";
 import {
   GraduationCap,
@@ -113,6 +124,8 @@ const SECTIONS = [
   },
 ];
 
+// หัวข้อ section พร้อมไอคอน (i) ที่มี title tooltip แสดงคำอธิบายยาวเมื่อ hover (แทนที่จะกางข้อความ
+// ค้างไว้ทั้งหน้าแบบเดิม)
 function SectionHeading({ title, tooltip }) {
   return (
     <div className="admin-home-section-heading">
@@ -122,6 +135,7 @@ function SectionHeading({ title, tooltip }) {
   );
 }
 
+// การ์ดเมนูย่อย 1 อัน (ไอคอน + หัวข้อ + คำบรรยายย่อย) — คลิกแล้วลิงก์ไปหน้า admin ที่เกี่ยวข้อง
 function ItemCard({ to, label, sublabel, icon: Icon }) {
   return (
     <Link to={to} className="admin-home-card">

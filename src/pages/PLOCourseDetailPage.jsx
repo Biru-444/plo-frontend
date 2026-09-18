@@ -1,3 +1,15 @@
+/**
+ * ทำอะไร : หน้ารายชื่อนักศึกษาที่ลงทะเบียนวิชาหนึ่ง เทียบกับ PLO ข้อหนึ่งโดยเฉพาะ (route
+ *          /plo/overview/:ploId/course/:courseId) — เดิมเป็น panel แบบ accordion ใน PLOCourseBreakdown
+ *          ย้ายมาเป็นหน้าเต็มแยกต่างหาก เนื้อหา/พฤติกรรมเหมือนเดิมทุกอย่าง
+ *
+ * เชื่อมกับ : getCourseEnrolledStudents ส่ง plo_id ไปด้วยเพื่อให้ backend คำนวณ plo_achieved ต่อคน
+ *             มาให้เลย — curriculum/cohort ส่งผ่าน query string เหมือน PLODetailPage เพื่อให้ปุ่ม
+ *             "กลับไป" ย้อนกลับไปหน้า PLO detail เดิมพร้อมตัวกรองที่เลือกไว้ครบ
+ *
+ * ถ้าแก้ : ต้อง sort รายชื่อนักศึกษาตามรหัสแบบ numeric เองฝั่งนี้เสมอ (ดูคอมเมนต์ในโค้ด) เพราะ
+ *          backend endpoint นี้ไม่ได้เรียงตามรหัสมาให้
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ChevronRight } from "lucide-react";
@@ -20,27 +32,23 @@ function PLOAchievedBadge({ achieved }) {
   );
 }
 
-/**
- * หน้ารายชื่อนักศึกษาที่ลงทะเบียนวิชาหนึ่ง เทียบกับ PLO ข้อหนึ่งโดยเฉพาะ - เดิมเป็น panel ที่ขยายแบบ
- * accordion จาก chip วิชาในหน้า PLO detail (PLOCourseBreakdown) ย้ายมาเป็นหน้าเต็มแยกต่างหากตามที่ตกลง
- * เนื้อหา/พฤติกรรมเป็นชุดเดิมทุกอย่าง (fetch enrolled-students พร้อม plo_id, filter รุ่นฝั่ง client,
- * เรียง numeric id, คอลัมน์ผลการบรรลุ) ไม่มีอะไรเปลี่ยน
- *
- * route: /plo/overview/:ploId/course/:courseId - curriculum/cohort ส่งผ่าน query string เหมือน
- * PLODetailPage เพื่อให้ปุ่ม "กลับไป" ย้อนกลับไปหน้า PLO detail เดิมพร้อมตัวกรองที่เลือกไว้ครบ
- */
 export default function PLOCourseDetailPage() {
   const { ploId, courseId } = useParams();
   const [searchParams] = useSearchParams();
   const curriculumId = searchParams.get("curriculum");
   const cohortYear = searchParams.get("cohort");
 
+  // ข้อมูล PLO (สำหรับหัวข้อ/ปุ่มกลับ) และวิชา (สำหรับ badge หลัก/รอง) - โหลดแยกจากรายชื่อนักศึกษา
   const [plo, setPlo] = useState(null);
   const [course, setCourse] = useState(null);
   const [courseStatus, setCourseStatus] = useState("loading");
+  // รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้ พร้อมสถานะโหลด (แยก object เดียวกันเพื่อไม่ให้ status/students
+  // ไม่ตรงกันชั่วขณะระหว่าง re-render)
   const [enrolled, setEnrolled] = useState({ status: "loading", students: [] });
+  // ตัวกรอง "รุ่น" ของตารางนักศึกษา (เลข 2 หลักแรกของรหัสนักศึกษา) - "" = ไม่กรอง (แสดงทุกรุ่น)
   const [selectedCohortPrefix, setSelectedCohortPrefix] = useState("");
 
+  // หา PLO object ที่ตรงกับ ploId ใน URL จากรายการ PLO ทั้งหมด (ใช้แค่ code/description มาแสดง)
   useEffect(() => {
     let cancelled = false;
     listPLO()
@@ -53,6 +61,8 @@ export default function PLOCourseDetailPage() {
     };
   }, [ploId]);
 
+  // หาวิชาที่ตรงกับ courseId จากแผนวิชาบังคับของ PLO นี้ (ไม่เจอ = วิชานี้ไม่ได้อยู่ในแผนของ PLO นี้
+  // จริง เช่น เข้า URL ผิด -> courseStatus เป็น "error")
   useEffect(() => {
     let cancelled = false;
     setCourseStatus("loading");
@@ -72,6 +82,8 @@ export default function PLOCourseDetailPage() {
     };
   }, [ploId, courseId]);
 
+  // โหลดรายชื่อนักศึกษาที่ลงทะเบียนวิชานี้ พร้อม plo_achieved ต่อคน (ส่ง ploId ไปให้ backend คำนวณ) -
+  // reset ตัวกรองรุ่นทุกครั้งที่เปลี่ยนวิชา/รุ่น/PLO เพื่อไม่ให้ค้างตัวกรองจากวิชาก่อนหน้า
   useEffect(() => {
     let cancelled = false;
     setEnrolled({ status: "loading", students: [] });

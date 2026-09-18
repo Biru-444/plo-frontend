@@ -1,7 +1,19 @@
+/**
+ * ทำอะไร : หน้านำเข้ารายชื่อนักศึกษาจากไฟล์ Excel ของมหาวิทยาลัย (route /admin/roster-import) —
+ *          บังคับ preview (dry-run) ก่อนบันทึกจริงเสมอ 2 ขั้นตอน: เลือกไฟล์ -> ดูตัวอย่างผลลัพธ์ที่
+ *          "จะ" เกิดขึ้น -> กดยืนยันเพื่อบันทึกจริง (เรียก API เดิมซ้ำด้วยไฟล์เดิม แค่เปลี่ยน dryRun)
+ *
+ * เชื่อมกับ : เรียก importRoster(file, dryRun) จาก api/client.js — backend endpoint เดียวกันรองรับทั้ง
+ *             โหมด preview และบันทึกจริงผ่าน form field เดียว (ดู POST /roster-import ฝั่ง backend)
+ *
+ * ถ้าแก้ : รหัสผ่านชั่วคราวของบัญชีอาจารย์ที่สร้างใหม่ (new_instructor_credentials) แสดงได้ครั้งเดียว
+ *          ตอนนี้เท่านั้น (backend ไม่เก็บ plain text ไว้ให้ดูซ้ำ) — เตือนผู้ใช้ให้คัดลอกไว้ก่อนออกจากหน้า
+ */
 import { useState } from "react";
 import { FileSpreadsheet, Upload, AlertTriangle, CheckCircle2, KeyRound } from "lucide-react";
 import { importRoster } from "../../api/client.js";
 
+// ป้ายสถานะที่ backend ส่งกลับ (offering_action) แปลเป็นข้อความไทยที่ผู้ใช้เข้าใจง่ายกว่า
 const OFFERING_ACTION_LABEL = {
   matched_existing: "มีอยู่แล้ว - จะใช้อันเดิม",
   will_create: "ยังไม่มี - จะสร้างใหม่",
@@ -22,6 +34,7 @@ const STUDENT_ACTION_LABEL = {
   error: "ข้าม (ดูรายละเอียด)",
 };
 
+// สีป้ายสถานะ - เขียว = ไม่ต้องทำอะไร/เสร็จแล้ว, ส้ม = จะมีการเปลี่ยนแปลงเกิดขึ้น, แดง = มีปัญหาต้องดู
 function actionBadgeClass(action) {
   if (action === "created" || action === "unchanged" || action === "matched_existing") {
     return "roster-badge roster-badge-green";
@@ -35,6 +48,7 @@ function actionBadgeClass(action) {
   return "roster-badge";
 }
 
+// แสดงผลลัพธ์ 1 ชุด (ใช้ได้ทั้งตอน preview และหลังบันทึกจริง - โครงสร้างข้อมูลเหมือนกันทุกประการ)
 function ResultPanel({ result }) {
   const s = result.summary || {};
   return (
@@ -189,6 +203,8 @@ function ResultPanel({ result }) {
 
 export default function AdminRosterImport() {
   const [file, setFile] = useState(null);
+  // เปลี่ยนค่านี้เพื่อบังคับให้ <input type="file"> รีเซ็ตตัวเอง (React ไม่ยอมให้ set value ของ
+  // input ไฟล์ตรงๆ ได้ วิธีเดียวคือเปลี่ยน key เพื่อ mount ใหม่)
   const [fileInputKey, setFileInputKey] = useState(0);
   const [preview, setPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -197,6 +213,7 @@ export default function AdminRosterImport() {
   const [commitResult, setCommitResult] = useState(null);
   const [commitError, setCommitError] = useState("");
 
+  // เลือกไฟล์ใหม่ -> เคลียร์ผลลัพธ์เก่าทั้งหมด แล้วยิง dry-run ทันทีเพื่อแสดง preview
   async function handleFileChange(e) {
     const f = e.target.files?.[0] ?? null;
     setFile(f);
@@ -216,6 +233,7 @@ export default function AdminRosterImport() {
     }
   }
 
+  // กดยืนยัน -> เรียก importRoster ซ้ำด้วยไฟล์เดิม แต่เปลี่ยน dryRun เป็น false เพื่อบันทึกจริง
   async function handleConfirmImport() {
     if (!file) return;
     setCommitting(true);
@@ -230,6 +248,7 @@ export default function AdminRosterImport() {
     }
   }
 
+  // ล้างสถานะทั้งหมดกลับไปเริ่มใหม่ (เลือกไฟล์อื่น)
   function handleReset() {
     setFile(null);
     setPreview(null);
@@ -239,6 +258,8 @@ export default function AdminRosterImport() {
     setFileInputKey((k) => k + 1);
   }
 
+  // แสดงผลบันทึกจริงถ้ามี (commitResult) ไม่งั้นแสดง preview - ปุ่ม "ยืนยันนำเข้าจริง" กดได้เฉพาะตอน
+  // เจอวิชาในระบบแล้ว (course_found) และยังไม่เคยบันทึกจริงไปแล้วรอบนี้
   const shown = commitResult || preview;
   const canConfirm = preview && preview.course_found && !commitResult;
 

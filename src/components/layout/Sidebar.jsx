@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+// ทำอะไร : เมนูนำทางด้านซ้ายของแอป - รายการเมนูเปลี่ยนตาม role (admin/instructor) ไม่ใช่ static
+// list ตายตัว (ดูรายละเอียดเหตุผลของแต่ละรายการในคอมเมนต์ navItems ด้านล่าง)
 export default function Sidebar() {
   const { isAdmin, user } = useAuth();
 

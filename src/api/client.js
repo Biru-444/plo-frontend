@@ -1,10 +1,24 @@
+/**
+ * ทำอะไร : จุดรวมการเรียก backend API ทั้งหมดของ frontend — ทุกฟังก์ชันในไฟล์นี้คือ wrapper บาง ๆ
+ *          รอบ axios ที่แปลง endpoint ของ FastAPI ให้เรียกจาก React component ได้ตรงไปตรงมา (ไม่มี
+ *          component ไหนเรียก axios ตรง ๆ เอง ทุกอย่างผ่านไฟล์นี้)
+ *
+ * เชื่อมกับ : instance `api` (axios) แนบ JWT token จาก localStorage อัตโนมัติทุก request ผ่าน
+ *             interceptor ด้านล่าง และ redirect ไป /login อัตโนมัติถ้า backend ตอบ 401 — ทุก endpoint
+ *             ในไฟล์นี้ตรงกับ router หนึ่งตัวใน plo-evaluation/app/routes/*.py (ชื่อฟังก์ชันตั้งให้
+ *             สื่อว่าเรียก endpoint ไหน)
+ *
+ * ถ้าแก้ : เปลี่ยน AUTH_STORAGE_KEY ต้องเปลี่ยนใน AuthContext.jsx ให้ตรงกันด้วย (ใช้ key เดียวกันอ่าน/
+ *          เขียน localStorage) เปลี่ยน baseURL ผ่าน env var VITE_API_BASE_URL เท่านั้น ไม่ hardcode
+ *          URL ของ backend ที่ deploy จริงไว้ในโค้ด
+ */
 import axios from "axios";
 
-// Reads VITE_API_BASE_URL from .env (see .env.example). Falls back to the
-// default local FastAPI dev server address.
+// อ่าน URL ของ backend จาก .env (ดู .env.example) — ไม่ตั้งค่าไว้ = ใช้ FastAPI dev server ที่ localhost
+// เป็นค่าเริ่มต้น (สำหรับตอน dev ในเครื่อง)
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// Must match the key AuthContext uses to persist { user, token }.
+// ต้องตรงกับ key ที่ AuthContext.jsx ใช้เก็บ { user, token } ลง localStorage
 export const AUTH_STORAGE_KEY = "plo_auth";
 
 export const api = axios.create({
@@ -12,6 +26,8 @@ export const api = axios.create({
   timeout: 10000,
 });
 
+// แนบ JWT token (ถ้ามี) เข้า header Authorization ของทุก request โดยอัตโนมัติ - อ่านจาก
+// localStorage สดทุกครั้ง (ไม่ cache ไว้ใน closure) เพื่อให้เห็น token ใหม่ทันทีหลัง login/logout
 api.interceptors.request.use((config) => {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -25,6 +41,8 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// เจอ 401 (token หมดอายุ/ไม่ถูกต้อง) จาก endpoint ไหนก็ได้ -> ล้าง token ที่เก็บไว้แล้วเด้งกลับไปหน้า
+// login ทันที ไม่ปล่อยให้ผู้ใช้ค้างอยู่ในหน้าที่ยิง request ไม่ผ่านต่อไปเรื่อยๆ
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -92,7 +110,7 @@ export async function getPLOAchievementByYear(curriculumId, cohortYear) {
   return data;
 }
 
-// --- Other endpoints exposed by the backend, ready for the next pages ---
+// --- Curriculum: CRUD ธรรมดา ไม่มี logic พิเศษ ตรงกับ app/routes/curriculum.py ---
 
 export async function listCurricula() {
   const { data } = await api.get("/curricula");
@@ -118,6 +136,9 @@ export async function deleteCurriculum(id) {
   await api.delete(`/curricula/${id}`);
 }
 
+// --- Course: CRUD ธรรมดา ตรงกับ app/routes/courses.py (getCourseEnrolledStudents อยู่ด้านล่าง
+// ในหมวด PLO เพราะมีตัวเลือกคำนวณ plo_achieved ด้วย) ---
+
 export async function listCourses() {
   const { data } = await api.get("/courses");
   return data;
@@ -136,6 +157,8 @@ export async function updateCourse(id, payload) {
 export async function deleteCourse(id) {
   await api.delete(`/courses/${id}`);
 }
+
+// --- Student: CRUD ธรรมดา ตรงกับ app/routes/students.py ---
 
 export async function listStudents() {
   const { data } = await api.get("/students");
@@ -171,6 +194,9 @@ export async function getRecommendedOfferings(studentId) {
   return data;
 }
 
+// --- Enrollment: CRUD ธรรมดา + endpoint ลงทะเบียนแบบกลุ่ม (bulk) ด้านล่าง ตรงกับ
+// app/routes/enrollment.py ---
+
 export async function listEnrollments(offeringId) {
   const { data } = await api.get("/enrollments", {
     params: offeringId ? { offering_id: offeringId } : {},
@@ -188,6 +214,8 @@ export async function createEnrollment(payload) {
   return data;
 }
 
+// ไม่มี component ไหนในโปรเจกต์เรียกฟังก์ชันนี้เลยในปัจจุบัน (ตรวจสอบครบทั้งโปรเจกต์แล้ว) - เก็บไว้
+// เผื่ออนาคต เพราะ backend endpoint (PUT /enrollments/{id}) ยังมีอยู่และใช้งานได้จริง
 export async function updateEnrollment(id, payload) {
   const { data } = await api.put(`/enrollments/${id}`, payload);
   return data;
@@ -267,6 +295,8 @@ export async function getSiblingSectionEnrollments(offeringId) {
   });
   return data;
 }
+
+// --- Assessment Item: CRUD ธรรมดา ตรงกับ app/routes/assessment.py (ฝั่ง assessment-items) ---
 
 export async function listAssessmentItems(offeringId) {
   const { data } = await api.get("/assessment-items", {
@@ -555,6 +585,8 @@ export async function deleteUser(id) {
   await api.delete(`/users/${id}`);
 }
 
+// --- Student Score: ตรงกับ app/routes/assessment.py (ฝั่ง student-scores) ---
+
 /**
  * Fetch every recorded score for one student, joined with assessment item name.
  * Backend: GET /student-scores?student_id=...
@@ -566,6 +598,7 @@ export async function getStudentScores(studentId) {
   return data;
 }
 
+// แก้คะแนนที่บันทึกไว้แล้ว - backend เช็คว่าไม่เกินคะแนนเต็มของชิ้นงานนั้นให้เอง (400 ถ้าเกิน)
 export async function updateStudentScore(scoreId, scoreObtained) {
   const { data } = await api.put(`/student-scores/${scoreId}`, {
     score_obtained: scoreObtained,
@@ -573,6 +606,8 @@ export async function updateStudentScore(scoreId, scoreObtained) {
   return data;
 }
 
+// บันทึกคะแนนใหม่ (นักศึกษา 1 คน x ชิ้นงาน 1 ชิ้น) - 409 ถ้ามีคะแนนของคู่นี้อยู่แล้ว ต้องใช้
+// updateStudentScore แก้แทน
 export async function createStudentScore(payload) {
   const { data } = await api.post("/student-scores", payload);
   return data;

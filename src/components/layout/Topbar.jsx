@@ -1,3 +1,12 @@
+/**
+ * ทำอะไร : แถบด้านบนของ AppLayout — ชื่อผู้ใช้ + เมนู dropdown (ดูโปรไฟล์/ออกจากระบบ)
+ *
+ * เชื่อมกับ : ใช้ useAuth().logout() แล้ว navigate ไป /login เอง — ไม่ render อะไรเลยถ้ายังไม่ login
+ *             (AppLayout ก็ไม่ render Topbar อยู่แล้วในกรณีนั้น แต่กันไว้อีกชั้นเผื่อ user หายระหว่างทาง)
+ *
+ * ถ้าแก้ : dropdown ปิดเองเมื่อคลิกนอกกล่อง (ดู handleClickOutside) - ถ้าจะเพิ่มเมนูย่อยใหม่ใน dropdown
+ *          ต้องปิด dropdown (setOpen(false)) ก่อน navigate เสมอ เหมือนที่ลิงก์ "ดูโปรไฟล์" ทำอยู่
+ */
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -5,9 +14,13 @@ import { useAuth } from "../../context/AuthContext.jsx";
 export default function Topbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  // dropdown เมนูผู้ใช้เปิด/ปิดอยู่หรือไม่
   const [open, setOpen] = useState(false);
+  // ใช้ตรวจว่าคลิกเกิดนอกกล่อง dropdown หรือไม่ (ดู handleClickOutside)
   const containerRef = useRef(null);
 
+  // ปิด dropdown อัตโนมัติเมื่อคลิกที่อื่นนอกกล่องนี้ (ลงทะเบียน listener ที่ document ครั้งเดียว
+  // ตอน mount แล้วถอดตอน unmount)
   useEffect(() => {
     function handleClickOutside(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {

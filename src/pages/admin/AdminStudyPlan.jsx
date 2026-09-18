@@ -1,3 +1,13 @@
+/**
+ * ทำอะไร : หน้าจัดการแผนการศึกษา (Study Plan — วิชาไหนสอนชั้นปี/เทอมไหน) config ตาราง+ฟอร์มให้
+ *          CrudManager รับผิดชอบ UI จัดกลุ่มแถวตามชั้นปี+ภาคเรียนให้อ่านง่ายขึ้น (groupBy)
+ *
+ * เชื่อมกับ : เรียก GET/POST/PUT/DELETE /study-plan ผ่าน api/client.js — route มาจาก App.jsx
+ *             เส้นทาง "/admin/study-plan" (admin เท่านั้น)
+ *
+ * ถ้าแก้ : ข้อมูลจากที่นี่ถูกอ่านโดย _study_plan_course_ids ใน ylo_calculation.py ฝั่ง backend เพื่อ
+ *          ตัดสินว่าวิชาไหน "อยู่ในปีนี้" — แก้ปี/เทอมของวิชากระทบการคำนวณ YLO โดยตรง
+ */
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
 import {
@@ -10,9 +20,11 @@ import {
 } from "../../api/client.js";
 
 export default function AdminStudyPlan() {
+  // ตัวเลือกหลักสูตร/รายวิชาสำหรับ dropdown ในฟอร์ม
   const [curriculumOptions, setCurriculumOptions] = useState([]);
   const [courseOptions, setCourseOptions] = useState([]);
 
+  // โหลดหลักสูตรและรายวิชาครั้งเดียวตอนเปิดหน้า (สอง request แยกกัน ไม่รอกัน)
   useEffect(() => {
     listCurricula().then((data) =>
       setCurriculumOptions(data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` })))

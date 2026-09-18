@@ -1,3 +1,9 @@
+/**
+ * ทำอะไร : การ์ดหัวข้อแสดงข้อมูลพื้นฐานของนักศึกษา (ชื่อ, รหัส, หลักสูตร, รุ่น, ชั้นปี, สถานะ) ใช้ใน
+ *          หัวหน้า /student-plo
+ *
+ * เชื่อมกับ : รับ student/curriculumName เป็น prop ตรงๆ ไม่ fetch เอง (ผู้เรียกต้องโหลดมาให้)
+ */
 // เดียวกับ STATUS_BADGE_CLASS ใน StudentList.jsx - คง class เดิม (status-active ฯลฯ) ไว้
 // เพื่อให้ badge ใช้ CSS ชุดเดียวกันทั้งสองหน้า แทนที่จะสร้าง selector ใหม่จากข้อความไทยตรงๆ
 const STATUS_BADGE_CLASS = {

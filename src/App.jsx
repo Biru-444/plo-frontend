@@ -33,11 +33,22 @@ import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
 import AdminCourseGrading from "./pages/admin/AdminCourseGrading.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
+/**
+ * ทำอะไร : กำหนดเส้นทาง (route) ทั้งหมดของระบบ — จับคู่ path ใน URL กับหน้าที่จะแสดง
+ *
+ * เชื่อมกับ : ทุกหน้าถูกห่อด้วย <AppLayout> (แถบเมนู/หัวเว็บ) และ <ProtectedRoute> (บังคับ login
+ *             ก่อนเข้าดู — ใส่ requireAdmin เพิ่มถ้าต้องเป็น admin เท่านั้น) ยกเว้น /login ที่ไม่ต้อง
+ *             login มาก่อน
+ *
+ * ถ้าแก้ : ลืมห่อหน้าใหม่ด้วย <ProtectedRoute> = ใครก็เข้าดูหน้านั้นได้โดยไม่ต้อง login เลย path ที่
+ *          ไม่ตรงกับ route ไหนเลยจะถูก redirect กลับ "/" เสมอ (route "*" ท้ายไฟล์)
+ */
 export default function App() {
   const { user } = useAuth();
 
   return (
     <Routes>
+      {/* เข้าสู่ระบบ — เข้าถึงได้โดยไม่ต้อง login (ทางเข้าเดียวสำหรับผู้ที่ยังไม่ login) */}
       <Route path="/login" element={<Login />} />
       <Route
         path="/"
@@ -52,6 +63,8 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ผลบรรลุ PLO/YLO รายบุคคล — ทั้ง admin และ instructor เข้าได้ (ทางเข้าจริงคือคลิกชื่อ
+          นักศึกษาจากหน้ารายชื่อ) */}
       <Route
         path="/student-plo"
         element={
@@ -62,6 +75,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* เจาะลึกระดับ CLO -> คะแนน ของนักศึกษา 1 คนในวิชาเดียว — admin และ instructor เข้าได้ */}
       <Route
         path="/student-clo"
         element={
@@ -72,6 +86,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* หน้าทะเบียนรายชื่อนักศึกษา (กรอง/ค้นหา/เรียงลำดับ) — admin และ instructor เข้าได้ */}
       <Route
         path="/students"
         element={
@@ -82,6 +97,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* รายวิชาของหลักสูตร (ดูเฉยๆ ไม่แก้ไข) — admin และ instructor เข้าได้ */}
       <Route
         path="/curriculum"
         element={
@@ -92,6 +108,8 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ภาพรวม PLO ทั้งหลักสูตร (การ์ดสรุป + ลิงก์ไปแต่ละ PLO) — admin และ instructor เข้าได้
+          (เป็นหน้าแรกของ admin หลัง login ด้วย ดูเงื่อนไขที่ route "/" ด้านบน) */}
       <Route
         path="/dashboard"
         element={
@@ -102,6 +120,8 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ภาพรวม PLO ข้อเดียว (รายชื่อนักศึกษา + ตัวกรอง + drill-down รายวิชา) — admin และ
+          instructor เข้าได้ */}
       <Route
         path="/plo/overview/:ploId"
         element={
@@ -112,6 +132,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* รายละเอียดวิชาเดียวภายใต้ PLO ข้อหนึ่ง — admin และ instructor เข้าได้ */}
       <Route
         path="/plo/overview/:ploId/course/:courseId"
         element={
@@ -122,6 +143,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ผลบรรลุ YLO แยกตามชั้นปี — admin และ instructor เข้าได้ */}
       <Route
         path="/ylo-by-year"
         element={
@@ -132,6 +154,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการคะแนนนักศึกษา (กรอก/แก้คะแนนชิ้นงาน) — admin และ instructor เข้าได้ */}
       <Route
         path="/scores"
         element={
@@ -142,6 +165,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ข้อมูลบัญชีผู้ใช้ปัจจุบัน — admin และ instructor เข้าได้ */}
       <Route
         path="/profile"
         element={
@@ -152,6 +176,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ศูนย์รวมเมนูจัดการระบบ (การ์ดลิงก์ไปทุกหน้า admin ด้านล่าง) — admin เท่านั้น */}
       <Route
         path="/admin"
         element={
@@ -162,6 +187,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* เพิ่ม/จัดการนักศึกษา — admin เท่านั้น */}
       <Route
         path="/admin/students"
         element={
@@ -172,6 +198,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* เพิ่ม/จัดการหลักสูตร — admin เท่านั้น */}
       <Route
         path="/admin/curriculum"
         element={
@@ -182,6 +209,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการ PLO ของหลักสูตร — admin เท่านั้น */}
       <Route
         path="/admin/plo"
         element={
@@ -192,6 +220,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการ YLO ของหลักสูตร — admin เท่านั้น */}
       <Route
         path="/admin/ylo"
         element={
@@ -202,6 +231,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการ mapping YLO<->PLO — admin เท่านั้น */}
       <Route
         path="/admin/ylo-plo-mapping"
         element={
@@ -212,6 +242,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการรายวิชา — admin เท่านั้น */}
       <Route
         path="/admin/course"
         element={
@@ -222,6 +253,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการ mapping วิชา<->PLO (responsibility_level primary/secondary) — admin เท่านั้น */}
       <Route
         path="/admin/course-plo"
         element={
@@ -232,6 +264,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการแผนการศึกษา (วิชาไหนสอนชั้นปี/เทอมไหน) — admin เท่านั้น */}
       <Route
         path="/admin/study-plan"
         element={
@@ -242,6 +275,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการการเปิดสอนวิชา (course offering) — admin เท่านั้น */}
       <Route
         path="/admin/course-offerings"
         element={
@@ -252,6 +286,8 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการ CLO ของวิชา — admin เท่านั้น (instructor จัดการ CLO ของวิชาตัวเองผ่านช่องทางอื่น
+          ไม่ใช่หน้านี้) */}
       <Route
         path="/admin/clo"
         element={
@@ -262,6 +298,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการชิ้นงาน/ข้อสอบ (assessment item) — admin เท่านั้น */}
       <Route
         path="/admin/assessment-items"
         element={
@@ -272,6 +309,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการ mapping ชิ้นงาน<->CLO พร้อมน้ำหนัก — admin เท่านั้น */}
       <Route
         path="/admin/item-clo"
         element={
@@ -282,6 +320,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการบัญชีผู้ใช้ระบบ (admin/instructor) — admin เท่านั้น */}
       <Route
         path="/admin/users"
         element={
@@ -292,6 +331,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* จัดการการลงทะเบียนเรียน (รวมลงทะเบียนแบบกลุ่ม) — admin เท่านั้น */}
       <Route
         path="/admin/enrollments"
         element={
@@ -302,6 +342,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* นำเข้าไฟล์รายชื่อจากมหาวิทยาลัย (.xls/.xlsx) — admin เท่านั้น */}
       <Route
         path="/admin/roster-import"
         element={
@@ -312,6 +353,9 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* พื้นที่ทำงานรวมของ course offering เดียว (ชิ้นงาน+CLO+คะแนน ในหน้าเดียว) — admin และ
+          instructor เข้าได้ (ไม่ต้อง admin ต่างจากหน้า admin/* อื่นๆ เพราะ instructor ใช้จัดการ
+          วิชาที่ตัวเองสอนโดยตรง) */}
       <Route
         path="/course-workspace"
         element={
@@ -322,6 +366,7 @@ export default function App() {
           </AppLayout>
         }
       />
+      {/* ให้เกรดรายวิชา (สรุปคะแนน/เกรดของทั้งห้อง) — admin เท่านั้น */}
       <Route
         path="/admin/course-grading"
         element={

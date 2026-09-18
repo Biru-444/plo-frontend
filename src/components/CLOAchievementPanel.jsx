@@ -13,13 +13,20 @@ import { listAssessmentItems, listItemCLO, getOfferingCLOAchievement } from "../
  * AdminCourseGrading ต้องชี้ไปหน้า /admin/item-clo แทน) - ไม่ระบุ = ใช้ข้อความเดิมที่มีอยู่แล้ว
  */
 export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
+  // ผล CLO ทั้งห้อง (สรุป+คะแนนรายบุคคล) จาก GET /clo-achievement
   const [cloAchievement, setCloAchievement] = useState(null);
+  // mapping ชิ้นงาน<->CLO เฉพาะของ offering นี้ (กรองจากทั้งระบบด้วย itemIds ด้านล่าง) ใช้ตอนขยายแถว
+  // CLO เพื่อโชว์ว่าดึงคะแนนจากชิ้นงานไหนบ้าง
   const [itemCLOs, setItemCLOs] = useState([]);
   const [assessmentItems, setAssessmentItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  // clo_id ของแถว CLO ที่กำลังขยายอยู่ - null = ไม่มีแถวไหนขยาย (ขยายได้ทีละแถวเท่านั้น)
   const [expandedCloId, setExpandedCloId] = useState(null);
 
+  // โหลดชิ้นงาน + mapping ชิ้นงาน<->CLO ทั้งระบบ + ผล CLO ทั้งห้อง พร้อมกันทุกครั้งที่เปลี่ยน offering
+  // (listItemCLO() ไม่รับ filter ต่อ offering ได้ จึงต้องดึงทั้งหมดมาแล้วกรองเหลือเฉพาะของ offering
+  // นี้เองฝั่ง frontend ด้วย itemIds)
   useEffect(() => {
     let cancelled = false;
     setLoading(true);

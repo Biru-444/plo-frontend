@@ -26,8 +26,10 @@ export default function StudentYearBreakdown({
   selectedPloFilter = null,
   onClearFilter,
 }) {
+  // เก็บ course_id ของแถววิชาที่ถูกกดขยายอยู่ (Set รองรับหลายแถวขยายพร้อมกัน)
   const [expandedCourseIds, setExpandedCourseIds] = useState(() => new Set());
 
+  // เปลี่ยนนักศึกษา (studentId) -> ยุบทุกแถวที่เคยขยายไว้ทิ้ง กันแถวขยายค้างข้ามคนละคน
   useEffect(() => {
     setExpandedCourseIds(new Set());
   }, [studentId]);

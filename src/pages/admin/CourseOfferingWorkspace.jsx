@@ -1,3 +1,19 @@
+/**
+ * ทำอะไร : พื้นที่ทำงานหลักของอาจารย์ต่อวิชาที่เปิดสอนหนึ่งวิชา (route /course-workspace) — เลือกวิชา
+ *          จาก dropdown แล้วสลับ 4 แท็บ: นักศึกษาลงทะเบียน / โครงสร้างการประเมิน (CLO + งานประเมิน +
+ *          mapping น้ำหนัก) / กรอกคะแนน / ผลบรรลุ CLO เป็นไฟล์ที่ใหญ่ที่สุดของโปรเจกต์เพราะรวมทุกงาน
+ *          ประจำภาคเรียนของอาจารย์ไว้หน้าเดียว (ไม่ต้องสลับหน้าไปมาระหว่างทำงาน)
+ *
+ * เชื่อมกับ : แท็บ "กรอกคะแนน" และ "ผลบรรลุ CLO" ใช้ ScoresPanel/CLOAchievementPanel component ที่ถูก
+ *             แยกออกมาให้ AdminCourseGrading.jsx (เวอร์ชันสำหรับ admin) ใช้ร่วมด้วย ส่วนแท็บ
+ *             "นักศึกษาลงทะเบียน" ใช้ BulkEnrollPanel ร่วมกับ AdminEnrollments.jsx เช่นกัน — เหลือแค่
+ *             แท็บ "โครงสร้างการประเมิน" (StructureTab ด้านล่าง) ที่ยังเป็นโค้ดเฉพาะของไฟล์นี้ เพราะไม่
+ *             มีหน้าอื่นต้องการ workflow แบบเดียวกัน (สร้าง CLO หลายแถวพร้อมกัน + ผูกน้ำหนักในหน้าเดียว)
+ *
+ * ถ้าแก้ : เข้าหน้านี้พร้อม query param ?offering_id=...&tab=... ได้ (เช่นจากปุ่ม "จัดการ CLO และ
+ *          เกณฑ์ผ่าน" ในหน้าหลักอาจารย์) เพื่อเปิดตรงวิชา/แท็บที่ต้องการทันที — เพิ่ม tab ใหม่ต้องเพิ่ม
+ *          ใน TABS ด้านล่างด้วย ไม่งั้น query param tab จะถูกเมิน (เช็คด้วย TABS.some ก่อนตั้งค่า)
+ */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -44,6 +60,7 @@ const ASSESSMENT_TYPE_LABELS = {
   project: "โปรเจกต์ (Project)",
 };
 
+// นิยามแท็บทั้ง 4 ในที่เดียว - ใช้ทั้งวาดปุ่มแท็บและ empty-state (รายการ "จะมี 4 แท็บให้ใช้งาน")
 const TABS = [
   {
     key: "enrollment",
@@ -74,20 +91,28 @@ const TABS = [
 export default function CourseOfferingWorkspace() {
   const { user, isAdmin } = useAuth();
   const [searchParams] = useSearchParams();
+  // วิชาที่เปิดสอนทั้งหมดที่ผู้ใช้นี้จัดการได้ (ของตัวเองถ้าเป็น instructor, ทั้งหมดถ้าเป็น admin) +
+  // รายวิชาทั้งระบบ (ใช้ประกอบ label ของ dropdown) - คนละชุดกับข้อมูลเฉพาะวิชาที่เลือกอยู่ด้านล่าง
   const [offerings, setOfferings] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedOfferingId, setSelectedOfferingId] = useState("");
   const [activeTab, setActiveTab] = useState("enrollment");
 
+  // ข้อมูลเฉพาะของวิชาที่เลือกอยู่ในขณะนี้ - โหลดใหม่ทุกครั้งที่เปลี่ยนวิชา (ดู loadWorkspace)
   const [assessmentItems, setAssessmentItems] = useState([]);
   const [allCLOs, setAllCLOs] = useState([]);
   const [itemCLOs, setItemCLOs] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
+  // รายชื่อนักศึกษาทั้งระบบ (ไม่ใช่แค่ของวิชานี้) - โหลดครั้งเดียวตอนเปิดหน้า ใช้ทั้งประกอบชื่อคนที่
+  // ลงทะเบียนแล้วและเป็นตัวเลือกตอนเพิ่มคนใหม่ (ดู EnrollmentTab)
   const [allStudents, setAllStudents] = useState([]);
 
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
   const [workspaceError, setWorkspaceError] = useState("");
 
+  // โหลดรายการวิชาที่เปิดสอน + รายวิชาทั้งระบบ + นักศึกษาทั้งระบบ ครั้งเดียวตอนเปิดหน้า (หรือเมื่อ
+  // user/isAdmin เปลี่ยน เช่น เพิ่ง login เสร็จ) - instructor เห็นเฉพาะวิชาที่ตัวเองสอน (กรองด้วย
+  // user.id) ส่วน admin เห็นทุกวิชา
   useEffect(() => {
     if (!user) return;
     (isAdmin ? listCourseOfferings() : listCourseOfferings(user.id))
@@ -98,6 +123,8 @@ export default function CourseOfferingWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
 
+  // เปิดหน้านี้พร้อม query param ?offering_id=...&tab=... ได้ (เช่นจากปุ่มลัดในหน้าหลักอาจารย์) - โหลด
+  // workspace ของวิชานั้นและเปิดตรงแท็บที่ระบุให้อัตโนมัติทันทีที่เข้าหน้า
   useEffect(() => {
     const paramOfferingId = searchParams.get("offering_id");
     if (paramOfferingId) {
@@ -113,6 +140,8 @@ export default function CourseOfferingWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // แปลง courses/allStudents array เป็น map (id -> object) เพื่อ lookup เร็ว - ใช้ประกอบ label และ
+  // ส่งต่อให้แท็บลูกใช้ (studentById ส่งลง EnrollmentTab)
   const courseById = useMemo(() => {
     const map = {};
     courses.forEach((c) => (map[c.id] = c));
@@ -148,15 +177,21 @@ export default function CourseOfferingWorkspace() {
     ];
   }, [offerings, courseById]);
 
+  // ไล่จาก offering ที่เลือกอยู่ -> หาวิชา -> หาหลักสูตรของวิชานั้น (curriculumId ส่งลง EnrollmentTab
+  // ใช้กรองนักศึกษาตอน "เพิ่มทั้งรุ่น")
   const selectedOffering = offerings.find((o) => o.id === Number(selectedOfferingId));
   const courseId = selectedOffering?.course_id;
   const curriculumId = courseById[courseId]?.curriculum_id;
 
+  // CLO เฉพาะของวิชานี้ (allCLOs โหลดมาทั้งระบบเพราะ listCLO() ไม่รองรับ filter ต่อวิชา จึงกรองฝั่ง
+  // frontend เอง)
   const courseCLOs = useMemo(
     () => allCLOs.filter((c) => c.course_id === courseId),
     [allCLOs, courseId]
   );
 
+  // โหลดข้อมูลทั้งหมดของ offering หนึ่ง (งานประเมิน, CLO ทั้งระบบ, mapping ชิ้นงาน<->CLO กรองเหลือ
+  // เฉพาะของ offering นี้, รายชื่อลงทะเบียน) - เรียกทุกครั้งที่เปลี่ยนวิชาที่เลือก
   async function loadWorkspace(offeringId) {
     setLoadingWorkspace(true);
     setWorkspaceError("");
@@ -179,6 +214,7 @@ export default function CourseOfferingWorkspace() {
     }
   }
 
+  // เปลี่ยนวิชาที่เลือก - โหลด workspace ใหม่ (หรือล้างข้อมูลทั้งหมดทิ้งถ้าเลือก "-- เลือกวิชา --")
   function handleSelectOffering(id) {
     setSelectedOfferingId(id);
     if (id) {
@@ -191,6 +227,7 @@ export default function CourseOfferingWorkspace() {
     }
   }
 
+  // โหลดงานประเมิน + mapping ชิ้นงาน<->CLO ของวิชานี้ใหม่ (เรียกหลังเพิ่ม/ลบงานประเมินสำเร็จ)
   async function refreshStructure() {
     const [items, allItemClo] = await Promise.all([
       listAssessmentItems(Number(selectedOfferingId)),
@@ -201,17 +238,20 @@ export default function CourseOfferingWorkspace() {
     setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
   }
 
+  // โหลด CLO ทั้งระบบใหม่ (เรียกหลังสร้าง/ลบ CLO สำเร็จ - courseCLOs ด้านบนจะกรองเหลือเฉพาะของวิชานี้เอง)
   async function refreshCLOs() {
     const clos = await listCLO();
     setAllCLOs(clos);
   }
 
+  // โหลด mapping ชิ้นงาน<->CLO ใหม่ (เรียกหลังเพิ่ม/ลบ mapping สำเร็จ)
   async function refreshItemCLOs() {
     const allItemClo = await listItemCLO();
     const itemIds = new Set(assessmentItems.map((i) => i.id));
     setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
   }
 
+  // โหลดรายชื่อลงทะเบียนของวิชานี้ใหม่ (เรียกหลังเพิ่ม/ลบนักศึกษาสำเร็จ)
   async function refreshEnrollments() {
     const offeringEnrollments = await listEnrollments(Number(selectedOfferingId));
     setEnrollments(offeringEnrollments);
@@ -313,17 +353,28 @@ export default function CourseOfferingWorkspace() {
   );
 }
 
+/**
+ * ทำอะไร : แท็บ "นักศึกษาลงทะเบียน" — ตารางรายชื่อที่ลงแล้ว + เพิ่ม/ลบทีละคน + เพิ่ม/ลบทั้งรุ่นในคราว
+ *          เดียว (bulk-by-cohort) + BulkEnrollPanel (เลือกหลายคน/อัปโหลดไฟล์) ต่อท้าย
+ *
+ * เชื่อมกับ : ฟีเจอร์เพิ่ม/ลบทั้งรุ่น (handleBulkByCohort/handleBulkRemoveByCohort) เป็นโค้ดเฉพาะของ
+ *             แท็บนี้ ไม่ได้แยกเป็น component ร่วม (ต่างจากการเพิ่มแบบเลือกหลายคน/อัปโหลดไฟล์ที่ใช้
+ *             BulkEnrollPanel ร่วมกับ AdminEnrollments.jsx)
+ */
 function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, allStudents, onChanged }) {
+  // สถานะของฟอร์ม "เพิ่มทีละคน" (ค้นหา + เลือก + error) และ error ของการลบทีละคน
   const [addSearch, setAddSearch] = useState("");
   const [addStudentId, setAddStudentId] = useState("");
   const [addError, setAddError] = useState("");
   const [removeError, setRemoveError] = useState("");
 
+  // สถานะของฟอร์ม "เพิ่มทั้งรุ่น/ชั้นปี"
   const [cohortYear, setCohortYear] = useState("");
   const [cohortSubmitting, setCohortSubmitting] = useState(false);
   const [cohortError, setCohortError] = useState("");
   const [cohortResultMessage, setCohortResultMessage] = useState("");
 
+  // สถานะของฟอร์ม "ลบรายชื่อทั้งรุ่น" (คนละฟอร์มกับด้านบน แยก state ไม่ปนกัน)
   const [removeCohortYear, setRemoveCohortYear] = useState("");
   const [removeCohortSubmitting, setRemoveCohortSubmitting] = useState(false);
   const [removeCohortError, setRemoveCohortError] = useState("");
@@ -333,6 +384,7 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
   // ใช้แยกไม่ให้ปนกับคนที่ยังไม่ได้ลงทะเบียนเลย เช่น รุ่น 69 ที่แบ่งเป็น 2 หมู่เพราะคนเยอะ
   const [otherSectionMap, setOtherSectionMap] = useState({});
 
+  // โหลด mapping "ใครลงทะเบียนวิชานี้ไปแล้วที่หมู่อื่น" ใหม่ทุกครั้งที่เปลี่ยน offering
   useEffect(() => {
     let cancelled = false;
     setOtherSectionMap({});
@@ -349,6 +401,8 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     };
   }, [offeringId]);
 
+  // จับคู่ enrollment แต่ละแถวกับข้อมูลนักศึกษาเต็ม (studentById) เรียงตามรหัส - ตัดทิ้งถ้าหา student
+  // ไม่เจอ (ข้อมูลไม่ตรงกันผิดปกติ กันหน้าพังดีกว่าแสดงแถวว่าง)
   const enrolledRoster = useMemo(
     () =>
       enrollments
@@ -360,6 +414,8 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
 
   const enrolledIds = useMemo(() => new Set(enrollments.map((e) => e.student_id)), [enrollments]);
 
+  // ตัวเลือกในฟอร์ม "เพิ่มทีละคน" - ตัดคนที่ลงทะเบียนแล้วและคนที่ลงหมู่อื่นของวิชานี้แล้วออก แล้วกรอง
+  // ด้วยคำค้นหาต่อ (ถ้ามี)
   const availableStudents = useMemo(() => {
     const candidates = allStudents.filter((s) => !enrolledIds.has(s.id) && !otherSectionMap[s.id]);
     if (!addSearch.trim()) return candidates;
@@ -369,6 +425,7 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     );
   }, [allStudents, enrolledIds, otherSectionMap, addSearch]);
 
+  // รุ่นที่มีในหลักสูตรของวิชานี้ (ไม่ใช่ทุกรุ่นในระบบ) - ใช้เป็นตัวเลือกของฟอร์ม "เพิ่มทั้งรุ่น"
   const cohortOptions = useMemo(() => {
     const years = new Set(
       allStudents.filter((s) => s.curriculum_id === curriculumId).map((s) => s.cohort_year)
@@ -376,6 +433,8 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     return Array.from(years).sort((a, b) => a - b);
   }, [allStudents, curriculumId]);
 
+  // นักศึกษารุ่นที่เลือกไว้ (ในหลักสูตรนี้) ที่ยังไม่ได้ลงทะเบียนวิชานี้ - ยังไม่แยกว่าใครอยู่หมู่อื่น
+  // แล้วบ้าง (ดู cohortOtherSectionStudents/cohortPreviewCount ด้านล่างที่แยกกลุ่มนี้ออกจากกัน)
   const cohortCandidates = useMemo(() => {
     if (!cohortYear) return [];
     return allStudents.filter(
@@ -386,11 +445,13 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     );
   }, [allStudents, curriculumId, cohortYear, enrolledIds]);
 
+  // ในกลุ่มผู้สมัคร ใครลงทะเบียนวิชานี้ไปแล้วที่หมู่อื่น (จะไม่ถูกเพิ่มซ้ำ - แสดงแยกไว้ให้เห็นชัด)
   const cohortOtherSectionStudents = useMemo(
     () => cohortCandidates.filter((s) => otherSectionMap[s.id]),
     [cohortCandidates, otherSectionMap]
   );
 
+  // จำนวนคนที่ "เพิ่มทั้งรุ่นนี้" จะเพิ่มให้จริง (ตัดคนที่อยู่หมู่อื่นแล้วออก) - ใช้แสดง preview ก่อนกด
   const cohortPreviewCount = useMemo(
     () => cohortCandidates.filter((s) => !otherSectionMap[s.id]).length,
     [cohortCandidates, otherSectionMap]
@@ -404,11 +465,15 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     return Array.from(years).sort((a, b) => a - b);
   }, [enrolledRoster]);
 
+  // นักศึกษารุ่นที่เลือกไว้ ที่ลงทะเบียนวิชานี้อยู่จริง (ตัวเลือกมาจาก enrolledCohortOptions ด้านบน
+  // ซึ่ง derive จากคนที่ลงทะเบียนแล้วเท่านั้น จึงการันตีว่ามีคนให้ลบเสมอถ้าเลือกรุ่นนั้น)
   const removeCohortCandidates = useMemo(() => {
     if (!removeCohortYear) return [];
     return enrolledRoster.filter(({ student }) => student.cohort_year === Number(removeCohortYear));
   }, [enrolledRoster, removeCohortYear]);
 
+  // เพิ่มนักศึกษารุ่นที่เลือกทั้งรุ่นเข้าวิชานี้ในครั้งเดียว - ยืนยันด้วย window.confirm ก่อนเสมอ
+  // (กระทบคนจำนวนมากในครั้งเดียว)
   async function handleBulkByCohort() {
     if (!cohortYear) return;
     if (
@@ -439,6 +504,8 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     }
   }
 
+  // ถอนนักศึกษารุ่นที่เลือกทั้งรุ่นออกจากวิชานี้ในครั้งเดียว (ตรงข้ามกับ handleBulkByCohort ด้านบน) -
+  // ยืนยันก่อนเสมอ เพราะย้อนกลับไม่ได้
   async function handleBulkRemoveByCohort() {
     if (!removeCohortYear) return;
     if (
@@ -462,6 +529,7 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     }
   }
 
+  // ลงทะเบียนนักศึกษา 1 คนที่เลือกในฟอร์ม "เพิ่มทีละคน"
   async function handleAddStudent(e) {
     e.preventDefault();
     setAddError("");
@@ -476,6 +544,7 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
     }
   }
 
+  // ถอนนักศึกษา 1 คนออกจากการลงทะเบียนวิชานี้ (ปุ่มถังขยะในตารางรายชื่อ) - ยืนยันก่อนเสมอ
   async function handleRemove(enrollment, student) {
     if (
       !window.confirm(
@@ -677,6 +746,18 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
   );
 }
 
+/**
+ * ทำอะไร : แท็บ "โครงสร้างการประเมิน" — 3 ส่วนเรียงกันตามลำดับงานจริง: (1) สร้าง CLO ของวิชา (หลาย
+ *          แถวพร้อมกันได้ในฟอร์มเดียว) (2) สร้างงานประเมิน (ควิซ/สอบ/การบ้าน ฯลฯ) (3) ผูกงานประเมิน
+ *          แต่ละชิ้นเข้ากับ CLO พร้อมกำหนดน้ำหนัก (%)
+ *
+ * เชื่อมกับ : ไม่มีการผูก PLO ในหน้านี้อีกต่อไป (ย้ายไปทำที่ระดับวิชาผ่านหน้า "เชื่อมโยงรายวิชากับ PLO"
+ *             แยกต่างหาก) - โค้ดส่วนนี้เป็นโค้ดเฉพาะของ workspace ไฟล์นี้ ไม่ได้แยกเป็น component ร่วม
+ *             กับหน้าไหน เพราะไม่มีหน้าอื่นต้องการ workflow สร้าง CLO หลายแถว + ผูกน้ำหนักในหน้าเดียว
+ *
+ * ถ้าแก้ : น้ำหนักรวมต่อ CLO ต้องไม่เกิน 100% - เช็คทั้งฝั่งนี้ (ก่อนยิง API เพื่อ UX ที่เร็วกว่า) และ
+ *          ฝั่ง backend (item_clo.py) ซ้ำอีกชั้น (แหล่งความจริงที่แท้จริง)
+ */
 function StructureTab({
   offeringId,
   courseId,
@@ -688,11 +769,13 @@ function StructureTab({
   onItemCLOChanged,
   onCLOChanged,
 }) {
+  // สถานะของฟอร์ม "เพิ่มงานประเมิน"
   const [name, setName] = useState("");
   const [type, setType] = useState(ASSESSMENT_TYPE_OPTIONS[0]);
   const [totalScore, setTotalScore] = useState("");
   const [itemError, setItemError] = useState("");
 
+  // สถานะของฟอร์ม "ผูกงานประเมินกับ CLO"
   const [mapItemId, setMapItemId] = useState("");
   const [mapCloId, setMapCloId] = useState("");
   const [mapWeight, setMapWeight] = useState("");
@@ -708,6 +791,7 @@ function StructureTab({
   const [savingCloRows, setSavingCloRows] = useState(false);
   const [cloFormError, setCloFormError] = useState("");
 
+  // แปลง assessmentItems/courseCLOs array เป็น map (id -> object) เพื่อ lookup เร็วตอนแสดงตาราง mapping
   const itemById = useMemo(() => {
     const map = {};
     assessmentItems.forEach((i) => (map[i.id] = i));
@@ -729,6 +813,8 @@ function StructureTab({
     return totals;
   }, [itemCLOs]);
 
+  // น้ำหนักที่ผูกไปแล้วของ CLO ที่กำลังเลือกอยู่ในฟอร์ม mapping + เพดานที่ยังผูกเพิ่มได้ (ใช้ทั้งเป็น
+  // max ของช่อง input และแสดง hint ใต้ฟอร์ม)
   const mapCloCurrentTotal = mapCloId ? cloWeightTotals[Number(mapCloId)] || 0 : 0;
   const mapCloRemainingWeight = Math.max(0, 100 - mapCloCurrentTotal);
 
@@ -744,6 +830,8 @@ function StructureTab({
     return max;
   }, [courseCLOs]);
 
+  // เพิ่มแถวฟอร์ม CLO ใหม่อีก 1 แถว (rowId เป็นแค่ key ของ React ไม่ใช่รหัส CLO จริง - รหัส CLO จริง
+  // คำนวณตอนบันทึกจาก existingCloNumberMax + ตำแหน่งแถว)
   function addCloRow() {
     const rowId = cloRowIdRef.current++;
     setCloRows((prev) => [...prev, { rowId, description: "", threshold: "", error: "" }]);
@@ -753,12 +841,14 @@ function StructureTab({
     setCloRows((prev) => prev.filter((r) => r.rowId !== rowId));
   }
 
+  // อัปเดตค่าฟอร์มของแถวหนึ่ง (ล้าง error เดิมของแถวนั้นทิ้งเพราะกำลังแก้ใหม่)
   function updateCloRow(rowId, field, value) {
     setCloRows((prev) =>
       prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value, error: "" } : r))
     );
   }
 
+  // เกณฑ์ผ่านต้องเป็นจำนวนเต็ม 0-100 เท่านั้น
   function isValidThresholdInput(value) {
     if (value === "" || value === null || value === undefined) return false;
     const n = Number(value);
@@ -828,6 +918,7 @@ function StructureTab({
     setCloRows([{ rowId: cloRowIdRef.current++, description: "", threshold: "", error: "" }]);
   }
 
+  // ลบ CLO - เตือนชัดเจนว่าจะลบ mapping (item_clo) ที่ผูกอยู่ไปด้วย (cascade ฝั่ง backend)
   async function handleDeleteCLO(id) {
     if (
       !window.confirm("ยืนยันการลบ CLO นี้? การลบจะลบการผูกกับงานประเมินที่มีอยู่ทั้งหมดของ CLO นี้ไปด้วย")
@@ -841,6 +932,7 @@ function StructureTab({
     }
   }
 
+  // สร้างงานประเมินใหม่ - คะแนนเต็มต้องเป็นจำนวนเต็มมากกว่า 0
   async function handleAddItem(e) {
     e.preventDefault();
     setItemError("");
@@ -865,6 +957,7 @@ function StructureTab({
     }
   }
 
+  // ลบงานประเมิน - cascade ลบ mapping (item_clo) และคะแนนที่บันทึกไว้ของชิ้นงานนี้ไปด้วยฝั่ง backend
   async function handleDeleteItem(id) {
     if (!window.confirm("ยืนยันการลบงานประเมินนี้? การกระทำนี้ย้อนกลับไม่ได้")) return;
     try {
@@ -875,6 +968,8 @@ function StructureTab({
     }
   }
 
+  // ผูกงานประเมินเข้ากับ CLO พร้อมน้ำหนัก - เช็คน้ำหนักรวมของ CLO นี้ไม่เกิน 100% ก่อนยิง API เสมอ (ให้
+  // feedback เร็วกว่ารอ backend ตอบ 400 กลับมา - backend ก็เช็คซ้ำอีกชั้นเป็นแหล่งความจริงที่แท้จริง)
   async function handleAddMapping(e) {
     e.preventDefault();
     setMapError("");
@@ -908,6 +1003,7 @@ function StructureTab({
     }
   }
 
+  // ลบ mapping (ปลดชิ้นงานนี้ออกจาก CLO นี้ - ไม่กระทบตัวชิ้นงาน/CLO เอง)
   async function handleDeleteMapping(id) {
     if (!window.confirm("ยืนยันการลบ mapping นี้?")) return;
     try {

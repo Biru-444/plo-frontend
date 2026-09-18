@@ -1,3 +1,15 @@
+/**
+ * ทำอะไร : หน้าจัดการคะแนน PLO (route /scores) — ค้นหานักศึกษาด้วยรหัส แล้วดู/แก้คะแนนทุกชิ้นงานที่
+ *          เคยมีคะแนนบันทึกไว้แบบตาราง (แก้ทีละแถว) บวกฟอร์มเพิ่มคะแนนชิ้นงานใหม่ที่ยังไม่เคยมี
+ *
+ * เชื่อมกับ : เรียก getStudentScores (โหลดตาราง), updateStudentScore (แก้ทีละแถว),
+ *             createStudentScore (เพิ่มใหม่) — validateScore บังคับกฎเดียวกับที่ backend เช็คซ้ำอีก
+ *             ชั้น (จำนวนเต็ม, ไม่ติดลบ, ไม่เกินคะแนนเต็ม) เพื่อแจ้ง error ให้ผู้ใช้เร็วโดยไม่ต้องรอ
+ *             round-trip ไป backend ก่อน
+ *
+ * ถ้าแก้ : ถ้ามาจาก URL query param ?student_id=... (เช่น คลิก "แก้ไขคะแนนนักศึกษาคนนี้" จากหน้า
+ *          /student-plo) จะค้นหาให้อัตโนมัติทันทีที่เปิดหน้า
+ */
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -9,22 +21,28 @@ import {
 
 export default function ScoreManagement() {
   const [searchParams] = useSearchParams();
+  // ช่องค้นหา + รหัสนักศึกษาที่ค้นหาล่าสุดสำเร็จแล้ว (คนละตัวกัน - searchedStudentId ใช้เป็น "โหมด
+  // แสดงผล" ว่ากำลังดูคะแนนของใครอยู่ ต่างจาก studentId ที่เปลี่ยนตามการพิมพ์ในช่องค้นหา)
   const [studentId, setStudentId] = useState("");
   const [searchedStudentId, setSearchedStudentId] = useState(null);
   const [scores, setScores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // สถานะของฟอร์ม "เพิ่มคะแนนใหม่" ด้านล่างตาราง
   const [assessmentItems, setAssessmentItems] = useState([]);
   const [newItemId, setNewItemId] = useState("");
   const [newScore, setNewScore] = useState("");
   const [addError, setAddError] = useState(null);
   const [addSuccess, setAddSuccess] = useState(null);
 
+  // สถานะการแก้ไขคะแนนทีละแถวในตาราง - editValues เก็บ {scoreId: ค่าที่พิมพ์อยู่ในช่อง} แยกจาก
+  // scores (ข้อมูลจริงที่บันทึกแล้ว) เพื่อให้พิมพ์แก้ได้อิสระก่อนกด "บันทึก" โดยไม่กระทบตารางจริง
   const [editValues, setEditValues] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [rowError, setRowError] = useState({});
 
+  // โหลดรายชื่อชิ้นงานทั้งหมดครั้งเดียวตอนเปิดหน้า (ใช้เป็นตัวเลือกใน dropdown ของฟอร์มเพิ่มคะแนนใหม่)
   useEffect(() => {
     listAssessmentItems()
       .then(setAssessmentItems)
@@ -33,6 +51,8 @@ export default function ScoreManagement() {
       });
   }, []);
 
+  // ถ้ามาจาก URL query param ?student_id=... (เช่น คลิกลิงก์จากหน้า /student-plo) ให้ค้นหาให้
+  // อัตโนมัติทันทีที่เปิดหน้า - loadScores จงใจไม่ใส่ใน dependency array (สร้างใหม่ทุก render)
   useEffect(() => {
     const paramStudentId = searchParams.get("student_id");
     if (paramStudentId) {
@@ -44,6 +64,8 @@ export default function ScoreManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // ดึงคะแนนทั้งหมดของนักศึกษา id นี้ แล้วเตรียม editValues เริ่มต้น (ค่าปัจจุบันของแต่ละแถว) ให้
+  // ช่องแก้ไขในตารางพร้อมใช้งานทันที
   async function loadScores(id) {
     setLoading(true);
     setError(null);
@@ -63,6 +85,8 @@ export default function ScoreManagement() {
     }
   }
 
+  // ส่งฟอร์มค้นหา - เคลียร์ข้อความ error/success ของฟอร์มเพิ่มคะแนนทิ้งด้วย (กันข้อความเก่าค้างข้าม
+  // นักศึกษาคนใหม่)
   function handleSearch(e) {
     e.preventDefault();
     const trimmed = studentId.trim();
@@ -84,6 +108,8 @@ export default function ScoreManagement() {
     return null;
   }
 
+  // บันทึกค่าที่แก้ไขของแถวเดียว (validate ก่อนยิง API เสมอ) - error ของแถวนี้เก็บแยกต่อ scoreId ไม่
+  // กระทบแถวอื่นที่กำลังแก้อยู่พร้อมกัน
   async function handleSaveRow(scoreId) {
     setRowError((prev) => ({ ...prev, [scoreId]: null }));
     const row = scores.find((s) => s.id === scoreId);
@@ -107,6 +133,8 @@ export default function ScoreManagement() {
     }
   }
 
+  // เพิ่มคะแนนของชิ้นงานที่ยังไม่เคยมีคะแนนของนักศึกษาคนนี้ - 409 จาก backend (มีคะแนนอยู่แล้ว) ถูก
+  // ดักแยกให้ข้อความชัดเจนกว่า error ทั่วไป (บอกให้ไปแก้ในตารางแทน ไม่ใช่เพิ่มซ้ำ)
   async function handleAddScore(e) {
     e.preventDefault();
     setAddError(null);

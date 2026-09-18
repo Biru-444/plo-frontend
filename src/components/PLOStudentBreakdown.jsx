@@ -42,6 +42,7 @@ import {
  * useStudentYearLevels (ยังคง endpoint เดิม ไม่เพิ่ม backend ใหม่)
  */
 export default function PLOStudentBreakdown({ ploId, students }) {
+  // studentId ของแถวนักศึกษาที่กำลังขยายดูรายวิชาอยู่ (Set รองรับขยายหลายคนพร้อมกัน)
   const [expandedStudentIds, setExpandedStudentIds] = useState(new Set());
   // { [studentId]: { status: 'loading'|'ready'|'error', courses: [] } }
   const [breakdownByStudentId, setBreakdownByStudentId] = useState({});

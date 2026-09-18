@@ -1,3 +1,16 @@
+/**
+ * ทำอะไร : หน้า "ภาพรวม PLO ข้อเดียว" (route /plo/overview/:ploId) — แสดงสรุปผลบรรลุ + วิชาบังคับของ
+ *          PLO นี้ (PLOCourseBreakdown) + ตารางรายชื่อนักศึกษาพร้อมตัวกรอง/เรียงลำดับ ที่กดเปิดดูได้
+ *          (PLOStudentBreakdown)
+ *
+ * เชื่อมกับ : เรียก getCohortPLOAchievement ครั้งเดียวโหลดข้อมูลทั้งหน้า (ตัวเลขสรุป header + รายชื่อ
+ *             นักศึกษาทั้งหมด) — ไม่มี endpoint แยกสำหรับกรองตามรุ่น จึงคำนวณตัวเลขสรุปกรองตามรุ่นเอง
+ *             ฝั่ง frontend (headerStats) ด้วยสูตรเดียวกับที่ backend ใช้ (ดูคอมเมนต์ตรง headerStats)
+ *
+ * ถ้าแก้ : COHORT_ACHIEVED_THRESHOLD (50%) คือเกณฑ์ตัดสิน isAchieved ที่ใช้ตัดสินสีของ PLOCohortBar
+ *          เท่านั้น ไม่ใช่เกณฑ์ที่ backend ใช้ตัดสิน is_achieved ของนักศึกษารายคน (นั่นคือ all-or-nothing
+ *          คนละเรื่องกัน)
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -33,6 +46,9 @@ export default function PLODetailPage() {
   // เพราะ header (PLOCohortBar) ต้องคำนวณตัวเลขสรุปใหม่ตามรุ่นที่เลือกด้วยเช่นกัน ไม่ใช่แค่กรองแถวตาราง
   const [studentListCohortPrefix, setStudentListCohortPrefix] = useState("");
 
+  // โหลดข้อมูลใหม่ทุกครั้งที่หลักสูตรหรือรุ่นใน URL query param เปลี่ยน (เช่น สลับ dropdown รุ่นจาก
+  // หน้าก่อนหน้าแล้ว navigate กลับมาที่นี่ใหม่) cancelled flag กัน race condition ถ้า component ถูก
+  // unmount ก่อน request ตอบกลับ
   useEffect(() => {
     if (!curriculumId) return;
     let cancelled = false;

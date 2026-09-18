@@ -18,20 +18,26 @@ import {
  * (เรียกหลังลงทะเบียนสำเร็จ เผื่อผู้เรียกต้อง refresh ข้อมูลของตัวเอง)
  */
 export default function BulkEnrollPanel({ offeringId, allStudents, onChanged, showMultiSelect = true }) {
+  // studentId ของคนที่ลงทะเบียนวิชานี้ไปแล้ว + map studentId -> section ของคนที่ลงทะเบียนวิชานี้ไปแล้ว
+  // ที่หมู่อื่น (ทั้งสองใช้กรอง allStudents ให้เหลือแค่คนที่ยังลงทะเบียนได้จริง)
   const [enrolledIds, setEnrolledIds] = useState(() => new Set());
   const [otherSectionMap, setOtherSectionMap] = useState({});
 
+  // สถานะของแผง "เลือกหลายคนพร้อมกัน"
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [multiSubmitting, setMultiSubmitting] = useState(false);
   const [multiError, setMultiError] = useState("");
   const [multiResultMessage, setMultiResultMessage] = useState("");
 
+  // สถานะของแผง "อัปโหลดไฟล์รายชื่อ"
   const [uploadFile, setUploadFile] = useState(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [uploadSubmitting, setUploadSubmitting] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadResult, setUploadResult] = useState(null);
 
+  // โหลดรายชื่อที่ลงทะเบียนแล้ว + คนที่ลงทะเบียนหมู่อื่นแล้วของ offering นี้ใหม่ (เรียกหลังลงทะเบียน
+  // สำเร็จทุกครั้ง เพื่อให้ availableStudents ด้านล่างคำนวณจากข้อมูลล่าสุดเสมอ)
   function refreshRoster() {
     listEnrollments(offeringId)
       .then((rows) => setEnrolledIds(new Set(rows.map((e) => e.student_id))))
@@ -45,6 +51,7 @@ export default function BulkEnrollPanel({ offeringId, allStudents, onChanged, sh
       .catch(() => {});
   }
 
+  // เปลี่ยน offering ที่กำลังลงทะเบียนอยู่ -> ล้างสถานะทั้งหมดกลับค่าเริ่มต้น แล้วโหลด roster ใหม่
   useEffect(() => {
     setSelectedIds(new Set());
     setEnrolledIds(new Set());

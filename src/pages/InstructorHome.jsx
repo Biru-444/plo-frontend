@@ -1,3 +1,15 @@
+/**
+ * ทำอะไร : หน้าแรกของอาจารย์ (route "/" เมื่อ role=instructor) — การ์ดสรุปวิชาที่สอน + จำนวนนักศึกษา
+ *          ไม่ซ้ำคน + CLO บรรลุเฉลี่ย ตามด้วยตาราง "วิชาที่เปิดให้จับจอง" (เฉพาะ instructor ไม่ใช่ admin)
+ *          admin ก็เข้าหน้านี้ได้เหมือนกันถ้าเปลี่ยน role มาดู (ดู isAdmin) แต่จะไม่เห็นส่วนจับจอง/ปล่อยคืน
+ *
+ * เชื่อมกับ : ต่อ offering หนึ่งตัวต้องยิง 3 endpoint เพิ่ม (enrollments, assessment items, CLO
+ *             achievement) เพื่อคำนวณสถิติการ์ด - ทำแบบ N+1 request ต่อ offering ตั้งใจ เพราะจำนวน
+ *             วิชาที่อาจารย์คนหนึ่งสอนมีไม่มาก (ไม่ใช่ทั้งหลักสูตรแบบหน้า cohort ที่ backend ต้อง batch)
+ *
+ * ถ้าแก้ : claim/release เรียก loadMyOfferings + loadUnassignedOfferings ใหม่ทั้งคู่เสมอหลังสำเร็จ
+ *          เพื่อให้การ์ดวิชาที่สอนและตารางจับจองซิงค์กันทันที (ไม่ใช้ optimistic update)
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -15,17 +27,21 @@ import {
 
 export default function InstructorHome() {
   const { user, isAdmin } = useAuth();
+  // วิชาที่อาจารย์คนนี้สอน (หรือทุกวิชาถ้าเป็น admin) พร้อมสถิติที่คำนวณเพิ่มแล้ว (ดู loadMyOfferings)
   const [offerings, setOfferings] = useState([]);
   const [courseById, setCourseById] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // วิชาที่เปิดสอนแต่ยังไม่มีผู้สอน (สำหรับตาราง "จับจอง") + สถานะระหว่างกด claim/release
   const [unassignedOfferings, setUnassignedOfferings] = useState([]);
   const [claimingId, setClaimingId] = useState(null);
   const [claimError, setClaimError] = useState("");
   const [releasingId, setReleasingId] = useState(null);
   const [releaseError, setReleaseError] = useState("");
 
+  // โหลดวิชาที่สอน (ของอาจารย์คนนี้ หรือทุกวิชาถ้าเป็น admin) แล้วยิง request เพิ่มต่อวิชาเพื่อคำนวณ
+  // จำนวนนักศึกษา/ชิ้นงาน/CLO บรรลุเฉลี่ยมาประกอบเป็นการ์ดสรุป
   async function loadMyOfferings(courseMap) {
     const rawOfferings = isAdmin ? await listCourseOfferings() : await listCourseOfferings(user.id);
 
@@ -59,6 +75,7 @@ export default function InstructorHome() {
     setUnassignedOfferings(raw);
   }
 
+  // โหลดข้อมูลทั้งหน้าใหม่ทุกครั้งที่ user หรือ isAdmin เปลี่ยน (เช่น เพิ่ง login เสร็จ)
   useEffect(() => {
     async function load() {
       setLoading(true);

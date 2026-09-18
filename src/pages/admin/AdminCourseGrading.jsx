@@ -25,14 +25,19 @@ const TABS = [
 export default function AdminCourseGrading() {
   const [offerings, setOfferings] = useState([]);
   const [courses, setCourses] = useState([]);
+  // offering (การเปิดสอนวิชา) ที่กำลังเลือกอยู่ใน dropdown - "" = ยังไม่ได้เลือก (ซ่อนแท็บทั้งหมด)
   const [selectedOfferingId, setSelectedOfferingId] = useState("");
+  // แท็บที่กำลังเปิดอยู่ - reset กลับเป็น "scores" ทุกครั้งที่เปลี่ยนวิชา (ดู handleSelectOffering)
   const [activeTab, setActiveTab] = useState("scores");
 
+  // โหลดรายการวิชาที่เปิดสอนทั้งหมดและรายวิชาทั้งหมดครั้งเดียวตอนเปิดหน้า (ใช้ประกอบ label ของ
+  // dropdown เลือกวิชา)
   useEffect(() => {
     listCourseOfferings().then(setOfferings).catch(() => {});
     listCourses().then(setCourses).catch(() => {});
   }, []);
 
+  // แปลง courses array เป็น {courseId: course} เพื่อ lookup เร็ว - คำนวณใหม่เฉพาะตอน courses เปลี่ยน
   const courseById = useMemo(() => {
     const map = {};
     courses.forEach((c) => (map[c.id] = c));
@@ -61,6 +66,8 @@ export default function AdminCourseGrading() {
     ];
   }, [offerings, courseById]);
 
+  // เปลี่ยนวิชาที่เลือก แล้วรีเซ็ตกลับไปแท็บ "กรอกคะแนน" เสมอ (กันค้างที่แท็บ CLO ของวิชาเก่าที่อาจไม่
+  // เกี่ยวข้องกับวิชาใหม่ที่เพิ่งเลือก)
   function handleSelectOffering(id) {
     setSelectedOfferingId(id);
     setActiveTab("scores");

@@ -1,10 +1,21 @@
+/**
+ * ทำอะไร : วงแหวนแสดง % เป็น SVG (ไม่ใช้ library กราฟภายนอก) — ใช้ทั่วทั้งแอปทุกที่ที่ต้องแสดงตัวเลข
+ *          % แบบวงกลม (dashboard hero, การ์ดสรุป PLO/YLO, การ์ดวิชาของอาจารย์ ฯลฯ)
+ *
+ * เชื่อมกับ : คำนวณความยาวส่วนโค้ง (strokeDasharray/strokeDashoffset) จากเส้นรอบวงคงที่ตาม SIZE/STROKE
+ *             ที่กำหนดไว้ - ปรับขนาดจริงบนหน้าจอผ่าน prop `size` (viewBox คงที่ที่ SIZE เดิมเสมอ ทำให้
+ *             สเกลได้โดยสัดส่วนไม่ผิดเพี้ยน)
+ *
+ * ถ้าแก้ : percent เป็น null/undefined = "ยังไม่มีข้อมูล" (วงแหวนสีเทา ไม่มีส่วนโค้งสี) คนละความหมาย
+ *          กับ percent=0 (มีข้อมูลแล้วแต่ได้ 0%) — ห้ามส่ง 0 แทน null เด็ดขาด
+ */
 const SIZE = 44;
 const STROKE = 5;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-// null percent = "ยังไม่มีข้อมูล" - gray ring, no fill arc
-// color: ถ้าไม่ระบุ จะเลือกเขียว/แดงอัตโนมัติตาม threshold (pass/fail) - ระบุเองได้เมื่อค่านี้ไม่ใช่ตัวชี้วัด pass/fail (เช่น hero stat)
+// color: ถ้าไม่ระบุ จะเลือกเขียว/แดงอัตโนมัติตาม threshold (pass/fail) - ระบุเองได้เมื่อค่านี้ไม่ใช่
+// ตัวชี้วัด pass/fail (เช่น hero stat)
 export default function PLODonut({ percent, threshold = 60, size = SIZE, color }) {
   const hasData = percent !== null && percent !== undefined;
   const clamped = hasData ? Math.max(0, Math.min(100, percent)) : 0;

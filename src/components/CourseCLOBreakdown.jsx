@@ -14,8 +14,12 @@ import { getStudentCourseCLOBreakdown } from "../api/client.js";
  * CLO/รายวิชา/YLO/PLO ต้องเชื่อมโยงกันเป็นสายเดียว ดูได้ทั้งสองทิศทางโดยไม่มี logic ซ้ำซ้อน/ไม่ตรงกัน
  */
 export default function CourseCLOBreakdown({ studentId, courseId }) {
+  // ผล CLO -> คะแนน ของนักศึกษาคนนี้ในวิชานี้ พร้อมสถานะโหลด (แยก object เดียวกันกันไม่ให้ status/
+  // data ไม่ตรงกันชั่วขณะ)
   const [state, setState] = useState({ status: "loading", data: null });
 
+  // โหลดใหม่ทุกครั้งที่ studentId/courseId เปลี่ยน (ผู้เรียกใช้ conditionally render component นี้
+  // ตอนขยายแถว ไม่ได้ unmount/remount ตอนเปลี่ยนแถว จึงต้องพึ่ง dependency array ให้ effect รันใหม่)
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading", data: null });

@@ -21,6 +21,7 @@ import {
  * ต้องชี้ไปหน้า /admin/assessment-items แทน) - ไม่ระบุ = ใช้ข้อความเดิมที่มีอยู่แล้ว
  */
 export default function ScoresPanel({ offeringId, noItemsHint }) {
+  // ข้อมูลดิบของ offering นี้ - ชิ้นงาน, นักศึกษาทั้งระบบ (map ด้วย id), การลงทะเบียน, คะแนนที่มีอยู่แล้ว
   const [assessmentItems, setAssessmentItems] = useState([]);
   const [studentById, setStudentById] = useState({});
   const [enrollments, setEnrollments] = useState([]);
@@ -29,13 +30,19 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
   const [loadError, setLoadError] = useState("");
 
   const [search, setSearch] = useState("");
+  // ช่องที่ผู้ใช้แก้ค่าแล้วแต่ยังไม่บันทึกสำเร็จ - key คือ "studentId_itemId" ค่าคือ {studentId,
+  // itemId, value, scoreId} (scoreId เป็น null ถ้ายังไม่เคยมีคะแนนแถวนี้มาก่อน = ต้อง create ไม่ใช่ update)
   const [dirty, setDirty] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveSummary, setSaveSummary] = useState("");
+  // key ("studentId_itemId") ที่กำลังบันทึกอยู่ / เพิ่งบันทึกสำเร็จ (แฟลชสีเขียวชั่วคราว) - ใช้แต่งสี
+  // ช่อง input ให้เห็นสถานะแบบ real-time ระหว่างกรอกทีละช่อง (blur)
   const [savingKeys, setSavingKeys] = useState(() => new Set());
   const [savedFlashKeys, setSavedFlashKeys] = useState(() => new Set());
   const [cellErrors, setCellErrors] = useState({});
 
+  // โหลดข้อมูลทั้งหมดของ offering นี้ใหม่ทุกครั้งที่เปลี่ยนวิชา (ชิ้นงาน, การลงทะเบียน, คะแนนที่มีอยู่,
+  // รายชื่อนักศึกษาทั้งระบบ) พร้อมล้างสถานะแก้ไข/ค้นหาที่ค้างจากวิชาก่อนหน้าทิ้ง
   useEffect(() => {
     let cancelled = false;
     setSearch("");
@@ -71,6 +78,8 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     };
   }, [offeringId]);
 
+  // ดึงคะแนนล่าสุดของ offering นี้ใหม่ - เรียกหลังบันทึกสำเร็จทุกครั้ง (ทีละช่องหรือ "บันทึกทั้งหมด")
+  // เพื่อให้ตัวเลขในตารางตรงกับฐานข้อมูลเสมอ
   async function refreshScores() {
     const scores = await getOfferingStudentScores(offeringId);
     setOfferingScores(scores);
@@ -117,6 +126,8 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     );
   }, [enrollments, studentById, search]);
 
+  // ค่าที่ควรแสดงในช่องนี้ - ถ้ามีการแก้ค้างอยู่ (dirty) ใช้ค่านั้นก่อนเสมอ ไม่งั้นใช้คะแนนที่บันทึกไว้
+  // แล้วจริง (หรือช่องว่างถ้ายังไม่เคยมีคะแนน)
   function cellValue(studentId, itemId) {
     const key = `${studentId}_${itemId}`;
     if (dirty[key] !== undefined) return dirty[key].value;
@@ -124,6 +135,8 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     return existing ? String(existing.score_obtained) : "";
   }
 
+  // ผู้ใช้พิมพ์ในช่อง - แค่บันทึกลง dirty state (ยังไม่ยิง API จนกว่าจะ blur) เคลียร์ error เดิมของ
+  // ช่องนี้ทิ้งเพราะกำลังแก้ใหม่
   function handleCellChange(studentId, itemId, value) {
     const key = `${studentId}_${itemId}`;
     const existing = scoreByStudentItem[key];
@@ -139,6 +152,8 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     });
   }
 
+  // ออกจากช่อง (blur) -> validate แล้วบันทึกทีละช่องทันที (ไม่ต้องกดปุ่มแยก) - ถ้า validate ไม่ผ่าน
+  // หรือ API ล้มเหลว ค่ายังค้างอยู่ใน dirty ให้แก้ไขต่อได้ ไม่หายไปเฉยๆ
   async function handleCellBlur(studentId, itemId) {
     const key = `${studentId}_${itemId}`;
     const entry = dirty[key];
@@ -190,6 +205,9 @@ export default function ScoresPanel({ offeringId, noItemsHint }) {
     }
   }
 
+  // บันทึกทุกช่องที่ยังค้างแก้ไขอยู่พร้อมกัน (Promise.allSettled - ช่องหนึ่งพังไม่ทำให้ช่องอื่นพังตาม)
+  // ช่องที่ validate ไม่ผ่านจะไม่ถูกส่งเลย (ยังค้างใน dirty ให้แก้ต่อ) แยกนับสำเร็จ/ไม่สำเร็จ/ข้ามไป
+  // แสดงเป็นสรุปเดียว
   async function handleSaveAll() {
     setSaving(true);
     setSaveSummary("");

@@ -23,10 +23,14 @@ export default function StudentCourseCLOPage() {
   const studentId = searchParams.get("student_id");
   const studentName = searchParams.get("student_name") || studentId;
 
+  // ผล CLO ทั้งห้องของ offering นี้ (ดิบจาก backend) - กรองเหลือเฉพาะแถวของนักศึกษาคนนี้ตอน render
   const [achievement, setAchievement] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // โหลดผล CLO ใหม่ทุกครั้งที่ offeringId เปลี่ยน (ปกติจะรันแค่ครั้งเดียวตอนเปิดหน้า เพราะมาจาก URL
+  // query param ที่ไม่เปลี่ยนระหว่างที่อยู่หน้านี้) cancelled flag กัน race condition ถ้า component
+  // ถูก unmount ก่อน request ตอบกลับ
   useEffect(() => {
     if (!offeringId) return;
     let cancelled = false;
@@ -51,6 +55,8 @@ export default function StudentCourseCLOPage() {
     };
   }, [offeringId]);
 
+  // กรอง clo_achievements (ผลทั้งห้อง) เหลือแค่คะแนนของ studentId คนเดียว - CLO ที่นักศึกษาคนนี้ไม่มี
+  // คะแนนเลย (score เป็น undefined) จะถูกตัดออกจากตาราง ไม่ใช่แสดงเป็นแถวว่าง
   const rows = achievement
     ? achievement.clo_achievements
         .map((clo) => {

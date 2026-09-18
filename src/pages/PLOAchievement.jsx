@@ -1,3 +1,16 @@
+/**
+ * ทำอะไร : หน้า "ผลบรรลุ PLO รายบุคคล" (route /student-plo) — ค้นหานักศึกษาด้วยรหัส แล้วแสดงผลบรรลุ
+ *          PLO แบบ split-screen (ซ้าย = สรุป+chip grid PLO, ขวา = รายวิชา->YLO ตามชั้นปี) กดที่ PLO
+ *          chip เพื่อกรองรายวิชาฝั่งขวาให้เหลือเฉพาะวิชาที่เกี่ยวกับ PLO นั้นได้
+ *
+ * เชื่อมกับ : เรียก 4 endpoint พร้อมกัน (บาง endpoint ไม่ block การแสดงผลหลัก ดูคอมเมนต์ในโค้ด) —
+ *             ถ้ามาจาก URL query param ?student_id=... (เช่น คลิกชื่อนักศึกษาจากหน้ารายชื่อ) จะค้นหา
+ *             ให้อัตโนมัติทันทีที่เปิดหน้า
+ *
+ * ถ้าแก้ : courseToPlos คำนวณฝั่ง frontend จาก listCoursePLO() (ไม่มี backend endpoint ใหม่) เพื่อให้
+ *          PLO chip กรองรายวิชาได้ — ถ้า backend เปลี่ยนความหมายของ responsibility_level ต้องแก้ filter
+ *          ตรงนี้ให้ตรงกับ _build_plo_requirements ใน plo_calculation.py ด้วย
+ */
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -16,16 +29,23 @@ import StudentYearBreakdown from "../components/StudentYearBreakdown.jsx";
 export default function PLOAchievement() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  // รหัสนักศึกษาในช่องค้นหา (ควบคุมด้วย input ด้านล่าง)
   const [studentId, setStudentId] = useState("");
+  // ผลบรรลุ PLO ดิบจาก backend - null = ยังไม่เคยค้นหาสำเร็จ (ซ่อนผลลัพธ์ทั้งบล็อก)
   const [result, setResult] = useState(null);
   const [student, setStudent] = useState(null);
   const [curriculumName, setCurriculumName] = useState(null);
   const [yloYears, setYloYears] = useState(null);
+  // course_id -> Set(plo_code) สำหรับกรองรายวิชาฝั่งขวาตาม PLO chip ที่เลือก (ดูคอมเมนต์ด้านล่าง)
   const [courseToPlos, setCourseToPlos] = useState({});
+  // PLO chip ที่กำลังเลือกกรองอยู่ - null = ไม่กรอง (แสดงทุกวิชา)
   const [selectedPloFilter, setSelectedPloFilter] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // ค้นหานักศึกษาแล้วโหลดข้อมูลทุกส่วนของหน้า (ผลบรรลุ PLO, ข้อมูลนักศึกษา, ชื่อหลักสูตร, ผลบรรลุ YLO
+  // รายปี, mapping วิชา->PLO) - ผลบรรลุ PLO + ข้อมูลนักศึกษาต้องรอให้เสร็จก่อน (Promise.all) เพราะเป็น
+  // ข้อมูลหลักของหน้า ส่วนที่เหลือยิงต่อแบบไม่ block เพราะเป็นข้อมูลเสริม พังได้โดยหน้ายังใช้งานต่อได้
   async function fetchPLOAchievement(rawId) {
     const trimmed = rawId.trim();
     if (!trimmed) return;
@@ -88,6 +108,9 @@ export default function PLOAchievement() {
     }
   }
 
+  // ถ้ามี student_id ใน URL query param (เช่น คลิกชื่อนักศึกษาจากหน้ารายชื่อ) ให้ค้นหาอัตโนมัติทันที
+  // ที่เปิดหน้า - fetchPLOAchievement จงใจไม่ใส่ใน dependency array เพราะเป็นฟังก์ชันที่สร้างใหม่ทุก
+  // render (ใส่ไปจะ re-run เกินจำเป็น อยากให้ effect นี้รันแค่ตอน searchParams เปลี่ยนจริงๆ)
   useEffect(() => {
     const paramStudentId = searchParams.get("student_id");
     if (paramStudentId) {

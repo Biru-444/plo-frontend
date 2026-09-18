@@ -1,3 +1,16 @@
+/**
+ * ทำอะไร : หน้า "รายชื่อนักศึกษา" (route /students) — ทะเบียนรายชื่อล้วนๆ ไม่แสดงข้อมูลผลบรรลุ (ต่าง
+ *          จากหน้า PLO/YLO overview) drill-down 2 ชั้น: เลือกหลักสูตร (การ์ด) -> แท็บรุ่น/หมู่ + ตาราง
+ *          พร้อมค้นหา/กรอง (สถานะ, ชั้นปี)/เรียงลำดับ
+ *
+ * เชื่อมกับ : โหลด listStudents() + listCurricula() ครั้งเดียวตอนเปิดหน้า แล้วกรอง/เรียงทุกอย่างฝั่ง
+ *             frontend จากข้อมูลชุดเดียวกันนี้ (ไม่มี query param ใหม่ไป backend ต่อการกรอง/ค้นหาแต่ละ
+ *             ครั้ง) ใช้ SortSelect/YearLevelFilter component เดียวกับหน้า PLO/YLO overview เพื่อความ
+ *             สอดคล้องของ UI แต่ comparator (compareRoster) เขียนแยกเพราะ field ของ Student ดิบต่างจาก
+ *             achievement row shape ที่หน้าอื่นใช้
+ *
+ * ถ้าแก้ : ไม่มีตัวกรอง %บรรลุ/สถานะบรรลุในหน้านี้โดยตั้งใจ (เป็นหน้าทะเบียนล้วนๆ)
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search, ArrowLeft, ChevronRight } from "lucide-react";
@@ -45,6 +58,8 @@ export default function StudentList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // เลือกหลักสูตรจากการ์ด -> เข้าสู่มุมมองรายชื่อ (view "roster") เลือกรุ่นล่าสุด (cohort_year มากสุด)
+  // ให้เป็นค่าเริ่มต้นอัตโนมัติ
   function handleSelectCurriculum(curriculumId) {
     setSelectedCurriculumId(curriculumId);
     const cohortsInCurriculum = [
@@ -55,6 +70,7 @@ export default function StudentList() {
     setView("roster");
   }
 
+  // กลับไปหน้าการ์ดเลือกหลักสูตร (view "curriculum") รีเซ็ตตัวเลือกรุ่น/หมู่ทิ้งทั้งหมด
   function handleBackToCurricula() {
     setView("curriculum");
     setSelectedCurriculumId(null);
@@ -67,6 +83,8 @@ export default function StudentList() {
     setSelectedSection("all");
   }
 
+  // โหลดนักศึกษาทั้งหมด + หลักสูตรทั้งหมดครั้งเดียวตอนเปิดหน้า (ข้อมูลชุดนี้เป็นฐานของการกรอง/ค้นหา/
+  // เรียงลำดับทั้งหมดในหน้านี้ ไม่มีการ fetch เพิ่มระหว่างกรอง)
   useEffect(() => {
     let cancelled = false;
 

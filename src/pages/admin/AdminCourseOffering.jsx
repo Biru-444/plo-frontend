@@ -1,3 +1,13 @@
+/**
+ * ทำอะไร : หน้าจัดการการเปิดสอนรายวิชา (course offering — วิชาหนึ่งในปี/เทอม/หมู่หนึ่ง) config
+ *          ตาราง+ฟอร์มให้ CrudManager รับผิดชอบ UI จัดกลุ่มแถวตามปีการศึกษา+ภาคเรียน (groupBy)
+ *
+ * เชื่อมกับ : เรียก GET/POST/PUT/DELETE /course-offerings ผ่าน api/client.js — route มาจาก App.jsx
+ *             เส้นทาง "/admin/course-offerings" (admin เท่านั้น) — instructor_id เว้นว่างได้ตั้งใจ
+ *             (ดูคอมเมนต์ที่ column ด้านล่าง)
+ *
+ * ถ้าแก้ : ลบ offering จะ cascade ลบ enrollment/assessment_item ที่อ้างถึงไปด้วยทั้งหมด
+ */
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
 import {
@@ -10,9 +20,11 @@ import {
 } from "../../api/client.js";
 
 export default function AdminCourseOffering() {
+  // ตัวเลือกรายวิชา/ผู้สอนสำหรับ dropdown ในฟอร์ม
   const [courseOptions, setCourseOptions] = useState([]);
   const [instructorOptions, setInstructorOptions] = useState([]);
 
+  // โหลดรายวิชาและผู้ใช้ (กรองเหลือเฉพาะ role=instructor) ครั้งเดียวตอนเปิดหน้า
   useEffect(() => {
     listCourses().then((data) =>
       setCourseOptions(data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` })))

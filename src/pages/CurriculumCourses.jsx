@@ -107,6 +107,18 @@ const COURSE_FIELDS = [
   },
 ];
 
+/**
+ * ทำอะไร : หน้า "หลักสูตร/รายวิชา" (route /curriculum) — sidebar เลือกหลักสูตร + ตารางรายวิชาของ
+ *          หลักสูตรนั้น พร้อมค้นหา — admin เพิ่ม/แก้ไขหลักสูตรและรายวิชาได้ผ่าน modal (QuickFormModal)
+ *          ในหน้านี้เลย ไม่ต้องไปหน้า admin/* แยก instructor ดูได้อย่างเดียว
+ *
+ * เชื่อมกับ : โหลด listCurricula() + listCourses() ครั้งเดียวตอนเปิดหน้า แล้ว filter/group ฝั่ง
+ *             frontend ทั้งหมด — สร้าง/แก้ไขเรียก createCurriculum/updateCurriculum/createCourse/
+ *             updateCourse แล้วอัปเดต local state ตรงๆ (ไม่ re-fetch ทั้งชุดใหม่)
+ *
+ * ถ้าแก้ : เพิ่มวิชาใหม่ผูกกับ selectedCurriculumId เสมอ (ไม่มีช่องเลือกหลักสูตรในฟอร์มเพิ่มวิชา) —
+ *          ต้องเลือกหลักสูตรที่ถูกต้องไว้ก่อนกด "+ เพิ่มวิชา"
+ */
 export default function CurriculumCourses() {
   const { isAdmin } = useAuth();
   const [curricula, setCurricula] = useState([]);
@@ -128,6 +140,7 @@ export default function CurriculumCourses() {
   const [courseSaving, setCourseSaving] = useState(false);
   const [courseFormError, setCourseFormError] = useState("");
 
+  // โหลดหลักสูตรและรายวิชาทั้งหมดครั้งเดียวตอนเปิดหน้า แล้วเลือกหลักสูตรแรกเป็นค่าเริ่มต้น
   useEffect(() => {
     let cancelled = false;
 
@@ -194,6 +207,8 @@ export default function CurriculumCourses() {
     setCurriculumForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // สร้าง/แก้ไขหลักสูตร แล้วอัปเดต local state ตรงๆ ไม่ re-fetch ใหม่ทั้งชุด (สร้างใหม่ -> เลือก
+  // หลักสูตรที่เพิ่งสร้างให้อัตโนมัติด้วย)
   async function handleCurriculumSubmit(e) {
     e.preventDefault();
     setCurriculumFormError("");
@@ -249,6 +264,8 @@ export default function CurriculumCourses() {
     setCourseForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // สร้าง/แก้ไขวิชา แล้วอัปเดต local state ตรงๆ - 409 จาก backend (รหัสวิชาซ้ำในหลักสูตรนี้) ถูกดักแยก
+  // ให้ข้อความชัดเจนกว่า error ทั่วไป
   async function handleCourseSubmit(e) {
     e.preventDefault();
     setCourseFormError("");

@@ -1,3 +1,12 @@
+/**
+ * ทำอะไร : หน้าแสดงข้อมูลบัญชีผู้ใช้ปัจจุบัน (อ่านอย่างเดียว ไม่มีฟอร์มแก้ไข)
+ *
+ * เชื่อมกับ : อ่านข้อมูลจาก useAuth() (AuthContext.jsx) ตรงๆ ไม่ได้ยิง API เพิ่มเลย — route มาจาก
+ *             App.jsx เส้นทาง "/profile" (admin และ instructor เข้าได้)
+ *
+ * ถ้าแก้ : คืน null ถ้ายังไม่มี user (กันหน้าขาวพังตอน render ก่อน AuthContext โหลดเสร็จ - ในทาง
+ *          ปฏิบัติไม่ควรเกิดเพราะ ProtectedRoute กัน route นี้ไว้แล้วถ้ายังไม่ login)
+ */
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Profile() {
@@ -5,6 +14,7 @@ export default function Profile() {
 
   if (!user) return null;
 
+  // อักษรย่อชื่อ-นามสกุล (เช่น "สมชาย ใจดี" -> "สจ") ใช้แสดงใน avatar วงกลม
   const initials = `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`;
 
   return (
