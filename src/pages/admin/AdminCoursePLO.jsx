@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import {
   listCourses,
   listPLO,
@@ -15,15 +15,10 @@ const RESPONSIBILITY_OPTIONS = [
 ];
 
 export default function AdminCoursePLO() {
-  const [courseOptions, setCourseOptions] = useState([]);
-  const [ploOptions, setPloOptions] = useState([]);
-
-  useEffect(() => {
-    listCourses().then((data) =>
-      setCourseOptions(data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` })))
-    );
-    listPLO().then((data) => setPloOptions(data.map((p) => ({ value: p.id, label: p.code }))));
-  }, []);
+  const courseOptions = useOptions(listCourses, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))
+  );
+  const ploOptions = useOptions(listPLO, (data) => data.map((p) => ({ value: p.id, label: p.code })));
 
   const columns = [
     { key: "course_id", label: "รายวิชา", type: "searchable-select", options: courseOptions, required: true },

@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import { listCurricula, listStudents, createStudent, updateStudent, deleteStudent } from "../../api/client.js";
 
 export default function AddStudent() {
-  const [curriculumOptions, setCurriculumOptions] = useState([]);
-
-  useEffect(() => {
-    listCurricula().then((data) =>
-      setCurriculumOptions(data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` })))
-    );
-  }, []);
+  const curriculumOptions = useOptions(listCurricula, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))
+  );
 
   const columns = [
     { key: "id", label: "รหัสนักศึกษา", type: "text", required: true, readOnly: true },

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import useOptions from "../../hooks/useOptions.js";
 import {
   listCourses,
   listUsers,
@@ -10,21 +10,14 @@ import {
 } from "../../api/client.js";
 
 export default function AdminCourseOffering() {
-  const [courseOptions, setCourseOptions] = useState([]);
-  const [instructorOptions, setInstructorOptions] = useState([]);
-
-  useEffect(() => {
-    listCourses().then((data) =>
-      setCourseOptions(data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` })))
-    );
-    listUsers().then((data) =>
-      setInstructorOptions(
-        data
-          .filter((u) => u.role === "instructor")
-          .map((u) => ({ value: u.id, label: `${u.first_name} ${u.last_name} (${u.username})` }))
-      )
-    );
-  }, []);
+  const courseOptions = useOptions(listCourses, (data) =>
+    data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))
+  );
+  const instructorOptions = useOptions(listUsers, (data) =>
+    data
+      .filter((u) => u.role === "instructor")
+      .map((u) => ({ value: u.id, label: `${u.first_name} ${u.last_name} (${u.username})` }))
+  );
 
   const columns = [
     {
