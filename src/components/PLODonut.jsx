@@ -3,8 +3,13 @@ const STROKE = 5;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-// null percent = "ยังไม่มีข้อมูล" - gray ring, no fill arc
-// color: ถ้าไม่ระบุ จะเลือกเขียว/แดงอัตโนมัติตาม threshold (pass/fail) - ระบุเองได้เมื่อค่านี้ไม่ใช่ตัวชี้วัด pass/fail (เช่น hero stat)
+/**
+ * วงกลมแสดง % แบบ donut chart (วาดด้วย SVG circle + stroke-dasharray) ใช้ซ้ำในหลายที่ที่ต้องโชว์
+ * ตัวเลข %
+ * - percent เป็น null/undefined = "ยังไม่มีข้อมูล" (วงเทาไม่มีส่วนโค้งระบายสี)
+ * - color: ถ้าไม่ระบุ จะเลือกเขียว/แดงอัตโนมัติตาม threshold (ผ่าน/ไม่ผ่าน) - ระบุเองได้เมื่อค่านี้ไม่ใช่
+ *   ตัวชี้วัดผ่าน/ไม่ผ่าน (เช่น hero stat ที่อยากคุมสีเอง)
+ */
 export default function PLODonut({ percent, threshold = 60, size = SIZE, color }) {
   const hasData = percent !== null && percent !== undefined;
   const clamped = hasData ? Math.max(0, Math.min(100, percent)) : 0;

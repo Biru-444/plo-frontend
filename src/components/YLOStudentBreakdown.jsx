@@ -18,12 +18,11 @@ import {
 } from "../utils/studentFilters.js";
 
 /**
- * Per-student pass/fail table for one YLO, shown when the hero donut is
- * clicked. YLO achievement is all-or-nothing (no partial score like PLO's
- * average_achieved_percent used to be) so the "% บรรลุ" column is just
- * 100.0/0.0 mirroring is_achieved - same visual language as PLOStudentBreakdown,
- * kept as its own small component instead of reusing that one since the data
- * shape here has no plo_id/achieved_percent to look up.
+ * ตารางผ่าน/ไม่ผ่านรายบุคคลของ YLO ข้อหนึ่ง แสดงตอนกดวงกลม % ใหญ่ (hero donut) - ผลบรรลุ YLO เป็น
+ * all-or-nothing (ไม่มีคะแนนบางส่วนแบบที่ average_achieved_percent ของ PLO เคยเป็น) ดังนั้นคอลัมน์
+ * "% บรรลุ" จึงมีแค่ 100.0/0.0 สะท้อนค่า is_achieved ตรงๆ - หน้าตาเดียวกับ PLOStudentBreakdown แต่แยก
+ * เป็น component เล็กของตัวเองแทนที่จะ reuse ตัวนั้น เพราะรูปข้อมูลตรงนี้ไม่มี plo_id/achieved_percent
+ * ให้อ้างอิง
  *
  * ตัวกรอง/เรียงลำดับ (2026-09-09) - component/utility เดียวกับที่ PLOStudentBreakdown.jsx ใช้
  * (StudentFilterControls.jsx, utils/studentFilters.js) เพื่อความสอดคล้องของทั้งสองหน้า ทำงานร่วมกันแบบ

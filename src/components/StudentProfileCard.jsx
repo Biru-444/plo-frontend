@@ -7,6 +7,7 @@ const STATUS_BADGE_CLASS = {
   จบการศึกษา: "status-graduated",
 };
 
+/** การ์ดสรุปข้อมูลนักศึกษาคนหนึ่ง (ชื่อ/รหัส/หลักสูตร/รุ่น/ชั้นปี/สถานะ) ใช้บนสุดของหน้าโปรไฟล์นักศึกษา */
 export default function StudentProfileCard({ student, curriculumName }) {
   if (!student) return null;
   const fullName = [student.title, student.first_name, student.last_name]
