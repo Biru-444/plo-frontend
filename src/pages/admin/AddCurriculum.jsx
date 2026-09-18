@@ -6,6 +6,8 @@ const ACTIVE_OPTIONS = [
   { value: "false", label: "ไม่ใช้งาน" },
 ];
 
+/** จัดการตารางหลักสูตร ผ่าน CrudManager - หน้านี้เป็นทางเลือกสำรอง (ปกติเพิ่ม/แก้ไขหลักสูตรทำผ่าน
+ * หน้า "หลักสูตร/รายวิชา" แทน) ลบยังต้องทำที่นี่เท่านั้น */
 export default function AddCurriculum() {
   const columns = [
     { key: "name", label: "ชื่อหลักสูตร", type: "text", required: true },

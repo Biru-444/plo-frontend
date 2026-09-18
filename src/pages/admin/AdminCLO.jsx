@@ -2,6 +2,11 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import useOptions from "../../hooks/useOptions.js";
 import { listCourses, listCLO, createCLO, updateCLO, deleteCLO } from "../../api/client.js";
 
+/**
+ * จัดการตาราง CLO (ผลลัพธ์การเรียนรู้ระดับรายวิชา) ผ่าน CrudManager - แต่ละ CLO ผูกกับวิชาหนึ่ง
+ * และมีเกณฑ์ผ่าน (%) ของตัวเอง หน้านี้เป็นทางเลือกสำรอง (ปกติสร้าง/แก้ไข CLO ทำผ่านหน้า
+ * "จัดการวิชาที่สอน" แทน)
+ */
 export default function AdminCLO() {
   const courseOptions = useOptions(listCourses, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))

@@ -27,6 +27,10 @@ const STATUS_BADGE_CLASS = {
   จบการศึกษา: "status-graduated",
 };
 
+/**
+ * หน้ารายชื่อนักศึกษา (route /students) - drill-down 2 ขั้น: เลือกหลักสูตร (การ์ด) -> แท็บรุ่น/หมู่
+ * + ตารางค้นหา/กรอง/เรียงนักศึกษาในรุ่นนั้น คลิกชื่อนักศึกษาแล้วพาไปหน้าโปรไฟล์ PLO (/student-plo)
+ */
 export default function StudentList() {
   const [students, setStudents] = useState([]);
   const [curricula, setCurricula] = useState([]);

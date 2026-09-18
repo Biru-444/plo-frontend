@@ -9,10 +9,16 @@ import PLOStudentBreakdown from "../components/PLOStudentBreakdown.jsx";
 
 const COHORT_ACHIEVED_THRESHOLD = 50;
 
-// เดิมมี 2 route เข้าหน้านี้ได้ (/plo/overview/:ploId จากหน้า "ภาพรวม PLO", /plo/cohort/:ploId จาก
-// หน้า "PLO เมื่อจบการศึกษา" ที่แยกกัน) ใช้ component เดียวกันนี้มาตลอดเพราะข้อมูล/endpoint เหมือนกัน
-// ทุกจุด (getCohortPLOAchievement ตัวเดียวกัน) ต่างกันแค่ป้าย/ปลายทางปุ่มกลับ - ตอนนี้สองหน้าต้นทาง
-// ถูกรวมเป็นหน้าเดียว ("ภาพรวม PLO") แล้ว จึงเหลือ route เดียวคือ /plo/overview/:ploId เท่านั้น
+/**
+ * หน้ารายละเอียด PLO ข้อหนึ่ง (route /plo/overview/:ploId) - แสดงแถบสรุป (header), รายวิชาที่เกี่ยวข้อง
+ * ตามแผนหลักสูตร และตารางรายชื่อนักศึกษา (ซ่อนไว้เป็นค่าเริ่มต้น กดปุ่มถึงเปิด) รับ curriculum/cohort
+ * จาก query string
+ *
+ * เดิมมี 2 route เข้าหน้านี้ได้ (/plo/overview/:ploId จากหน้า "ภาพรวม PLO", /plo/cohort/:ploId จาก
+ * หน้า "PLO เมื่อจบการศึกษา" ที่แยกกัน) ใช้ component เดียวกันนี้มาตลอดเพราะข้อมูล/endpoint เหมือนกัน
+ * ทุกจุด (getCohortPLOAchievement ตัวเดียวกัน) ต่างกันแค่ป้าย/ปลายทางปุ่มกลับ - ตอนนี้สองหน้าต้นทาง
+ * ถูกรวมเป็นหน้าเดียว ("ภาพรวม PLO") แล้ว จึงเหลือ route เดียวคือ /plo/overview/:ploId เท่านั้น
+ */
 export default function PLODetailPage() {
   const { ploId } = useParams();
   const [searchParams] = useSearchParams();

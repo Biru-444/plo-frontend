@@ -8,12 +8,10 @@ function truncate(text, max) {
 }
 
 /**
- * Compact card showing average_achieved_percent (0-100) for one PLO across
- * a whole curriculum cohort, plus how many students actually achieved it.
- * Green when isAchieved, warm red otherwise. Clickable when isExpandable to
- * toggle a per-student breakdown table (rendered by the caller). Full
- * description is on a hover tooltip - only a short excerpt shows inline so
- * the card stays scannable.
+ * การ์ดแถบสรุป PLO ข้อหนึ่ง แสดงค่าเฉลี่ยการบรรลุ (0-100%) ของทั้งรุ่น/หลักสูตร พร้อมจำนวนนักศึกษาที่
+ * บรรลุจริง - สีเขียวเมื่อ isAchieved เป็นจริง สีแดงเมื่อไม่ใช่ กดได้เมื่อ isExpandable เป็นจริง เพื่อ
+ * toggle ตารางรายละเอียดรายบุคคล (ผู้เรียกเป็นคน render ตารางเอง) คำอธิบายเต็มอยู่ใน tooltip ตอน hover
+ * ส่วนในการ์ดโชว์แค่ข้อความย่อให้กวาดตาอ่านง่าย
  */
 export default function PLOCohortBar({
   code,

@@ -2,6 +2,7 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import useOptions from "../../hooks/useOptions.js";
 import { listCurricula, listPLO, createPLO, updatePLO, deletePLO } from "../../api/client.js";
 
+/** จัดการตาราง PLO (ผลลัพธ์การเรียนรู้ระดับหลักสูตร) ผ่าน CrudManager - แต่ละ PLO ผูกกับหลักสูตรหนึ่ง */
 export default function AdminPLO() {
   const curriculumOptions = useOptions(listCurricula, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))

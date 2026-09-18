@@ -14,6 +14,11 @@ const RESPONSIBILITY_OPTIONS = [
   { value: "secondary", label: "รอง (secondary)" },
 ];
 
+/**
+ * จัดการตารางเชื่อมโยงรายวิชากับ PLO (course_plo) ผ่าน CrudManager - นี่คือจุดที่ผูกวิชาเข้ากับ PLO
+ * โดยตรง (แทนที่การผูก CLO<->PLO แบบถ่วงน้ำหนักที่เคยมีแล้วถูกรื้อทิ้งไป) responsibility_level บอกว่า
+ * วิชานี้เป็นวิชา "หลัก" หรือ "รอง" ของ PLO ข้อนั้น (เฉพาะวิชาหลักเท่านั้นที่ถูกนับตอนคำนวณผลบรรลุ PLO)
+ */
 export default function AdminCoursePLO() {
   const courseOptions = useOptions(listCourses, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.course_code} ${c.name_th}` }))

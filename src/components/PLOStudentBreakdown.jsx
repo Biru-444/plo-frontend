@@ -19,15 +19,13 @@ import {
 } from "../utils/studentFilters.js";
 
 /**
- * Per-student breakdown table for one PLO, rendered under a PLOCohortBar
- * when it's expanded. Sorted ascending by achieved_percent so students who
- * need help float to the top. Each row expands (accordion, several at once,
- * same pattern as CourseOfferingWorkspace's CLO achievement table) to show
- * every course linked to this PLO with a pass/fail badge for that student
- * specifically - fetched lazily per row and cached, calling the same
- * /plo/{id}/students/{id}/course-breakdown endpoint that reuses
- * _student_passed_course_for_plo from plo_calculation.py, so this can never
- * drift from the "% บรรลุ" number shown on the row itself.
+ * ตารางรายละเอียดผลบรรลุ PLO ข้อหนึ่งแบบรายบุคคล แสดงใต้ PLOCohortBar ตอนกดขยาย เรียงจากน้อยไปมากตาม
+ * achieved_percent เพื่อให้นักศึกษาที่ต้องช่วยเหลือขึ้นมาอยู่บนสุด แต่ละแถวกดขยายได้ (accordion ขยายได้
+ * พร้อมกันหลายแถว รูปแบบเดียวกับตาราง CLO achievement ใน CourseOfferingWorkspace) เพื่อแสดงทุกวิชาที่
+ * เกี่ยวข้องกับ PLO ข้อนี้พร้อม badge ผ่าน/ไม่ผ่านของนักศึกษาคนนั้นโดยเฉพาะ - โหลดแบบ lazy ต่อแถว (โหลด
+ * เมื่อขยายเท่านั้น) แล้ว cache ไว้ เรียก endpoint เดียวกัน
+ * (/plo/{id}/students/{id}/course-breakdown) ที่ใช้ฟังก์ชัน _student_passed_course_for_plo เดียวกับ
+ * plo_calculation.py จึงรับประกันว่าตัวเลขในนี้จะไม่มีวันขัดกับ "% บรรลุ" ที่โชว์อยู่ในแถวเอง
  *
  * แต่ละวิชาในลิสต์ที่ขยายออกมากดต่อได้อีกชั้น (2026-09-09) เพื่อดูว่า CLO ข้อไหนไม่ผ่านและมาจากคะแนน
  * ชิ้นงานไหน - reuse CourseCLOBreakdown ตัวเดียวกับที่หน้า /student-plo ใช้ (StudentYearBreakdown.jsx)

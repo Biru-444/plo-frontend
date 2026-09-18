@@ -107,6 +107,11 @@ const COURSE_FIELDS = [
   },
 ];
 
+/**
+ * หน้า "หลักสูตร/รายวิชา" (route /curriculum) - เลือกหลักสูตรจาก sidebar ซ้าย แล้วดู/ค้นหารายวิชาของ
+ * หลักสูตรนั้นด้านขวา เฉพาะ admin เห็นปุ่มเพิ่ม/แก้ไข (ทั้งหลักสูตรและวิชา ผ่าน modal) - ไม่มีปุ่มลบใน
+ * หน้านี้ (ลบยังต้องทำผ่าน /admin/curricula, /admin/course เหมือนเดิม)
+ */
 export default function CurriculumCourses() {
   const { isAdmin } = useAuth();
   const [curricula, setCurricula] = useState([]);

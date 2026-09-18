@@ -44,6 +44,15 @@ const TABS = [
   },
 ];
 
+/**
+ * หน้า "จัดการวิชาที่สอน" (route /course-workspace) - พื้นที่ทำงานศูนย์กลางของวิชาที่เปิดสอนหนึ่งๆ
+ * เลือกวิชาแล้วสลับดู 4 แท็บ: นักศึกษาลงทะเบียน (EnrollmentTab), โครงสร้างการประเมิน (StructureTab -
+ * สร้าง CLO + งานประเมิน + ผูกกัน), กรอกคะแนน (ScoresPanel), ผลบรรลุ CLO (CLOAchievementPanel) -
+ * EnrollmentTab/StructureTab แยกไฟล์อยู่ที่ components/admin/course-offering-workspace/ ส่วน
+ * ScoresPanel/CLOAchievementPanel อยู่ใน components/ เพราะใช้ร่วมกับ AdminCourseGrading.jsx ด้วย
+ * component นี้เป็นตัวโหลด/ถือ state ร่วม (offerings, courses, ข้อมูลของแท็บ enrollment/structure)
+ * แล้วส่งลงไปเป็น prop ให้แต่ละแท็บ - ตัวมันเองไม่ fetch ข้อมูลเฉพาะแท็บใดแท็บหนึ่งเอง
+ */
 export default function CourseOfferingWorkspace() {
   const { user, isAdmin } = useAuth();
   const [searchParams] = useSearchParams();

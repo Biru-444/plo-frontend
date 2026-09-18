@@ -1,10 +1,17 @@
+/**
+ * จุดรวมการเรียก backend API ทั้งหมดของแอป (axios instance เดียว + ฟังก์ชัน wrapper ต่อ endpoint)
+ * ทุกหน้า/component เรียก backend ผ่านไฟล์นี้เท่านั้น ไม่ยิง axios/fetch ตรงจากที่อื่น เพื่อให้ auth
+ * header และการจัดการ 401 (ด้านล่าง) ครอบคลุมทุก request อัตโนมัติ ฟังก์ชันจัดกลุ่มตาม resource/domain
+ * ของ backend (curricula, courses, students, PLO, YLO, CLO, ...) - เฉพาะตัวที่มี logic แฝงหรือ parameter
+ * ไม่ชัดเจนถึงจะมี docstring กำกับ ตัวที่เป็น CRUD ธรรมดา 1:1 กับ endpoint จะไม่มีคอมเมนต์เพิ่ม
+ */
 import axios from "axios";
 
-// Reads VITE_API_BASE_URL from .env (see .env.example). Falls back to the
-// default local FastAPI dev server address.
+// อ่านค่า VITE_API_BASE_URL จาก .env (ดู .env.example) ถ้าไม่ได้ตั้งไว้ fallback ไปที่ backend dev
+// server บนเครื่อง local เอง (localhost:8000)
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
-// Must match the key AuthContext uses to persist { user, token }.
+// ต้องตรงกับ key เดียวกับที่ AuthContext.jsx ใช้เก็บ { user, token } ลง localStorage
 export const AUTH_STORAGE_KEY = "plo_auth";
 
 export const api = axios.create({
@@ -12,6 +19,7 @@ export const api = axios.create({
   timeout: 10000,
 });
 
+// แนบ JWT token (ถ้ามี) เข้า header ของทุก request อัตโนมัติ - ไม่ต้องเขียนซ้ำในแต่ละฟังก์ชันด้านล่าง
 api.interceptors.request.use((config) => {
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
@@ -20,11 +28,13 @@ api.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   } catch {
-    // malformed/missing storage - send the request unauthenticated
+    // ข้อมูลใน localStorage เพี้ยน/ไม่มี - ปล่อยให้ request ไปแบบไม่มี token (backend จะตอบ 401 เอง)
   }
   return config;
 });
 
+// token หมดอายุ/ไม่ถูกต้อง (401 จาก backend) -> เคลียร์สถานะล็อกอินแล้วเด้งไปหน้า login ทันที
+// ทำเป็น interceptor กลางแทนที่จะเช็คทีละหน้า เพราะ token อาจหมดอายุระหว่างใช้งานหน้าไหนก็ได้
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -37,9 +47,9 @@ api.interceptors.response.use(
 );
 
 /**
- * Log in. Backend: POST /auth/login (OAuth2PasswordRequestForm - expects
- * application/x-www-form-urlencoded, not JSON).
- * Returns: { access_token, token_type, user: { id, username, first_name, last_name, role } }
+ * ล็อกอิน - Backend: POST /auth/login (เป็น OAuth2PasswordRequestForm ต้องส่งเป็น
+ * application/x-www-form-urlencoded ไม่ใช่ JSON ธรรมดา)
+ * คืนค่า: { access_token, token_type, user: { id, username, first_name, last_name, role } }
  */
 export async function login(username, password) {
   const params = new URLSearchParams();
@@ -52,9 +62,8 @@ export async function login(username, password) {
 }
 
 /**
- * Fetch PLO achievement for a single student.
- * Backend: GET /plo/achievement?student_id=...
- * Returns: { student_id, student_name, curriculum_id, plo_achievements: [...] }
+ * ผลบรรลุ PLO ของนักศึกษาคนเดียว - Backend: GET /plo/achievement?student_id=...
+ * คืนค่า: { student_id, student_name, curriculum_id, plo_achievements: [...] }
  */
 export async function getStudentPLOAchievement(studentId) {
   const { data } = await api.get("/plo/achievement", {
@@ -64,10 +73,9 @@ export async function getStudentPLOAchievement(studentId) {
 }
 
 /**
- * Fetch PLO achievement summary for an entire curriculum cohort.
- * Backend: GET /plo/achievement/cohort?curriculum_id=...&cohort_year=...
- * cohortYear is optional - omit (or pass a falsy value) to include every cohort.
- * Returns: { curriculum_id, curriculum_name, total_students, plo_summary: [...],
+ * สรุปผลบรรลุ PLO ของทั้งรุ่น/ทั้งหลักสูตร - Backend: GET /plo/achievement/cohort?curriculum_id=...&cohort_year=...
+ * cohortYear ใส่หรือไม่ใส่ก็ได้ (ไม่ใส่ = รวมทุกรุ่น)
+ * คืนค่า: { curriculum_id, curriculum_name, total_students, plo_summary: [...],
  *   available_cohort_years: [...] }
  */
 export async function getCohortPLOAchievement(curriculumId, cohortYear) {
@@ -78,11 +86,10 @@ export async function getCohortPLOAchievement(curriculumId, cohortYear) {
 }
 
 /**
- * Fetch PLO achievement broken down by year_level (1-4), where each year only
- * counts scores from courses in that year's study_plan (not cumulative).
- * Backend: GET /plo/achievement/by-year?curriculum_id=...&cohort_year=...
- * cohortYear is optional - omit (or pass a falsy value) to include every cohort.
- * Returns: { curriculum_id, curriculum_name, years: [{ year_level, ylo_description,
+ * ผลบรรลุ PLO แยกตามชั้นปี (1-4) - แต่ละปีนับเฉพาะคะแนนจากวิชาที่อยู่ใน study_plan ของปีนั้นเท่านั้น
+ * (ไม่ใช่ตัวเลขสะสม) - Backend: GET /plo/achievement/by-year?curriculum_id=...&cohort_year=...
+ * cohortYear ใส่หรือไม่ใส่ก็ได้ (ไม่ใส่ = รวมทุกรุ่น)
+ * คืนค่า: { curriculum_id, curriculum_name, years: [{ year_level, ylo_description,
  *   course_count, plo_summary: [...], students: [...] }], available_cohort_years: [...] }
  */
 export async function getPLOAchievementByYear(curriculumId, cohortYear) {
@@ -92,7 +99,7 @@ export async function getPLOAchievementByYear(curriculumId, cohortYear) {
   return data;
 }
 
-// --- Other endpoints exposed by the backend, ready for the next pages ---
+// --- Curricula (หลักสูตร) ---
 
 export async function listCurricula() {
   const { data } = await api.get("/curricula");
@@ -118,6 +125,8 @@ export async function deleteCurriculum(id) {
   await api.delete(`/curricula/${id}`);
 }
 
+// --- Courses (รายวิชา) ---
+
 export async function listCourses() {
   const { data } = await api.get("/courses");
   return data;
@@ -136,6 +145,8 @@ export async function updateCourse(id, payload) {
 export async function deleteCourse(id) {
   await api.delete(`/courses/${id}`);
 }
+
+// --- Students (นักศึกษา) ---
 
 export async function listStudents() {
   const { data } = await api.get("/students");
@@ -171,6 +182,8 @@ export async function getRecommendedOfferings(studentId) {
   return data;
 }
 
+// --- Enrollments (การลงทะเบียนเรียน) ---
+
 export async function listEnrollments(offeringId) {
   const { data } = await api.get("/enrollments", {
     params: offeringId ? { offering_id: offeringId } : {},
@@ -198,10 +211,10 @@ export async function deleteEnrollment(id) {
 }
 
 /**
- * Enroll every student in one cohort_year (matching the offering's curriculum)
- * into an offering at once. Backend: POST /enrollments/bulk-by-cohort
- * Returns: { added_count, already_enrolled_count, added_students: [{id, first_name, last_name}],
- *            already_in_other_section: [{student_id, section}] }
+ * ลงทะเบียนนักศึกษาทั้งรุ่น (cohort_year เดียวกัน อยู่หลักสูตรเดียวกับวิชานี้) เข้าวิชานี้ทีเดียว
+ * Backend: POST /enrollments/bulk-by-cohort
+ * คืนค่า: { added_count, already_enrolled_count, added_students: [{id, first_name, last_name}],
+ *          already_in_other_section: [{student_id, section}] }
  */
 export async function bulkEnrollByCohort(offeringId, cohortYear) {
   const { data } = await api.post("/enrollments/bulk-by-cohort", {
@@ -212,10 +225,9 @@ export async function bulkEnrollByCohort(offeringId, cohortYear) {
 }
 
 /**
- * Remove every currently-enrolled student of one cohort_year (matching the
- * offering's curriculum) from an offering at once.
+ * ลบนักศึกษาทั้งรุ่น (cohort_year เดียวกัน อยู่หลักสูตรเดียวกับวิชานี้) ออกจากวิชานี้ทีเดียว
  * Backend: POST /enrollments/bulk-by-cohort-delete
- * Returns: { removed_count, removed_students: [{id, first_name, last_name}] }
+ * คืนค่า: { removed_count, removed_students: [{id, first_name, last_name}] }
  */
 export async function bulkRemoveByCohort(offeringId, cohortYear) {
   const { data } = await api.post("/enrollments/bulk-by-cohort-delete", {
@@ -226,10 +238,10 @@ export async function bulkRemoveByCohort(offeringId, cohortYear) {
 }
 
 /**
- * Enroll a specific list of student IDs into an offering at once.
+ * ลงทะเบียนนักศึกษาตามรายชื่อที่เลือกมาเอง (เลือกทีละคนหลายคน) เข้าวิชานี้ทีเดียว
  * Backend: POST /enrollments/bulk
- * Returns: { added_count, already_enrolled: [...ids], not_found: [...ids], wrong_curriculum: [...ids],
- *            already_in_other_section: [{student_id, section}] }
+ * คืนค่า: { added_count, already_enrolled: [...ids], not_found: [...ids], wrong_curriculum: [...ids],
+ *          already_in_other_section: [{student_id, section}] }
  */
 export async function bulkEnrollStudents(offeringId, studentIds) {
   const { data } = await api.post("/enrollments/bulk", {
@@ -240,9 +252,9 @@ export async function bulkEnrollStudents(offeringId, studentIds) {
 }
 
 /**
- * Upload a .csv/.xlsx roster file to enroll students into an offering.
+ * อัปโหลดไฟล์รายชื่อ (.csv/.xlsx) เพื่อลงทะเบียนนักศึกษาเข้าวิชานี้
  * Backend: POST /enrollments/bulk-upload (multipart/form-data)
- * Returns: same shape as bulkEnrollStudents.
+ * คืนค่า: รูปแบบเดียวกับ bulkEnrollStudents
  */
 export async function bulkEnrollUpload(offeringId, file) {
   const formData = new FormData();
@@ -267,6 +279,8 @@ export async function getSiblingSectionEnrollments(offeringId) {
   });
   return data;
 }
+
+// --- Assessment Items (งานประเมิน เช่น ควิซ/สอบกลางภาค/โปรเจกต์) ---
 
 export async function listAssessmentItems(offeringId) {
   const { data } = await api.get("/assessment-items", {
@@ -555,8 +569,10 @@ export async function deleteUser(id) {
   await api.delete(`/users/${id}`);
 }
 
+// --- Student Scores / CLO Achievement (คะแนนและผลบรรลุ CLO) ---
+
 /**
- * Fetch every recorded score for one student, joined with assessment item name.
+ * คะแนนที่บันทึกไว้ทั้งหมดของนักศึกษาคนเดียว (join ชื่องานประเมินมาให้ด้วย)
  * Backend: GET /student-scores?student_id=...
  */
 export async function getStudentScores(studentId) {
@@ -579,7 +595,7 @@ export async function createStudentScore(payload) {
 }
 
 /**
- * Fetch every recorded score for every student enrolled in one course offering.
+ * คะแนนที่บันทึกไว้ทั้งหมดของนักศึกษาทุกคนที่ลงทะเบียนวิชานี้ (ใช้ในตารางกรอกคะแนนทั้งชั้น)
  * Backend: GET /student-scores?offering_id=...
  */
 export async function getOfferingStudentScores(offeringId) {
@@ -590,7 +606,7 @@ export async function getOfferingStudentScores(offeringId) {
 }
 
 /**
- * Fetch per-CLO class achievement for one course offering.
+ * ผลบรรลุ CLO ระดับชั้นเรียน (ผ่าน/ไม่ผ่าน/ร้อยละ ต่อ CLO) ของวิชานี้
  * Backend: GET /clo-achievement?offering_id=...
  */
 export async function getOfferingCLOAchievement(offeringId) {

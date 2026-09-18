@@ -2,6 +2,10 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import useOptions from "../../hooks/useOptions.js";
 import { listCurricula, listStudents, createStudent, updateStudent, deleteStudent } from "../../api/client.js";
 
+/**
+ * จัดการตารางนักศึกษา ผ่าน CrudManager - รหัสนักศึกษา (id) เป็น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว
+ * (readOnly ตอนแก้ไข), คำนำหน้า/สถานะการศึกษาเป็นตัวเลือกตายตัว (ไม่ใช่ text อิสระ)
+ */
 export default function AddStudent() {
   const curriculumOptions = useOptions(listCurricula, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))

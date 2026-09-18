@@ -33,6 +33,13 @@ import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
 import AdminCourseGrading from "./pages/admin/AdminCourseGrading.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
+/**
+ * ตารางเส้นทาง (routes) ทั้งหมดของแอป - ทุก route ครอบด้วย <AppLayout> (sidebar+topbar) เสมอ
+ * ยกเว้น /login และครอบด้วย <ProtectedRoute> เพื่อบังคับล็อกอินก่อน (ใส่ requireAdmin สำหรับ route
+ * ที่เฉพาะแอดมินเท่านั้น เช่นทุก /admin/*) หน้าแรก (/) เลือก component ตาม role: instructor เห็น
+ * InstructorHome, role อื่นเห็น PLODashboard route ที่ไม่ตรงกับที่ประกาศไว้เลย (catch-all "*") จะพากลับ
+ * หน้าแรกแทนที่จะปล่อยเป็นหน้าขาว
+ */
 export default function App() {
   const { user } = useAuth();
 

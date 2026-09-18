@@ -2,6 +2,7 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import useOptions from "../../hooks/useOptions.js";
 import { listCurricula, listCourses, createCourse, updateCourse, deleteCourse } from "../../api/client.js";
 
+/** จัดการตารางรายวิชา ผ่าน CrudManager - แต่ละวิชาผูกกับหลักสูตรหนึ่ง */
 export default function AdminCourse() {
   const curriculumOptions = useOptions(listCurricula, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))

@@ -2,6 +2,7 @@ import CrudManager from "../../components/admin/CrudManager.jsx";
 import useOptions from "../../hooks/useOptions.js";
 import { listCurricula, listYLO, createYLO, updateYLO, deleteYLO } from "../../api/client.js";
 
+/** จัดการตาราง YLO (ผลลัพธ์การเรียนรู้ระดับชั้นปี) ผ่าน CrudManager - แต่ละ YLO ผูกกับหลักสูตรหนึ่ง */
 export default function AdminYLO() {
   const curriculumOptions = useOptions(listCurricula, (data) =>
     data.map((c) => ({ value: c.id, label: `${c.name} (${c.year})` }))

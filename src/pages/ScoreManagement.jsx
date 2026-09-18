@@ -7,6 +7,11 @@ import {
   updateStudentScore,
 } from "../api/client.js";
 
+/**
+ * หน้า "จัดการคะแนน (รายคน)" (route /scores) - ค้นหานักศึกษาด้วยรหัส แล้วแก้ไขคะแนนทีละชิ้นงาน หรือ
+ * เพิ่มคะแนนใหม่ ต่างจาก ScoresPanel.jsx (กรอกคะแนนทั้งชั้นแบบตารางสเปรดชีต) ตรงที่หน้านี้โฟกัสที่
+ * นักศึกษาคนเดียว ณ เวลาหนึ่ง - เข้าถึงได้จากปุ่ม "แก้ไขคะแนนนักศึกษาคนนี้" ในหน้าโปรไฟล์นักศึกษา
+ */
 export default function ScoreManagement() {
   const [searchParams] = useSearchParams();
   const [studentId, setStudentId] = useState("");
@@ -29,7 +34,8 @@ export default function ScoreManagement() {
     listAssessmentItems()
       .then(setAssessmentItems)
       .catch(() => {
-        // Add-score form just won't have options; the search/edit flow above still works.
+        // โหลดไม่สำเร็จก็แค่ฟอร์ม "เพิ่มคะแนนใหม่" ไม่มีตัวเลือกชิ้นงานให้เลือก - ส่วนค้นหา/แก้ไขคะแนน
+        // เดิมด้านบนยังใช้งานได้ปกติ ไม่ block ทั้งหน้า
       });
   }, []);
 
