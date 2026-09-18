@@ -1,14 +1,11 @@
 /**
  * ทำอะไร : หน้าแรกของอาจารย์ (route "/" เมื่อ role=instructor) — การ์ดสรุปวิชาที่สอน + จำนวนนักศึกษา
- *          ไม่ซ้ำคน + CLO บรรลุเฉลี่ย ตามด้วยตาราง "วิชาที่เปิดให้จับจอง" (เฉพาะ instructor ไม่ใช่ admin)
- *          admin ก็เข้าหน้านี้ได้เหมือนกันถ้าเปลี่ยน role มาดู (ดู isAdmin) แต่จะไม่เห็นส่วนจับจอง
+ *          ไม่ซ้ำคน + CLO บรรลุเฉลี่ย
+ *          admin ก็เข้าหน้านี้ได้เหมือนกันถ้าเปลี่ยน role มาดู (ดู isAdmin)
  *
  * เชื่อมกับ : ต่อ offering หนึ่งตัวต้องยิง 3 endpoint เพิ่ม (enrollments, assessment items, CLO
  *             achievement) เพื่อคำนวณสถิติการ์ด - ทำแบบ N+1 request ต่อ offering ตั้งใจ เพราะจำนวน
  *             วิชาที่อาจารย์คนหนึ่งสอนมีไม่มาก (ไม่ใช่ทั้งหลักสูตรแบบหน้า cohort ที่ backend ต้อง batch)
- *
- * ถ้าแก้ : claim เรียก loadMyOfferings + loadUnassignedOfferings ใหม่ทั้งคู่เสมอหลังสำเร็จ
- *          เพื่อให้การ์ดวิชาที่สอนและตารางจับจองซิงค์กันทันที (ไม่ใช้ optimistic update)
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -16,8 +13,6 @@ import { useAuth } from "../context/AuthContext.jsx";
 import PLODonut from "../components/PLODonut.jsx";
 import {
   listCourseOfferings,
-  listUnassignedCourseOfferings,
-  claimCourseOffering,
   listCourses,
   listEnrollments,
   listAssessmentItems,
@@ -28,14 +23,8 @@ export default function InstructorHome() {
   const { user, isAdmin } = useAuth();
   // วิชาที่อาจารย์คนนี้สอน (หรือทุกวิชาถ้าเป็น admin) พร้อมสถิติที่คำนวณเพิ่มแล้ว (ดู loadMyOfferings)
   const [offerings, setOfferings] = useState([]);
-  const [courseById, setCourseById] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // วิชาที่เปิดสอนแต่ยังไม่มีผู้สอน (สำหรับตาราง "จับจอง") + สถานะระหว่างกด claim
-  const [unassignedOfferings, setUnassignedOfferings] = useState([]);
-  const [claimingId, setClaimingId] = useState(null);
-  const [claimError, setClaimError] = useState("");
 
   // โหลดวิชาที่สอน (ของอาจารย์คนนี้ หรือทุกวิชาถ้าเป็น admin) แล้วยิง request เพิ่มต่อวิชาเพื่อคำนวณ
   // จำนวนนักศึกษา/ชิ้นงาน/CLO บรรลุเฉลี่ยมาประกอบเป็นการ์ดสรุป
@@ -66,12 +55,6 @@ export default function InstructorHome() {
     setOfferings(enriched);
   }
 
-  async function loadUnassignedOfferings() {
-    if (isAdmin) return; // การจับจองเป็นของอาจารย์เท่านั้น - แอดมินมอบหมายตรงที่หน้าจัดการระบบ
-    const raw = await listUnassignedCourseOfferings();
-    setUnassignedOfferings(raw);
-  }
-
   // โหลดข้อมูลทั้งหน้าใหม่ทุกครั้งที่ user หรือ isAdmin เปลี่ยน (เช่น เพิ่ง login เสร็จ)
   useEffect(() => {
     async function load() {
@@ -81,9 +64,8 @@ export default function InstructorHome() {
         const courses = await listCourses();
         const courseMap = {};
         courses.forEach((c) => (courseMap[c.id] = c));
-        setCourseById(courseMap);
 
-        await Promise.all([loadMyOfferings(courseMap), loadUnassignedOfferings()]);
+        await loadMyOfferings(courseMap);
       } catch {
         setError("โหลดข้อมูลไม่สำเร็จ ลองรีเฟรชหน้านี้อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
       } finally {
@@ -94,22 +76,6 @@ export default function InstructorHome() {
     if (user) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
-
-  async function handleClaim(offeringId) {
-    setClaimingId(offeringId);
-    setClaimError("");
-    try {
-      await claimCourseOffering(offeringId);
-      await Promise.all([loadMyOfferings(courseById), loadUnassignedOfferings()]);
-    } catch (err) {
-      setClaimError(
-        err?.response?.data?.detail || "จับจองวิชานี้ไม่สำเร็จ ลองรีเฟรชหน้านี้แล้วลองใหม่"
-      );
-      await loadUnassignedOfferings(); // เผื่อมีคนอื่นจับจองไปแล้ว รีเฟรชให้รายการตรงกับความจริง
-    } finally {
-      setClaimingId(null);
-    }
-  }
 
   // นับนักศึกษาไม่ซ้ำคน ไม่ใช่ผลรวม enrollmentCount ตรงๆ เพราะนักศึกษาคนเดียวกันอาจลงทะเบียน
   // หลายวิชาที่อาจารย์คนนี้สอนพร้อมกัน (เช่น สอนวิชาแกนของรุ่นเดียวกันหลายวิชา) ถ้าบวกตรงๆ จะนับซ้ำ
@@ -162,12 +128,7 @@ export default function InstructorHome() {
 
           {offerings.length === 0 ? (
             <p className="student-list-empty">
-              คุณยังไม่ได้รับมอบหมายวิชาในภาคเรียนนี้
-              {isAdmin
-                ? " ติดต่อผู้ดูแลระบบ"
-                : unassignedOfferings.length > 0
-                ? " — ลองจับจองวิชาที่เปิดว่างด้านล่างได้เลย"
-                : " ติดต่อผู้ดูแลระบบให้มอบหมายวิชาให้"}
+              คุณยังไม่ได้รับมอบหมายวิชาในภาคเรียนนี้ ติดต่อผู้ดูแลระบบให้มอบหมายวิชาให้
             </p>
           ) : (
             <div className="instructor-course-grid">
@@ -210,59 +171,6 @@ export default function InstructorHome() {
                   </div>
                 </div>
               ))}
-            </div>
-          )}
-
-          {!isAdmin && (
-            <div className="workspace-section instructor-claim-section">
-              <h2>วิชาที่เปิดให้จับจอง</h2>
-              <p className="workspace-hint-inline">
-                รายวิชาด้านล่างยังไม่มีผู้สอน กดจับจองเพื่อรับเป็นผู้สอนวิชานั้นได้เลย (ถ้ามีอาจารย์
-                ท่านอื่นจับจองไปก่อนพอดี ระบบจะแจ้งเตือนให้เลือกวิชาอื่นแทน)
-              </p>
-              {claimError && <p className="error-message">{claimError}</p>}
-              {unassignedOfferings.length === 0 ? (
-                <p className="student-list-empty">ตอนนี้ไม่มีวิชาที่เปิดว่างให้จับจอง</p>
-              ) : (
-                <table className="student-table">
-                  <thead>
-                    <tr>
-                      <th>รายวิชา</th>
-                      <th>ภาคเรียน</th>
-                      <th>หมู่เรียน</th>
-                      <th>รุ่น (cohort)</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {unassignedOfferings.map((offering) => (
-                      <tr key={offering.id} className="student-table-row">
-                        <td className="student-table-cell">
-                          {courseById[offering.course_id]
-                            ? `${courseById[offering.course_id].course_code} ${
-                                courseById[offering.course_id].name_th
-                              }`
-                            : `วิชา #${offering.id}`}
-                        </td>
-                        <td className="student-table-cell">
-                          {offering.semester}/{offering.academic_year}
-                        </td>
-                        <td className="student-table-cell">{offering.section}</td>
-                        <td className="student-table-cell">{offering.cohort_year ?? "-"}</td>
-                        <td className="student-table-cell">
-                          <button
-                            type="button"
-                            disabled={claimingId === offering.id}
-                            onClick={() => handleClaim(offering.id)}
-                          >
-                            {claimingId === offering.id ? "กำลังจับจอง..." : "จับจองวิชานี้"}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
             </div>
           )}
         </>

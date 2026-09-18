@@ -2946,10 +2946,6 @@ tr.student-table-row.expandable:hover {
   background: var(--color-purple-100);
 }
 
-.instructor-claim-section {
-  margin-top: 8px;
-}
-
 .badge-clo-unknown {
   font-size: 0.7rem;
   font-weight: 700;
