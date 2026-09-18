@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+/** แถบบนสุดของหน้า - โชว์ชื่อ/ตัวย่อผู้ใช้ที่ล็อกอินอยู่ พร้อมเมนู dropdown ไปหน้าโปรไฟล์/ออกจากระบบ */
 export default function Topbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
+  // ปิด dropdown อัตโนมัติเมื่อคลิกที่อื่นนอกกล่องโปรไฟล์
   useEffect(() => {
     function handleClickOutside(e) {
       if (containerRef.current && !containerRef.current.contains(e.target)) {

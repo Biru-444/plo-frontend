@@ -4,7 +4,8 @@ import { Trash2, ArrowLeft } from "lucide-react";
 import SearchableSelect from "../SearchableSelect.jsx";
 
 /**
- * Generic CRUD manager: table + add/edit form (in a modal) + delete, ใช้ซ้ำได้ทุกตาราง
+ * ตัวจัดการ CRUD กลาง (ตาราง + ฟอร์มเพิ่ม/แก้ไขใน modal + ปุ่มลบ) ใช้ซ้ำได้ทุกตาราง - หน้า admin ~16
+ * หน้าเรียก component นี้ตัวเดียวกัน ส่งแค่ columns/api ที่ต่างกันไปตามตาราง ไม่ต้องเขียน CRUD UI ซ้ำเอง
  * columns: [{ key, label, type: 'text'|'number'|'password'|'select'|'searchable-select', options?: [{value,label}],
  *             required?: bool, nullable?: bool, omitIfEmptyOnUpdate?: bool,
  *             min?: number, max?: number (type: 'number' only - ตัวเลขต้องเป็นจำนวนเต็มเสมอ (step=1
