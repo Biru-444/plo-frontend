@@ -247,6 +247,8 @@ export default function PLODashboard() {
                     code={plo.plo_code}
                     description={plo.description}
                     achievedRatePercent={plo.achieved_rate_percent}
+                    achievedCount={plo.achieved_student_count}
+                    totalStudents={summary.total_students}
                     isAchieved={plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD}
                     to={`/plo/overview/${plo.plo_id}${detailQuery}`}
                   />

@@ -710,6 +710,12 @@ tr.student-table-row.expandable:hover {
   color: var(--color-purple-700);
 }
 
+.plo-summary-card-count {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
 .plo-summary-card-desc {
   font-size: 0.85rem;
   color: var(--color-gray-600);
