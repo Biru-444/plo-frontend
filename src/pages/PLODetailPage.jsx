@@ -92,17 +92,15 @@ export default function PLODetailPage() {
   }, [summary, studentListCohortPrefix]);
 
   // ตัวเลขสรุปบน header (PLOCohortBar) - เลือก "ทั้งหมด" (studentListCohortPrefix ว่าง) ใช้ตัวเลขที่
-  // backend คำนวณมาให้ตรงเป๊ะ (plo.average_achieved_percent ฯลฯ จาก summary.plo_summary) ไม่คำนวณเอง
+  // backend คำนวณมาให้ตรงเป๊ะ (plo.achieved_student_count ฯลฯ จาก summary.plo_summary) ไม่คำนวณเอง
   // ซ้ำ เพื่อความชัวร์ว่าตรงกับค่าที่เคยแสดงมาตลอด - คำนวณเองเฉพาะตอนกรองรุ่นแล้วเท่านั้น (ไม่มี endpoint
   // กรองตามรุ่นแบบนี้ให้ตรงๆ) โดยใช้ field เดียวกับที่ PLOStudentBreakdown ใช้อยู่แล้วเป๊ะ (แต่ละคนมี
-  // plo_achievements[].achieved_percent/is_achieved ต่อ PLO อยู่แล้วในข้อมูลชุดเดียวกับ header) สูตร
-  // เดียวกับที่ backend ใช้ (_aggregate_plo_percent_stats ใน plo_calculation.py): เฉลี่ย = ผลรวม
-  // achieved_percent หารด้วยจำนวนคน, อัตราบรรลุ = จำนวนคนบรรลุ/จำนวนคนทั้งหมด*100
+  // plo_achievements[].is_achieved ต่อ PLO อยู่แล้วในข้อมูลชุดเดียวกับ header) สูตรเดียวกับที่ backend ใช้
+  // (_aggregate_plo_percent_stats ใน plo_calculation.py): อัตราบรรลุ = จำนวนคนบรรลุ/จำนวนคนทั้งหมด*100
   const headerStats = useMemo(() => {
     if (!plo || !summary) return null;
     if (!studentListCohortPrefix) {
       return {
-        averagePercent: plo.average_achieved_percent,
         achievedStudentCount: plo.achieved_student_count,
         totalStudents: summary.total_students,
         achievedRatePercent: plo.achieved_rate_percent,
@@ -113,12 +111,10 @@ export default function PLODetailPage() {
       .filter(Boolean);
     const totalStudents = achievements.length;
     if (totalStudents === 0) {
-      return { averagePercent: 0, achievedStudentCount: 0, totalStudents: 0, achievedRatePercent: 0 };
+      return { achievedStudentCount: 0, totalStudents: 0, achievedRatePercent: 0 };
     }
     const achievedStudentCount = achievements.filter((a) => a.is_achieved).length;
-    const percentSum = achievements.reduce((sum, a) => sum + a.achieved_percent, 0);
     return {
-      averagePercent: Number((percentSum / totalStudents).toFixed(1)),
       achievedStudentCount,
       totalStudents,
       achievedRatePercent: Number(((achievedStudentCount / totalStudents) * 100).toFixed(1)),
@@ -157,7 +153,6 @@ export default function PLODetailPage() {
           <PLOCohortBar
             code={plo.plo_code}
             description={plo.description}
-            averagePercent={headerStats.averagePercent}
             isAchieved={headerStats.achievedRatePercent >= COHORT_ACHIEVED_THRESHOLD}
             achievedStudentCount={headerStats.achievedStudentCount}
             totalStudents={headerStats.totalStudents}

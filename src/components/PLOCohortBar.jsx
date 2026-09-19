@@ -8,8 +8,8 @@ function truncate(text, max) {
 }
 
 /**
- * Compact card showing average_achieved_percent (0-100) for one PLO across
- * a whole curriculum cohort, plus how many students actually achieved it.
+ * Compact card showing how many students achieved one PLO across a whole
+ * curriculum cohort (achievedStudentCount / totalStudents), not a percent.
  * Green when isAchieved, warm red otherwise. Clickable when isExpandable to
  * toggle a per-student breakdown table (rendered by the caller). Full
  * description is on a hover tooltip - only a short excerpt shows inline so
@@ -18,7 +18,6 @@ function truncate(text, max) {
 export default function PLOCohortBar({
   code,
   description,
-  averagePercent,
   isAchieved,
   achievedStudentCount,
   totalStudents,
@@ -31,7 +30,6 @@ export default function PLOCohortBar({
   // ไหน pass isExpectedThisYear แล้วตอนนี้ หลังรวมหน้า "ภาพรวม PLO"/"PLO เมื่อจบการศึกษา" เป็นหน้าเดียว)
   isExpectedThisYear,
 }) {
-  const pct = Math.max(0, Math.min(100, averagePercent));
   const expectationClass =
     isExpectedThisYear === undefined
       ? ""
@@ -70,18 +68,17 @@ export default function PLOCohortBar({
         {truncate(description, KEYWORD_MAX_LENGTH)}
       </p>
       <div className="plo-bar-stats">
-        {/* วงแหวนโชว์ achievedRatePercent (สัดส่วนคนบรรลุ) ให้สม่ำเสมอกับวงใหญ่ "0% นักศึกษาบรรลุ PLO
-            ครบทุกข้อ" บนสุดของหน้า - สีระบุเองจาก isAchieved ที่ผู้เรียกคำนวณมาแล้ว (เกณฑ์ในระบบนี้คือ
-            50% ไม่ใช่ 60% ที่ PLODonut ใช้เป็นค่า default ถ้าไม่ระบุสี) */}
+        {/* วงแหวนโชว์สัดส่วนคนบรรลุด้วยสี ไม่โชว์ตัวเลข % (hideLabel) - สีระบุเองจาก isAchieved ที่ผู้เรียก
+            คำนวณมาแล้ว (เกณฑ์ในระบบนี้คือ 50% ไม่ใช่ 60% ที่ PLODonut ใช้เป็นค่า default ถ้าไม่ระบุสี) */}
         <PLODonut
           percent={achievedRatePercent}
           size={48}
           color={isAchieved ? "var(--color-green-700)" : "var(--color-red-700)"}
+          hideLabel
         />
         <div className="plo-bar-stats-text">
-          <div className="plo-bar-percent">เฉลี่ย {pct.toFixed(1)}%</div>
-          <div className="plo-cohort-subtitle">
-            บรรลุ {achievedStudentCount} จาก {totalStudents} คน ({achievedRatePercent.toFixed(1)}%)
+          <div className="plo-bar-percent">
+            บรรลุ {achievedStudentCount} จาก {totalStudents} คน
           </div>
         </div>
       </div>
