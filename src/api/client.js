@@ -480,15 +480,6 @@ export async function listCourseOfferings(instructorId) {
   return data;
 }
 
-/**
- * วิชาที่เปิดสอนแต่ยังไม่มีผู้สอน (instructor_id ว่าง) - ให้อาจารย์เลือกจับจองเองได้
- * Backend: GET /course-offerings?unassigned=true
- */
-export async function listUnassignedCourseOfferings() {
-  const { data } = await api.get("/course-offerings", { params: { unassigned: true } });
-  return data;
-}
-
 export async function createCourseOffering(payload) {
   const { data } = await api.post("/course-offerings", payload);
   return data;
@@ -501,25 +492,6 @@ export async function updateCourseOffering(id, payload) {
 
 export async function deleteCourseOffering(id) {
   await api.delete(`/course-offerings/${id}`);
-}
-
-/**
- * อาจารย์กดจับจองวิชาที่เปิดสอนแต่ยังไม่มีผู้สอน (ตัวเองเป็นผู้สอน) - ถ้ามีคนอื่นจับจองไปก่อนแล้ว
- * (แม้เสี้ยววินาทีก่อนหน้า) backend จะตอบ 409 กลับมา ให้รีเฟรชรายการแล้วลองวิชาอื่น
- * Backend: POST /course-offerings/{id}/claim
- */
-export async function claimCourseOffering(offeringId) {
-  const { data } = await api.post(`/course-offerings/${offeringId}/claim`);
-  return data;
-}
-
-/**
- * อาจารย์ปล่อยคืนวิชาที่ตัวเองจับจองไว้ (กลับไปว่างให้คนอื่นจับจองต่อได้)
- * Backend: POST /course-offerings/{id}/release
- */
-export async function releaseCourseOffering(offeringId) {
-  const { data } = await api.post(`/course-offerings/${offeringId}/release`);
-  return data;
 }
 
 // --- CLO ---

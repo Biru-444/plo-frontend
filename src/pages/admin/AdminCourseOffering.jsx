@@ -54,7 +54,7 @@ export default function AdminCourseOffering() {
       options: instructorOptions,
       required: false,
       nullable: true,
-      // เว้นว่างได้ตั้งใจ = ยังไม่มีผู้สอน รอให้อาจารย์มา "จับจอง" วิชานี้เองที่หน้าหลักของอาจารย์
+      // เว้นว่างได้ตั้งใจ = ยังไม่มีผู้สอน รอแอดมินมอบหมายทีหลัง
       // ตัวเลือกมีไม่เยอะ (5 คน) แต่เปลี่ยนเป็น searchable-select เพื่อความสม่ำเสมอกับ dropdown อื่น
     },
     {
