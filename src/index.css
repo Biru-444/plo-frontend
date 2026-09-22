@@ -2561,6 +2561,40 @@ tr.student-table-row.expandable:hover {
   margin-top: 3px;
 }
 
+/* กล่องแจ้งข้อมูล (ไม่ใช่คำเตือน) ตอนหน้านำเข้าหลักสูตรจาก มคอ.2 เจอว่ามีหลักสูตรชื่อ+ปีตรงกันอยู่แล้ว
+   ในระบบ - ใช้โทนน้ำเงินแยกจาก .mco3-flag-normal (ส้ม = ปัญหาให้ตรวจสอบ) เพราะนี่ไม่ใช่ปัญหา แค่แจ้งว่า
+   กำลังจะเพิ่ม/อัปเดต PLO เข้าหลักสูตรเดิมแทนที่จะสร้างใหม่ (ดู AdminCurriculumImportMCO2.jsx) */
+.mco2-existing-banner {
+  padding: 12px 14px;
+  background: var(--color-blue-100);
+  color: var(--color-blue-700);
+  border-left: 4px solid var(--color-blue-700);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.mco2-plo-row-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
+
+.mco2-plo-row-badge-update {
+  background: var(--color-blue-100);
+  color: var(--color-blue-700);
+}
+
+.mco2-plo-row-badge-new {
+  background: var(--color-green-100);
+  color: var(--color-green-700);
+}
+
 /* แถว CLO ที่แก้ไขได้ของหน้านำเข้าวิชา - เหมือน .clo-multi-row ของ CourseOfferingWorkspace แต่มีช่อง
    code แก้ได้เอง (ไม่ auto-generate) + select domain + PLO chip picker ต่อท้ายแถว */
 .mco3-clo-row {

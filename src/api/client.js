@@ -686,3 +686,32 @@ export async function saveCourseFromMco3(payload) {
   const { data } = await api.post("/courses/import-from-mco3/save", payload);
   return data;
 }
+
+// --- Curriculum Import จาก มคอ.2 ด้วย AI (Phase 1: แกะข้อมูล, Phase 2: บันทึกจริง - Workstream 2) ---
+
+/**
+ * Phase 1 - ส่งไฟล์ มคอ.2 (.pdf หรือ .docx) ให้ Gemini แกะชื่อ/ปีหลักสูตร + รายการ PLO ออกมาเป็น JSON
+ * ให้ตรวจสอบก่อนเสมอ (ไม่บันทึกอะไรลง DB) - ต่างจาก มคอ.3 ตรงที่ไม่ต้องเลือกหลักสูตรเป้าหมายล่วงหน้า
+ * (เอกสาร มคอ.2 คือเอกสารนิยามหลักสูตรเอง) Backend: POST /curricula/import-from-mco2
+ * (multipart/form-data), admin เท่านั้น timeout ยาวเหมือน มคอ.3 เพราะเรียก Gemini จริง
+ */
+export async function importCurriculumFromMco2(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post("/curricula/import-from-mco2", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 90000,
+  });
+  return data;
+}
+
+/**
+ * Phase 2 - บันทึกผลลัพธ์ที่แอดมินตรวจ/แก้ไขแล้วจาก Phase 1 เป็น Curriculum + PLO จริง ไม่เรียก
+ * Gemini ซ้ำ - payload.curriculum_id: null = สร้างหลักสูตรใหม่ / ไม่ null = เพิ่ม/อัปเดต PLO เข้า
+ * หลักสูตรที่มีอยู่แล้ว (upsert ตาม code ไม่ใช่ create-only แบบ มคอ.3) Backend: POST
+ * /curricula/import-from-mco2/save, admin เท่านั้น
+ */
+export async function saveCurriculumFromMco2(payload) {
+  const { data } = await api.post("/curricula/import-from-mco2/save", payload);
+  return data;
+}

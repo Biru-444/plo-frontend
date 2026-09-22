@@ -43,6 +43,12 @@ const SECTIONS = [
     items: [
       { to: "/admin/curriculum", label: "หลักสูตร", sublabel: "ชื่อและปีหลักสูตร", icon: GraduationCap },
       { to: "/admin/plo", label: "PLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับหลักสูตร", icon: Target },
+      {
+        to: "/admin/curriculum-import-mco2",
+        label: "นำเข้าหลักสูตร/PLO จาก มคอ.2 ด้วย AI",
+        sublabel: "อัปโหลด .pdf/.docx แกะชื่อ/ปีหลักสูตร+PLO ให้ตรวจก่อนบันทึก",
+        icon: Sparkles,
+      },
       { to: "/admin/ylo", label: "YLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับชั้นปี", icon: CalendarCheck },
       {
         to: "/admin/ylo-plo-mapping",

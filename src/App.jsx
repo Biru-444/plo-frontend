@@ -30,6 +30,7 @@ import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminEnrollments from "./pages/admin/AdminEnrollments.jsx";
 import AdminRosterImport from "./pages/admin/AdminRosterImport.jsx";
 import AdminCourseImportMCO3 from "./pages/admin/AdminCourseImportMCO3.jsx";
+import AdminCurriculumImportMCO2 from "./pages/admin/AdminCurriculumImportMCO2.jsx";
 import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
 import AdminCourseGrading from "./pages/admin/AdminCourseGrading.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -364,6 +365,18 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute requireAdmin>
               <AdminCourseImportMCO3 />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      {/* นำเข้าหลักสูตร/PLO จาก มคอ.2 ด้วย AI (Workstream 2) — admin เท่านั้น ไม่ต้องเลือกหลักสูตร
+          เป้าหมายล่วงหน้าเหมือน มคอ.3 เพราะเอกสาร มคอ.2 คือเอกสารนิยามหลักสูตรเอง */}
+      <Route
+        path="/admin/curriculum-import-mco2"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCurriculumImportMCO2 />
             </ProtectedRoute>
           </AppLayout>
         }
