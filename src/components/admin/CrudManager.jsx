@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash2, ArrowLeft } from "lucide-react";
 import SearchableSelect from "../SearchableSelect.jsx";
@@ -32,6 +32,12 @@ import SearchableSelect from "../SearchableSelect.jsx";
  *   render เป็น SearchableSelect (พิมพ์ค้นหาได้) แทน <select> ธรรมดา - ใช้ตอนตัวเลือกเยอะ/ชื่อยาว
  * groupBy?: { keys: string[], label: (values: Record<string, any>) => string } - ถ้าส่งมา
  *   จะแบ่งตารางเป็นกลุ่มย่อยตามค่าคอลัมน์ใน keys (เรียงน้อย->มาก) แต่ละกลุ่มมีหัวข้อจาก label()
+ * crossFieldCheck?: { watchKeys: string[], check: (form) => Promise<{ message: string } | null> }
+ *   - เตือน (ไม่บล็อก) แบบ real-time ในฟอร์มเพิ่ม/แก้ไข ตอนฟิลด์ที่ระบุใน watchKeys มีค่าครบทุกตัว
+ *   (เช่น เลือกทั้ง CLO และ PLO แล้วในฟอร์มผูก mapping) เรียก check(form) ทุกครั้งที่ค่าที่ watch อยู่
+ *   เปลี่ยน (async - กันผลลัพธ์เก่าค้างทับผลใหม่ด้วย requestId ref) คืน { message } = แสดงคำเตือนเหนือปุ่ม
+ *   บันทึก คืน null = ไม่มีคำเตือน ไม่ block การกดบันทึกไม่ว่าจะมีคำเตือนหรือไม่ (ผู้เรียกตัดสินใจเอง) -
+ *   ใช้ตัวอย่างจริงที่ AdminCLOPLOMapping.jsx (เตือน domain ของ CLO ไม่ตรงกับ category ของ PLO)
  * api: { list, create, update?(ไม่ใส่ = ไม่มีปุ่มแก้ไข), remove }
  */
 export default function CrudManager({
@@ -41,6 +47,7 @@ export default function CrudManager({
   idField = "id",
   allowDelete = true,
   groupBy,
+  crossFieldCheck,
 }) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +59,34 @@ export default function CrudManager({
   const [saving, setSaving] = useState(false);
   // ตัวกรองด้านบนตาราง (key ของ column -> ค่าที่เลือกกรอง) - ว่าง/ไม่มี key = ไม่กรองคอลัมน์นั้น
   const [filters, setFilters] = useState({});
+
+  // คำเตือน real-time จาก crossFieldCheck (ดู docstring ด้านบน) - null = ไม่มีคำเตือนตอนนี้ ไม่บล็อก
+  // การบันทึกไม่ว่าจะมีค่าหรือไม่ requestIdRef กันผลลัพธ์ของ request เก่า (ที่ค่าฟอร์มเปลี่ยนไปแล้ว)
+  // มาทับผลของ request ใหม่กว่าที่ตอบกลับมาถึงก่อน
+  const [crossFieldWarning, setCrossFieldWarning] = useState(null);
+  const crossFieldRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!crossFieldCheck || editingId === null) {
+      setCrossFieldWarning(null);
+      return;
+    }
+    const allWatchedFilled = crossFieldCheck.watchKeys.every((key) => form[key]);
+    if (!allWatchedFilled) {
+      setCrossFieldWarning(null);
+      return;
+    }
+    const requestId = ++crossFieldRequestIdRef.current;
+    crossFieldCheck
+      .check(form)
+      .then((result) => {
+        if (crossFieldRequestIdRef.current === requestId) setCrossFieldWarning(result);
+      })
+      .catch(() => {
+        if (crossFieldRequestIdRef.current === requestId) setCrossFieldWarning(null);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingId, crossFieldCheck, ...(crossFieldCheck?.watchKeys.map((key) => form[key]) ?? [])]);
 
   // โหลดข้อมูลทั้งตารางใหม่จาก api.list() - เรียกตอนเปิดหน้าครั้งแรก และหลังบันทึก/ลบสำเร็จทุกครั้ง
   async function load() {
@@ -392,6 +427,9 @@ export default function CrudManager({
                   )}
                 </label>
               ))}
+              {crossFieldWarning && (
+                <p className="crud-cross-field-warning">{crossFieldWarning.message}</p>
+              )}
               <div className="crud-form-actions">
                 <button type="submit" disabled={saving}>
                   {saving ? "กำลังบันทึก..." : "บันทึก"}

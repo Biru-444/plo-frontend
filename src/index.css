@@ -1078,6 +1078,18 @@ tr.student-table-row.expandable:hover {
   color: var(--color-gray-400);
 }
 
+/* คำเตือน real-time จาก crossFieldCheck ของ CrudManager (ดู docstring ในไฟล์นั้น) - ไม่บล็อกอะไร แค่
+   เตือนให้เห็นก่อนกดบันทึก เช่น domain ของ CLO ไม่ตรงกับ category ของ PLO ที่กำลังจะผูกกัน */
+.crud-cross-field-warning {
+  background: var(--color-orange-100);
+  color: var(--color-orange-700);
+  border-left: 4px solid var(--color-orange-700);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  margin: 4px 0 0;
+}
+
 .crud-form-actions {
   display: flex;
   gap: 10px;

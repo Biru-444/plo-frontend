@@ -456,6 +456,18 @@ export async function deleteCLOPLOMapping(id) {
   await api.delete(`/clo-plo-mapping/${id}`);
 }
 
+/**
+ * เช็ค clo.domain vs plo.category ล้วนๆ (pure code-level ฝั่ง backend ไม่พึ่ง Gemini) - เรียก real-time
+ * ตอนแอดมินเลือกครบทั้ง CLO และ PLO ในฟอร์มผูก mapping ด้วยมือ ไม่บล็อกการบันทึก แค่ใช้แสดงคำเตือน
+ * Backend: GET /clo-plo-mapping/domain-check?clo_id=&plo_id= คืน { mismatch, message }
+ */
+export async function checkCLOPLODomainMatch(cloId, ploId) {
+  const { data } = await api.get("/clo-plo-mapping/domain-check", {
+    params: { clo_id: cloId, plo_id: ploId },
+  });
+  return data;
+}
+
 // --- Study Plan ---
 
 export async function listStudyPlan() {

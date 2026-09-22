@@ -11,6 +11,14 @@
  * ถ้าแก้ : ผูก CLO-PLO คู่ใหม่ตอนนี้ยังไม่มีช่องกรอกน้ำหนัก (weight_percent) - จะเพิ่มใน Workstream 3
  *          พร้อม auto-fill เกลี่ยเท่ากันตอนผูกใหม่ ยังไม่ใช่ตอนนี้ - course_plo (หน้าเดิม) ยังไม่ได้ลบทิ้ง
  *          ฝั่ง backend เก็บไว้ใช้แสดง curriculum mapping ระดับหลักสูตรเท่านั้น ไม่ใช้คำนวณแล้ว
+ *
+ *          crossFieldCheck (Workstream 4) เตือน real-time ตอนเลือกครบทั้ง CLO และ PLO ว่า domain/
+ *          category ตรงกันไหม โดยเรียก GET /clo-plo-mapping/domain-check ให้ backend เป็นคนตัดสิน
+ *          (pure code-level เทียบ clo.domain กับ plo.category ตรงๆ) ไม่คำนวณเทียบเองฝั่ง frontend
+ *          เพื่อไม่ให้ตรรกะเทียบมีสองชุดที่อาจ drift ไม่ตรงกัน (ดู
+ *          app/services/domain_category_check.py ฝั่ง backend - ฟังก์ชันเดียวกับที่ Phase 1 ของ
+ *          มคอ.3 import ใช้เติม flag "domain_category_mismatch" ด้วย) - ไม่บล็อกการผูกไม่ว่าจะเตือน
+ *          หรือไม่
  */
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
@@ -21,7 +29,18 @@ import {
   listCLOPLOMapping,
   createCLOPLOMapping,
   deleteCLOPLOMapping,
+  checkCLOPLODomainMatch,
 } from "../../api/client.js";
+
+// ค่าคงที่ระดับโมดูล (ไม่ผูกกับ state/props ใดๆ ของ component) - ส่งเป็น object เดิมทุก render กัน
+// useEffect ของ CrudManager ที่ watch prop นี้อยู่ re-run เกินจำเป็นจาก reference ใหม่ทุกครั้ง
+const CLO_PLO_CROSS_FIELD_CHECK = {
+  watchKeys: ["clo_id", "plo_id"],
+  async check(form) {
+    const result = await checkCLOPLODomainMatch(form.clo_id, form.plo_id);
+    return result.mismatch ? { message: result.message } : null;
+  },
+};
 
 export default function AdminCLOPLOMapping() {
   // ตัวเลือก CLO/PLO สำหรับ dropdown ในฟอร์ม
@@ -55,6 +74,7 @@ export default function AdminCLOPLOMapping() {
       title="เชื่อมโยง CLO กับ PLO"
       columns={columns}
       api={{ list: listCLOPLOMapping, create: createCLOPLOMapping, remove: deleteCLOPLOMapping }}
+      crossFieldCheck={CLO_PLO_CROSS_FIELD_CHECK}
     />
   );
 }

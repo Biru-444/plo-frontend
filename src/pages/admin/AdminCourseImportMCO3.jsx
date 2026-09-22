@@ -45,6 +45,7 @@ const FLAG_TYPE_LABEL = {
   curriculum_mismatch: "เอกสารอาจเป็นของหลักสูตรอื่น",
   title_content_mismatch: "หัวเรื่องไม่ตรงกับเนื้อหา",
   plo_mapping_not_filled: "ตาราง PLO-CLO ยังไม่ได้กรอก",
+  domain_category_mismatch: "โดเมน CLO ไม่ตรงกับหมวดหมู่ PLO",
   other: "ข้อสังเกตอื่น",
 };
 
