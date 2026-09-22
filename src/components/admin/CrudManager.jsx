@@ -5,12 +5,17 @@ import SearchableSelect from "../SearchableSelect.jsx";
 
 /**
  * Generic CRUD manager: table + add/edit form (in a modal) + delete, ใช้ซ้ำได้ทุกตาราง
- * columns: [{ key, label, type: 'text'|'number'|'password'|'select'|'searchable-select', options?: [{value,label}],
+ * columns: [{ key, label, type: 'text'|'number'|'password'|'select'|'searchable-select'|'custom', options?: [{value,label}],
  *             required?: bool, nullable?: bool, omitIfEmptyOnUpdate?: bool,
  *             min?: number, max?: number (type: 'number' only - ตัวเลขต้องเป็นจำนวนเต็มเสมอ (step=1
  *                                 คงที่ ไม่รับทศนิยม) และถ้าใส่ min/max ไว้ ค่าต้องอยู่ในช่วงนั้น เช่น
  *                                 เปอร์เซ็นต์ให้ใส่ min:0, max:100 - เช็คทั้งฝั่ง input (attribute)
  *                                 และตอนบันทึกจริงใน buildPayload ไม่ใช่แค่ HTML attribute เฉยๆ)
+ *             render?: (value, onChange) => ReactNode (เฉพาะ type: 'custom' - ให้ผู้เรียกวาด field เอง
+ *                                 ทั้งหมด เหมือน QuickFormModal.jsx ทุกประการ - required ของ type
+ *                                 'custom' ไม่มี HTML `required` attribute ให้เบราว์เซอร์เช็คเอง (field
+ *                                 ไม่ใช่ input/select ธรรมดา) buildPayload จึงเช็คแทนตอนบันทึก: ค่าว่าง +
+ *                                 required=true → โยน Error ให้ handleSave ดักไปแสดงเหมือน field อื่น)
  *             readOnly?: bool (ล็อกไม่ให้แก้ตอน editingId !== "new" - เช่น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว)
  *             filterable?: bool (select/searchable-select column: default true, ใช้ options เดิม;
  *                                 text/number column: default false, ต้องระบุ true เอง - ตัวเลือกจะ derive จาก rows จริง)
@@ -115,6 +120,9 @@ export default function CrudManager({
       const isEmpty = raw === "" || raw === undefined;
       if (isEmpty && c.omitIfEmptyOnUpdate && editingId !== "new") {
         return; // ไม่ส่ง field นี้เลย -> backend คงค่าเดิมไว้ (เช่น รหัสผ่านไม่เปลี่ยน)
+      }
+      if (isEmpty && c.type === "custom" && c.required) {
+        throw new Error(`กรุณาเลือก "${c.label}" ก่อนบันทึก`);
       }
       if (isEmpty) {
         payload[c.key] = c.nullable ? null : raw;
@@ -359,6 +367,8 @@ export default function CrudManager({
                       required={c.required}
                       disabled={c.readOnly && editingId !== "new"}
                     />
+                  ) : c.type === "custom" ? (
+                    c.render(form[c.key] ?? "", (value) => handleChange(c.key, value))
                   ) : (
                     <input
                       type={c.type === "number" ? "number" : c.type === "password" ? "password" : "text"}
