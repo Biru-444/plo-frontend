@@ -6,8 +6,8 @@ import { Info } from "lucide-react";
  * ตรงๆ แถมกินพื้นที่แนวตั้งสูงมาก - ตัดสินใจร่วมกับผู้ใช้ 2026-09-08 ให้ตัดออกไปเลย ไม่ใช่แค่ย่อขนาด
  *
  * แต่ละ chip กดได้ (toggle - กดซ้ำ = ยกเลิกตัวกรอง) เพื่อกรองรายวิชาฝั่ง StudentYearBreakdown ให้เหลือ
- * เฉพาะวิชาที่เป็น primary ของ PLO ข้อนั้น (ดู courseToPlos ที่ PLOAchievement.jsx สร้างจาก
- * listCoursePLO()) คำอธิบายเต็มของ PLO ย้ายมาไว้ใน title tooltip ของไอคอน (i) แทนการกางข้อความเต็มไว้
+ * เฉพาะวิชาที่มี CLO ผูกกับ PLO ข้อนั้น (ดู courseToPlos ที่ PLOAchievement.jsx สร้างจาก
+ * listCLO()+listCLOPLOMapping()) คำอธิบายเต็มของ PLO ย้ายมาไว้ใน title tooltip ของไอคอน (i) แทนการกางข้อความเต็มไว้
  * ตลอด (ตามที่ตกลงกัน) - ใช้ native title attribute เหมือน PLOCourseBreakdown.jsx ทำอยู่แล้ว ไม่ต้องสร้าง
  * tooltip component ใหม่
  */

@@ -72,18 +72,18 @@ const SECTIONS = [
         icon: Sparkles,
       },
       {
-        to: "/admin/course-plo",
-        label: "รายวิชา-PLO Mapping",
-        sublabel: "เชื่อมโยงรายวิชากับ PLO ที่รับผิดชอบ",
-        icon: Link2,
-      },
-      {
         to: "/admin/course-offerings",
         label: "การเปิดสอน",
         sublabel: "เปิดวิชา กำหนดผู้สอนต่อภาคเรียน",
         icon: CalendarClock,
       },
       { to: "/admin/clo", label: "CLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับรายวิชา", icon: Flag },
+      {
+        to: "/admin/clo-plo-mapping",
+        label: "CLO-PLO Mapping",
+        sublabel: "เชื่อมโยง CLO กับ PLO ที่เกี่ยวข้องโดยตรง",
+        icon: Link2,
+      },
       {
         to: "/admin/assessment-items",
         label: "งานประเมิน",

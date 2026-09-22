@@ -17,6 +17,11 @@ import SearchableSelect from "../SearchableSelect.jsx";
  *                                 ไม่ใช่ input/select ธรรมดา) buildPayload จึงเช็คแทนตอนบันทึก: ค่าว่าง +
  *                                 required=true → โยน Error ให้ handleSave ดักไปแสดงเหมือน field อื่น)
  *             readOnly?: bool (ล็อกไม่ให้แก้ตอน editingId !== "new" - เช่น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว)
+ *             displayOnly?: bool (โชว์แค่ในตาราง ไม่โผล่ในฟอร์มเพิ่ม/แก้ไขเลย ไม่ถูกส่งใน buildPayload
+ *                                 ด้วย - ใช้กับค่าที่ compute/join มาจากที่อื่น เช่น "PLO ที่ผูกไว้" ของ
+ *                                 CLO ที่มาจาก clo_plo_mapping คนละตารางกับ clo เอง ผู้เรียกต้องเตรียม
+ *                                 ค่านี้ไว้ในแต่ละ row เองผ่าน api.list ที่ enrich เพิ่ม ไม่ใช่ field
+ *                                 จริงของตารางหลัก)
  *             filterable?: bool (select/searchable-select column: default true, ใช้ options เดิม;
  *                                 text/number column: default false, ต้องระบุ true เอง - ตัวเลือกจะ derive จาก rows จริง)
  *             filterType?: 'searchable-select' (เฉพาะ column ที่ filterable แต่ type ไม่ใช่ select/
@@ -116,6 +121,7 @@ export default function CrudManager({
   function buildPayload() {
     const payload = {};
     columns.forEach((c) => {
+      if (c.displayOnly) return; // ค่าที่ compute/join มา ไม่ใช่ field จริงของตาราง ไม่ส่งกลับ backend
       const raw = form[c.key];
       const isEmpty = raw === "" || raw === undefined;
       if (isEmpty && c.omitIfEmptyOnUpdate && editingId !== "new") {
@@ -341,7 +347,9 @@ export default function CrudManager({
             </div>
 
             <form className="crud-form" onSubmit={handleSave}>
-              {columns.map((c) => (
+              {columns
+                .filter((c) => !c.displayOnly)
+                .map((c) => (
                 <label key={c.key}>
                   {c.label}
                   {c.type === "select" ? (

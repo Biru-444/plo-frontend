@@ -1,14 +1,18 @@
 /**
  * ทำอะไร : พื้นที่ทำงานหลักของอาจารย์ต่อวิชาที่เปิดสอนหนึ่งวิชา (route /course-workspace) — เลือกวิชา
- *          จาก dropdown แล้วสลับ 4 แท็บ: นักศึกษาลงทะเบียน / โครงสร้างการประเมิน (CLO + งานประเมิน +
- *          mapping น้ำหนัก) / กรอกคะแนน / ผลบรรลุ CLO เป็นไฟล์ที่ใหญ่ที่สุดของโปรเจกต์เพราะรวมทุกงาน
- *          ประจำภาคเรียนของอาจารย์ไว้หน้าเดียว (ไม่ต้องสลับหน้าไปมาระหว่างทำงาน)
+ *          จาก dropdown แล้วสลับ 4 แท็บ: นักศึกษาลงทะเบียน / โครงสร้างการประเมิน (งานประเมิน + ผูกน้ำหนัก
+ *          กับ CLO ที่แอดมินสร้างไว้แล้ว) / กรอกคะแนน / ผลบรรลุ CLO เป็นไฟล์ที่ใหญ่ที่สุดของโปรเจกต์
+ *          เพราะรวมทุกงานประจำภาคเรียนของอาจารย์ไว้หน้าเดียว (ไม่ต้องสลับหน้าไปมาระหว่างทำงาน)
  *
  * เชื่อมกับ : แท็บ "กรอกคะแนน" และ "ผลบรรลุ CLO" ใช้ ScoresPanel/CLOAchievementPanel component ที่ถูก
  *             แยกออกมาให้ AdminCourseGrading.jsx (เวอร์ชันสำหรับ admin) ใช้ร่วมด้วย ส่วนแท็บ
  *             "นักศึกษาลงทะเบียน" ใช้ BulkEnrollPanel ร่วมกับ AdminEnrollments.jsx เช่นกัน — เหลือแค่
  *             แท็บ "โครงสร้างการประเมิน" (StructureTab ด้านล่าง) ที่ยังเป็นโค้ดเฉพาะของไฟล์นี้ เพราะไม่
- *             มีหน้าอื่นต้องการ workflow แบบเดียวกัน (สร้าง CLO หลายแถวพร้อมกัน + ผูกน้ำหนักในหน้าเดียว)
+ *             มีหน้าอื่นต้องการ workflow แบบเดียวกัน (สร้างงานประเมิน + ผูกน้ำหนักกับ CLO ในหน้าเดียว)
+ *
+ *             CLO ของวิชา (สร้าง/แก้ไข/ลบ) ย้ายไปเป็นหน้าที่ของแอดมินทั้งหมดแล้ว (ดู AdminCourse.jsx และ
+ *             แผนการแก้ไขครั้งใหญ่-PLO-CLO.md Workstream 1 ข้อ 2) — StructureTab ด้านล่างแสดง CLO ของ
+ *             วิชาแบบอ่านอย่างเดียว (อ้างอิงตอนผูกงานประเมิน) ไม่มีฟอร์มสร้าง/ปุ่มลบ CLO ในหน้านี้แล้ว
  *
  * ถ้าแก้ : เข้าหน้านี้พร้อม query param ?offering_id=...&tab=... ได้ (เช่นจากปุ่ม "จัดการ CLO และ
  *          เกณฑ์ผ่าน" ในหน้าหลักอาจารย์) เพื่อเปิดตรงวิชา/แท็บที่ต้องการทันที — เพิ่ม tab ใหม่ต้องเพิ่ม
@@ -40,8 +44,6 @@ import {
   createItemCLO,
   deleteItemCLO,
   listCLO,
-  createCLO,
-  deleteCLO,
   listEnrollments,
   createEnrollment,
   deleteEnrollment,
@@ -72,7 +74,7 @@ const TABS = [
     key: "structure",
     label: "โครงสร้างการประเมิน",
     icon: ListChecks,
-    description: "สร้าง CLO ของวิชา ผูกกับ PLO ที่เกี่ยวข้อง แล้วสร้างงานประเมิน (เช่น สอบกลางภาค, ควิซ) มาผูกกับ CLO ที่ต้องการวัด",
+    description: "สร้างงานประเมิน (เช่น สอบกลางภาค, ควิซ) แล้วผูกน้ำหนักกับ CLO ของวิชา (CLO สร้างโดยแอดมินไว้ล่วงหน้าแล้ว)",
   },
   {
     key: "scores",
@@ -238,12 +240,6 @@ export default function CourseOfferingWorkspace() {
     setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
   }
 
-  // โหลด CLO ทั้งระบบใหม่ (เรียกหลังสร้าง/ลบ CLO สำเร็จ - courseCLOs ด้านบนจะกรองเหลือเฉพาะของวิชานี้เอง)
-  async function refreshCLOs() {
-    const clos = await listCLO();
-    setAllCLOs(clos);
-  }
-
   // โหลด mapping ชิ้นงาน<->CLO ใหม่ (เรียกหลังเพิ่ม/ลบ mapping สำเร็จ)
   async function refreshItemCLOs() {
     const allItemClo = await listItemCLO();
@@ -338,7 +334,6 @@ export default function CourseOfferingWorkspace() {
               itemCLOs={itemCLOs}
               onStructureChanged={refreshStructure}
               onItemCLOChanged={refreshItemCLOs}
-              onCLOChanged={refreshCLOs}
             />
           )}
 
@@ -767,7 +762,6 @@ function StructureTab({
   itemCLOs,
   onStructureChanged,
   onItemCLOChanged,
-  onCLOChanged,
 }) {
   // สถานะของฟอร์ม "เพิ่มงานประเมิน"
   const [name, setName] = useState("");
@@ -780,16 +774,6 @@ function StructureTab({
   const [mapCloId, setMapCloId] = useState("");
   const [mapWeight, setMapWeight] = useState("");
   const [mapError, setMapError] = useState("");
-
-  // --- สร้าง CLO หลายแถวพร้อมกัน (batch) - ไม่มีการผูก PLO ต่อ CLO ในหน้านี้อีกต่อไป (ผูกที่ระดับวิชา
-  // แยกต่างหากผ่านหน้า "เชื่อมโยงรายวิชากับ PLO") - code เป็น "CLO{n}" auto-generate จากตำแหน่งแถว ไม่
-  // ให้พิมพ์เอง - n เริ่มต่อจากเลข CLO สูงสุดที่มีอยู่แล้วจริงในวิชานี้ (ไม่ใช่แค่ courseCLOs.length+1
-  // เพราะถ้าเคยลบ CLO กลางๆ ทิ้งไป นับจำนวนเฉยๆ จะชน code เดิมที่ยังอยู่ได้ - ดู existingCloNumberMax
-  // ด้านล่าง)
-  const cloRowIdRef = useRef(1); // 0 ถูกใช้โดยแถวเริ่มต้นด้านล่างไปแล้ว
-  const [cloRows, setCloRows] = useState([{ rowId: 0, description: "", threshold: "", error: "" }]);
-  const [savingCloRows, setSavingCloRows] = useState(false);
-  const [cloFormError, setCloFormError] = useState("");
 
   // แปลง assessmentItems/courseCLOs array เป็น map (id -> object) เพื่อ lookup เร็วตอนแสดงตาราง mapping
   const itemById = useMemo(() => {
@@ -817,120 +801,6 @@ function StructureTab({
   // max ของช่อง input และแสดง hint ใต้ฟอร์ม)
   const mapCloCurrentTotal = mapCloId ? cloWeightTotals[Number(mapCloId)] || 0 : 0;
   const mapCloRemainingWeight = Math.max(0, 100 - mapCloCurrentTotal);
-
-  // เลข CLO สูงสุดที่มีอยู่จริงแล้วในวิชานี้ (จาก code ที่ตรงรูปแบบ "CLO<เลข>" เท่านั้น ไม่สนตัวพิมพ์เล็ก
-  // ใหญ่ - code เก่าที่ตั้งชื่อไม่ตรงรูปแบบนี้เลยจะไม่ถูกนับ แต่ก็ไม่ชนกันเองอยู่แล้วเพราะ code ใหม่ที่สร้าง
-  // จะเป็น "CLO{n}" เป๊ะทุกครั้ง) แถวใหม่แต่ละแถวได้เลขต่อจากนี้ +1, +2, ... ตามตำแหน่งในฟอร์ม
-  const existingCloNumberMax = useMemo(() => {
-    let max = 0;
-    courseCLOs.forEach((c) => {
-      const match = /^CLO(\d+)$/i.exec(c.code ?? "");
-      if (match) max = Math.max(max, Number(match[1]));
-    });
-    return max;
-  }, [courseCLOs]);
-
-  // เพิ่มแถวฟอร์ม CLO ใหม่อีก 1 แถว (rowId เป็นแค่ key ของ React ไม่ใช่รหัส CLO จริง - รหัส CLO จริง
-  // คำนวณตอนบันทึกจาก existingCloNumberMax + ตำแหน่งแถว)
-  function addCloRow() {
-    const rowId = cloRowIdRef.current++;
-    setCloRows((prev) => [...prev, { rowId, description: "", threshold: "", error: "" }]);
-  }
-
-  function removeCloRow(rowId) {
-    setCloRows((prev) => prev.filter((r) => r.rowId !== rowId));
-  }
-
-  // อัปเดตค่าฟอร์มของแถวหนึ่ง (ล้าง error เดิมของแถวนั้นทิ้งเพราะกำลังแก้ใหม่)
-  function updateCloRow(rowId, field, value) {
-    setCloRows((prev) =>
-      prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value, error: "" } : r))
-    );
-  }
-
-  // เกณฑ์ผ่านต้องเป็นจำนวนเต็ม 0-100 เท่านั้น
-  function isValidThresholdInput(value) {
-    if (value === "" || value === null || value === undefined) return false;
-    const n = Number(value);
-    return Number.isInteger(n) && n >= 0 && n <= 100;
-  }
-
-  async function handleSaveCloRows(e) {
-    e.preventDefault();
-    if (cloRows.length === 0 || savingCloRows) return;
-
-    // validate ทุกแถวก่อนยิง request ใดๆ เลย - ถ้ามีแถวไหนไม่ผ่าน แสดง error ที่แถวนั้นแล้วหยุด ไม่ต้อง
-    // สร้างแถวที่ผ่านไปก่อนบางส่วน (กันสร้างครึ่งๆ กลางๆ จากข้อมูลที่ยังกรอกไม่ครบ)
-    let hasInvalid = false;
-    const validatedRows = cloRows.map((row) => {
-      let error = "";
-      if (!row.description.trim()) {
-        error = "กรุณากรอกคำอธิบาย";
-      } else if (!isValidThresholdInput(row.threshold)) {
-        error = "เกณฑ์ผ่านต้องเป็นจำนวนเต็ม 0-100 (ไม่มีทศนิยม)";
-      }
-      if (error) hasInvalid = true;
-      return { ...row, error };
-    });
-    if (hasInvalid) {
-      setCloRows(validatedRows);
-      return;
-    }
-
-    setSavingCloRows(true);
-    const results = await Promise.allSettled(
-      validatedRows.map((row, index) =>
-        createCLO({
-          course_id: courseId,
-          code: `CLO${existingCloNumberMax + index + 1}`,
-          description: row.description.trim(),
-          pass_threshold_percent: Number(row.threshold),
-        })
-      )
-    );
-    setSavingCloRows(false);
-
-    const anyFailed = results.some((r) => r.status === "rejected");
-    if (anyFailed) {
-      // เหลือไว้เฉพาะแถวที่พลาด (แถวที่สำเร็จแล้วขึ้นในตารางด้านล่างไปแล้วจาก onCLOChanged() - ถ้าปล่อย
-      // ให้ยังค้างอยู่ในฟอร์มด้วย กด "บันทึก" ซ้ำจะพยายามสร้างซ้ำด้วย code เดิมที่มีอยู่แล้ว ชนแน่นอน)
-      // ไม่ล้างค่า description/threshold ของแถวที่พลาดทิ้ง ให้แก้แล้วกดบันทึกใหม่ได้เลยไม่ต้องพิมพ์ซ้ำ
-      await onCLOChanged();
-      setCloRows(
-        validatedRows
-          .map((row, index) => {
-            const result = results[index];
-            return result.status === "rejected"
-              ? {
-                  ...row,
-                  error:
-                    result.reason?.response?.data?.detail ||
-                    "สร้าง CLO นี้ไม่สำเร็จ (รหัส CLO นี้อาจมีอยู่แล้วในวิชานี้)",
-                }
-              : null;
-          })
-          .filter(Boolean)
-      );
-      return;
-    }
-
-    await onCLOChanged();
-    setCloRows([{ rowId: cloRowIdRef.current++, description: "", threshold: "", error: "" }]);
-  }
-
-  // ลบ CLO - เตือนชัดเจนว่าจะลบ mapping (item_clo) ที่ผูกอยู่ไปด้วย (cascade ฝั่ง backend)
-  async function handleDeleteCLO(id) {
-    if (
-      !window.confirm("ยืนยันการลบ CLO นี้? การลบจะลบการผูกกับงานประเมินที่มีอยู่ทั้งหมดของ CLO นี้ไปด้วย")
-    )
-      return;
-    try {
-      await deleteCLO(id);
-      await onCLOChanged();
-    } catch (err) {
-      setCloFormError(err?.response?.data?.detail || "ลบ CLO ไม่สำเร็จ");
-    }
-  }
 
   // สร้างงานประเมินใหม่ - คะแนนเต็มต้องเป็นจำนวนเต็มมากกว่า 0
   async function handleAddItem(e) {
@@ -1019,11 +889,9 @@ function StructureTab({
       <div className="workspace-section">
         <h2>CLO ของวิชานี้ (Course Learning Outcome)</h2>
         <p className="workspace-hint-inline">
-          สร้าง CLO ของวิชาก่อน (จะมีกี่ข้อก็ได้) กำหนดเกณฑ์ผ่าน (%) ต่อข้อ จากนั้นค่อยไปสร้างงานประเมิน
-          ผูกกับ CLO ในหัวข้อถัดไป (การเชื่อมโยงกับ PLO ทำที่ระดับวิชาผ่านหน้า "เชื่อมโยงรายวิชากับ PLO"
-          แยกต่างหาก ไม่ใช่ตรงนี้)
+          แอดมินเป็นผู้สร้าง/แก้ไข/ลบ CLO ของวิชา (ดู "จัดการรายวิชา" ในหน้าแอดมิน) หน้านี้แสดงไว้ให้
+          อ้างอิงเลือกตอนสร้างงานประเมิน+ผูกน้ำหนักด้านล่างเท่านั้น หาก CLO ไม่ครบ/ไม่ถูกต้อง ให้แจ้งแอดมิน
         </p>
-        {cloFormError && <p className="error-message">{cloFormError}</p>}
 
         <table className="student-table">
           <thead>
@@ -1031,7 +899,6 @@ function StructureTab({
               <th>รหัส CLO</th>
               <th>คำอธิบาย</th>
               <th>เกณฑ์ผ่าน (%)</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -1040,75 +907,13 @@ function StructureTab({
                 <td className="student-table-cell">{clo.code}</td>
                 <td className="student-table-cell">{clo.description}</td>
                 <td className="student-table-cell">{clo.pass_threshold_percent}</td>
-                <td className="student-table-cell">
-                  <button
-                    type="button"
-                    className="icon-btn-delete"
-                    title="ลบ CLO"
-                    onClick={() => handleDeleteCLO(clo.id)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>
         </table>
         {courseCLOs.length === 0 && (
-          <p className="student-list-empty">วิชานี้ยังไม่มี CLO - สร้างข้อแรกด้านล่างได้เลย</p>
+          <p className="student-list-empty">วิชานี้ยังไม่มี CLO - แจ้งแอดมินให้สร้างก่อน</p>
         )}
-
-        <form onSubmit={handleSaveCloRows} className="clo-multi-row-form">
-          {cloRows.map((row, index) => {
-            const cloNumber = existingCloNumberMax + index + 1;
-            return (
-              <div key={row.rowId} className="clo-multi-row-wrapper">
-                <div className="workspace-inline-form clo-multi-row">
-                  <span className="clo-multi-row-label">CLO{cloNumber}</span>
-                  <div className="form-field">
-                    <label htmlFor={`clo-row-desc-${row.rowId}`}>คำอธิบาย</label>
-                    <input
-                      id={`clo-row-desc-${row.rowId}`}
-                      type="text"
-                      value={row.description}
-                      onChange={(e) => updateCloRow(row.rowId, "description", e.target.value)}
-                    />
-                  </div>
-                  <div className="form-field">
-                    <label htmlFor={`clo-row-threshold-${row.rowId}`}>เกณฑ์ผ่าน (%)</label>
-                    <input
-                      id={`clo-row-threshold-${row.rowId}`}
-                      type="number"
-                      step="1"
-                      min="0"
-                      max="100"
-                      value={row.threshold}
-                      onChange={(e) => updateCloRow(row.rowId, "threshold", e.target.value)}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="icon-btn-delete"
-                    title="ลบแถวนี้"
-                    onClick={() => removeCloRow(row.rowId)}
-                  >
-                    ×
-                  </button>
-                </div>
-                {row.error && <p className="error-message clo-multi-row-error">{row.error}</p>}
-              </div>
-            );
-          })}
-
-          <div className="workspace-inline-form">
-            <button type="button" onClick={addCloRow}>
-              + เพิ่ม CLO
-            </button>
-            <button type="submit" disabled={cloRows.length === 0 || savingCloRows}>
-              {savingCloRows ? "กำลังบันทึก..." : "บันทึก"}
-            </button>
-          </div>
-        </form>
       </div>
 
       <div className="workspace-section">
@@ -1223,7 +1028,7 @@ function StructureTab({
         )}
         {courseCLOs.length === 0 && (
           <p className="workspace-hint-inline">
-            วิชานี้ยังไม่มี CLO เลย - สร้าง CLO ในหัวข้อ "CLO ของวิชานี้" ด้านบนก่อน ถึงจะเลือกผูกที่นี่ได้
+            วิชานี้ยังไม่มี CLO เลย - แจ้งแอดมินให้สร้าง CLO ของวิชานี้ก่อน ถึงจะเลือกผูกที่นี่ได้
           </p>
         )}
 

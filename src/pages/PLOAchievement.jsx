@@ -7,9 +7,12 @@
  *             ถ้ามาจาก URL query param ?student_id=... (เช่น คลิกชื่อนักศึกษาจากหน้ารายชื่อ) จะค้นหา
  *             ให้อัตโนมัติทันทีที่เปิดหน้า
  *
- * ถ้าแก้ : courseToPlos คำนวณฝั่ง frontend จาก listCoursePLO() (ไม่มี backend endpoint ใหม่) เพื่อให้
- *          PLO chip กรองรายวิชาได้ — ถ้า backend เปลี่ยนความหมายของ responsibility_level ต้องแก้ filter
- *          ตรงนี้ให้ตรงกับ _build_plo_requirements ใน plo_calculation.py ด้วย
+ * ถ้าแก้ : courseToPlos คำนวณฝั่ง frontend จาก listCLO()+listCLOPLOMapping() (ไม่มี backend endpoint
+ *          ใหม่) เพื่อให้ PLO chip กรองรายวิชาได้ - วิชาหนึ่งเกี่ยวกับ PLO ข้อหนึ่งถ้ามี CLO ข้อใดของวิชา
+ *          นั้นผูกกับ PLO นั้นผ่าน clo_plo_mapping (เปลี่ยนจาก course_plo/responsibility_level='primary'
+ *          เดิมมาเป็นระดับ CLO แล้ว - ดู แผนการแก้ไขครั้งใหญ่-PLO-CLO.md Workstream 1 ข้อ 4 - ถ้า backend
+ *          เปลี่ยนที่มาของ "อะไรนับเป็นหลักฐานของ PLO" ต้องแก้ตรงนี้ให้ตรงกับ _build_plo_requirements ใน
+ *          plo_calculation.py ด้วย
  */
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -18,7 +21,8 @@ import {
   getStudent,
   getStudentPLOAchievement,
   getStudentYLOAchievement,
-  listCoursePLO,
+  listCLO,
+  listCLOPLOMapping,
 } from "../api/client.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import StudentProfileCard from "../components/StudentProfileCard.jsx";
@@ -78,21 +82,23 @@ export default function PLOAchievement() {
         .then((data) => setYloYears(data.years))
         .catch(() => {});
 
-      // สร้าง course_id -> Set(plo_code) จาก course_plo (เฉพาะ primary) เพื่อให้กด PLO chip แล้วกรอง
-      // รายวิชาฝั่งขวาได้ - ทำ client-side จาก endpoint ที่มีอยู่แล้ว (listCoursePLO) ไม่ต้องเพิ่ม backend
-      // ใหม่ ผูก plo_id -> plo_code จาก achievement.plo_achievements ที่ได้มาแล้วด้านบน
+      // สร้าง course_id -> Set(plo_code) จาก clo_plo_mapping (ระดับ CLO) เพื่อให้กด PLO chip แล้วกรอง
+      // รายวิชาฝั่งขวาได้ - วิชาหนึ่งเกี่ยวกับ PLO ข้อหนึ่งถ้ามี CLO ข้อใดของวิชานั้นผูกกับ PLO นั้น ทำ
+      // client-side จาก endpoint ที่มีอยู่แล้ว (listCLO + listCLOPLOMapping) ไม่ต้องเพิ่ม backend ใหม่
+      // ผูก plo_id -> plo_code จาก achievement.plo_achievements ที่ได้มาแล้วด้านบน
       const ploCodeByPloId = Object.fromEntries(
         achievement.plo_achievements.map((p) => [p.plo_id, p.plo_code])
       );
-      listCoursePLO()
-        .then((rows) => {
+      Promise.all([listCLO(), listCLOPLOMapping()])
+        .then(([clos, mappings]) => {
+          const courseIdByCloId = Object.fromEntries(clos.map((c) => [c.id, c.course_id]));
           const map = {};
-          rows.forEach((cp) => {
-            if (cp.responsibility_level !== "primary") return;
-            const code = ploCodeByPloId[cp.plo_id];
-            if (!code) return;
-            if (!map[cp.course_id]) map[cp.course_id] = new Set();
-            map[cp.course_id].add(code);
+          mappings.forEach((m) => {
+            const code = ploCodeByPloId[m.plo_id];
+            const courseId = courseIdByCloId[m.clo_id];
+            if (!code || !courseId) return;
+            if (!map[courseId]) map[courseId] = new Set();
+            map[courseId].add(code);
           });
           setCourseToPlos(map);
         })

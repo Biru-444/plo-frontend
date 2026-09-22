@@ -429,25 +429,31 @@ export async function deleteYLOPLOMapping(id) {
   await api.delete(`/ylo-plo-mapping/${id}`);
 }
 
-// --- Course-PLO Mapping ---
+// course_plo (mapping วิชา<->PLO ระดับ responsibility_level) ไม่มี client function แล้ว - หน้า
+// /admin/course-plo ที่เคยจัดการตารางนี้ถูกแทนที่ด้วย /admin/clo-plo-mapping (AdminCLOPLOMapping.jsx)
+// ทั้งหมดแล้ว เพราะ backend เปลี่ยนไปคำนวณจาก clo_plo_mapping (ดู "CLO-PLO Mapping" ด้านล่าง) ไม่ใช่
+// course_plo อีกต่อไป - ตาราง course_plo ฝั่ง backend ยังไม่ได้ลบ (เก็บไว้แสดง curriculum mapping
+// ระดับหลักสูตรเฉยๆ) แต่ไม่มีหน้าจอไหนอ่าน/เขียนผ่าน frontend แล้ว
 
-export async function listCoursePLO() {
-  const { data } = await api.get("/course-plo");
+// --- CLO-PLO Mapping (เชื่อมโยงระดับ CLO โดยตรง - ตัวที่ใช้คำนวณ % บรรลุ PLO จริงตอนนี้ แทนที่
+// course-plo ด้านบนซึ่งเหลือไว้แค่แสดง curriculum mapping ระดับหลักสูตรเท่านั้น) ---
+
+/**
+ * filters (optional): { clo_id, plo_id } - ไม่ใส่ = คืนทุก mapping ในระบบ
+ * Backend: GET /clo-plo-mapping?clo_id=&plo_id=
+ */
+export async function listCLOPLOMapping(filters = {}) {
+  const { data } = await api.get("/clo-plo-mapping", { params: filters });
   return data;
 }
 
-export async function createCoursePLO(payload) {
-  const { data } = await api.post("/course-plo", payload);
+export async function createCLOPLOMapping(payload) {
+  const { data } = await api.post("/clo-plo-mapping", payload);
   return data;
 }
 
-export async function updateCoursePLO(id, payload) {
-  const { data } = await api.put(`/course-plo/${id}`, payload);
-  return data;
-}
-
-export async function deleteCoursePLO(id) {
-  await api.delete(`/course-plo/${id}`);
+export async function deleteCLOPLOMapping(id) {
+  await api.delete(`/clo-plo-mapping/${id}`);
 }
 
 // --- Study Plan ---

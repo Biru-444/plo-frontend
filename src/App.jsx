@@ -20,7 +20,7 @@ import AdminPLO from "./pages/admin/AdminPLO.jsx";
 import AdminYLO from "./pages/admin/AdminYLO.jsx";
 import AdminYLOPLOMapping from "./pages/admin/AdminYLOPLOMapping.jsx";
 import AdminCourse from "./pages/admin/AdminCourse.jsx";
-import AdminCoursePLO from "./pages/admin/AdminCoursePLO.jsx";
+import AdminCLOPLOMapping from "./pages/admin/AdminCLOPLOMapping.jsx";
 import AdminStudyPlan from "./pages/admin/AdminStudyPlan.jsx";
 import AdminCourseOffering from "./pages/admin/AdminCourseOffering.jsx";
 import AdminCLO from "./pages/admin/AdminCLO.jsx";
@@ -254,13 +254,15 @@ export default function App() {
           </AppLayout>
         }
       />
-      {/* จัดการ mapping วิชา<->PLO (responsibility_level primary/secondary) — admin เท่านั้น */}
+      {/* เชื่อมโยง CLO กับ PLO โดยตรง (แทนที่ /admin/course-plo เดิม - สถาปัตยกรรมคำนวณเปลี่ยนไปใช้
+          clo_plo_mapping ระดับ CLO แล้ว ดู แผนการแก้ไขครั้งใหญ่-PLO-CLO.md Workstream 1 ข้อ 4) —
+          admin เท่านั้น */}
       <Route
-        path="/admin/course-plo"
+        path="/admin/clo-plo-mapping"
         element={
           <AppLayout>
             <ProtectedRoute requireAdmin>
-              <AdminCoursePLO />
+              <AdminCLOPLOMapping />
             </ProtectedRoute>
           </AppLayout>
         }

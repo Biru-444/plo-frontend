@@ -23,10 +23,10 @@ const PLO_CATEGORY_OPTIONS = [
 const PLO_OTHER_CATEGORY_VALUE = "__other__";
 
 /**
- * ช่อง "ประเภท" ของฟอร์ม PLO - ปุ่มเลือกเดียว (pill) ตายตัว 4 ตัวเลือก + "อื่นๆ" เหมือน
- * CourseCategoryField ใน CurriculumCourses.jsx (ปุ่มหมวดหมู่ของวิชา) ทุกประการ ยกเว้นฟิลด์นี้บังคับ
- * เลือกเสมอ (ต่างจากหมวดหมู่วิชาที่ optional) - validation "ต้องเลือกก่อนบันทึก" อยู่ที่
- * CrudManager.buildPayload (ดู required: true ของ column นี้ด้านล่าง)
+ * ช่อง "ประเภท" ของฟอร์ม PLO - dropdown ตายตัว 4 ตัวเลือก + "อื่นๆ" (เดิมเป็นปุ่ม pill แต่ล้นขอบจอ
+ * บนหน้าจอแคบ เปลี่ยนเป็น dropdown ตามที่ผู้ใช้ยืนยัน 2026-09-22 - ดู
+ * แผนการแก้ไขครั้งใหญ่-PLO-CLO.md Workstream 1 ข้อ 1) ฟิลด์นี้บังคับเลือกเสมอ - validation
+ * "ต้องเลือกก่อนบันทึก" อยู่ที่ CrudManager.buildPayload (ดู required: true ของ column นี้ด้านล่าง)
  *
  * ถ้าค่าเดิมตอนเปิดฟอร์มแก้ไขไม่ตรงกับ 4 ตัวเลือกแรกเป๊ะๆ (เช่นค่า backfill ตอน migration 'อื่นๆ' หรือ
  * ข้อความอิสระอื่น) ให้เริ่มที่โหมด "อื่นๆ" พร้อม prefill ค่าดิบเดิมในช่องพิมพ์ทันที - เช็คตอน mount
@@ -37,7 +37,8 @@ function PLOCategoryField({ value, onChange }) {
     () => value !== "" && !PLO_CATEGORY_OPTIONS.some((opt) => opt.value === value)
   );
 
-  function handleSelect(selected) {
+  function handleSelect(e) {
+    const selected = e.target.value;
     if (selected === PLO_OTHER_CATEGORY_VALUE) {
       setIsOther(true);
       onChange(""); // เคลียร์ค่าเดิม (ที่ตรงกับตัวเลือกก่อนหน้า) กันค้างไว้เงียบๆ จนกว่าจะพิมพ์ใหม่
@@ -51,25 +52,17 @@ function PLOCategoryField({ value, onChange }) {
 
   return (
     <>
-      <div className="plo-filter-pills">
+      <select value={current} onChange={handleSelect} required>
+        <option value="" disabled>
+          -- เลือกประเภท --
+        </option>
         {PLO_CATEGORY_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            type="button"
-            className={`plo-filter-pill ${current === opt.value ? "active" : ""}`}
-            onClick={() => handleSelect(opt.value)}
-          >
+          <option key={opt.value} value={opt.value}>
             {opt.label}
-          </button>
+          </option>
         ))}
-        <button
-          type="button"
-          className={`plo-filter-pill ${current === PLO_OTHER_CATEGORY_VALUE ? "active" : ""}`}
-          onClick={() => handleSelect(PLO_OTHER_CATEGORY_VALUE)}
-        >
-          อื่นๆ
-        </button>
-      </div>
+        <option value={PLO_OTHER_CATEGORY_VALUE}>อื่นๆ</option>
+      </select>
       {isOther && (
         <input
           type="text"
