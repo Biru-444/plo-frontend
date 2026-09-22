@@ -2484,6 +2484,112 @@ tr.student-table-row.expandable:hover {
   font-size: 0.9rem;
 }
 
+/* รายการ flag ของหน้านำเข้าวิชาจาก มคอ.3 (AdminCourseImportMCO3.jsx) - severe = duplicate_course_code/
+   curriculum_mismatch (แดง เด่นกว่า), normal = flag อื่นทั้งหมด (ส้ม ข้อมูลประกอบ ไม่บล็อกอะไร) */
+.mco3-flag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.mco3-flag {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border-left: 4px solid;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.mco3-flag svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mco3-flag-normal {
+  background: var(--color-orange-100);
+  border-left-color: var(--color-orange-700);
+  color: var(--color-orange-700);
+}
+
+.mco3-flag-severe {
+  background: var(--color-red-100);
+  border-left-color: var(--color-red-700);
+  color: var(--color-red-700);
+  font-weight: 600;
+}
+
+.mco3-flag-type {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+  margin-bottom: 2px;
+}
+
+/* ยืนยันตัวเองก่อนบันทึกต่อ ตอนมี flag curriculum_mismatch - ต้องติ๊กก่อนปุ่ม "ยืนยันบันทึก" ถึงจะกดได้ */
+.mco3-ack-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--color-red-50);
+  border: 1px solid var(--color-red-700);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.mco3-ack-box input[type="checkbox"] {
+  margin-top: 3px;
+}
+
+/* แถว CLO ที่แก้ไขได้ของหน้านำเข้าวิชา - เหมือน .clo-multi-row ของ CourseOfferingWorkspace แต่มีช่อง
+   code แก้ได้เอง (ไม่ auto-generate) + select domain + PLO chip picker ต่อท้ายแถว */
+.mco3-clo-row {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--color-surface-soft);
+}
+
+.mco3-clo-row-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.mco3-clo-row-fields .form-field-grow {
+  flex: 1;
+  min-width: 240px;
+}
+
+.mco3-course-category-field {
+  margin-top: 12px;
+}
+
+.mco3-clo-row-plos {
+  margin-top: 10px;
+}
+
+.mco3-clo-row-plos-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--color-gray-600);
+  margin-bottom: 6px;
+}
+
+.mco3-plo-chip {
+  font-size: 0.8rem;
+}
+
 .upload-result-list {
   display: flex;
   flex-direction: column;

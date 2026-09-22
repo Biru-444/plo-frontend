@@ -29,6 +29,7 @@ import AdminItemCLO from "./pages/admin/AdminItemCLO.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminEnrollments from "./pages/admin/AdminEnrollments.jsx";
 import AdminRosterImport from "./pages/admin/AdminRosterImport.jsx";
+import AdminCourseImportMCO3 from "./pages/admin/AdminCourseImportMCO3.jsx";
 import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
 import AdminCourseGrading from "./pages/admin/AdminCourseGrading.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -349,6 +350,18 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute requireAdmin>
               <AdminRosterImport />
+            </ProtectedRoute>
+          </AppLayout>
+        }
+      />
+      {/* นำเข้าข้อมูลวิชาจาก มคอ.3 ด้วย AI (Phase 1 แกะข้อมูล + Phase 2 บันทึกจริงในหน้าเดียว) — admin
+          เท่านั้น เพราะเป็นงานเตรียมข้อมูลหลักสูตร/วิชาระดับระบบ */}
+      <Route
+        path="/admin/course-import-mco3"
+        element={
+          <AppLayout>
+            <ProtectedRoute requireAdmin>
+              <AdminCourseImportMCO3 />
             </ProtectedRoute>
           </AppLayout>
         }

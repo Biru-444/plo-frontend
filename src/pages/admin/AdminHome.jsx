@@ -25,6 +25,7 @@ import {
   UserCog,
   PencilLine,
   FileSpreadsheet,
+  Sparkles,
   ArrowRight,
   Info,
 } from "lucide-react";
@@ -64,6 +65,12 @@ const SECTIONS = [
       "จัดการรายวิชา การเปิดสอน และโครงสร้างการประเมิน (CLO/งานประเมิน) ทีละรายการ - ถ้าต้องการกรอกคะแนน/ดูผลบรรลุ CLO ของวิชาหนึ่งในหน้าเดียว ใช้การ์ด \"กรอกคะแนน / ผลบรรลุ CLO\" ด้านบนแทน",
     items: [
       { to: "/admin/course", label: "รายวิชา", sublabel: "รหัส ชื่อ หน่วยกิตรายวิชา", icon: BookMarked },
+      {
+        to: "/admin/course-import-mco3",
+        label: "นำเข้าวิชาจาก มคอ.3 ด้วย AI",
+        sublabel: "อัปโหลด .pdf/.docx แกะวิชา+CLO+PLO mapping ให้ตรวจก่อนบันทึก",
+        icon: Sparkles,
+      },
       {
         to: "/admin/course-plo",
         label: "รายวิชา-PLO Mapping",

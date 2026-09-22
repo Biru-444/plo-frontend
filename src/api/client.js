@@ -637,3 +637,34 @@ export async function importRoster(file, dryRun) {
   });
   return data;
 }
+
+// --- Course Import จาก มคอ.3 ด้วย AI (Phase 1: แกะข้อมูล, Phase 2: บันทึกจริง) ---
+
+/**
+ * Phase 1 - ส่งไฟล์ มคอ.3 (.pdf หรือ .docx) + หลักสูตรเป้าหมาย ให้ Gemini แกะข้อมูลวิชา/CLO/
+ * CLO-PLO mapping ออกมาเป็น JSON ให้ตรวจสอบก่อนเสมอ (ไม่บันทึกอะไรลง DB) Backend: POST
+ * /courses/import-from-mco3 (multipart/form-data), admin เท่านั้น timeout ยาวกว่า request ปกติมาก
+ * (60 วินาที ไม่ใช่ 10 วินาทีเริ่มต้นของ `api`) เพราะเรียก Gemini จริง เคยวัดได้นานสุดถึง ~76 วินาที
+ * ตอนทดสอบ
+ */
+export async function importCourseFromMco3(file, curriculumId) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("curriculum_id", curriculumId);
+  const { data } = await api.post("/courses/import-from-mco3", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: 90000,
+  });
+  return data;
+}
+
+/**
+ * Phase 2 - บันทึกผลลัพธ์ที่แอดมินตรวจ/แก้ไขแล้วจาก Phase 1 เป็น Course + CLO + CLOPLOMapping จริง
+ * ไม่เรียก Gemini ซ้ำ ไม่แตะไฟล์ต้นฉบับอีกแล้ว - payload ต้องตรงตาม CourseImportSaveRequest ฝั่ง
+ * backend เป๊ะ (ไม่มี category_raw/instructor_name/semester_display/flags - ตัดทิ้งไปแล้วตอนแก้ไข
+ * ในฟอร์ม ไม่ใช่ field ที่ backend ยอมรับ) Backend: POST /courses/import-from-mco3/save, admin เท่านั้น
+ */
+export async function saveCourseFromMco3(payload) {
+  const { data } = await api.post("/courses/import-from-mco3/save", payload);
+  return data;
+}
