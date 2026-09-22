@@ -8,9 +8,13 @@
  *             table ไม่มี field ให้แก้นอกจาก clo_id/plo_id เอง ผูกใหม่/ถอดทำผ่าน POST/DELETE เท่านั้น)
  *             route มาจาก App.jsx เส้นทาง "/admin/clo-plo-mapping" (admin เท่านั้น)
  *
- * ถ้าแก้ : ผูก CLO-PLO คู่ใหม่ตอนนี้ยังไม่มีช่องกรอกน้ำหนัก (weight_percent) - จะเพิ่มใน Workstream 3
- *          พร้อม auto-fill เกลี่ยเท่ากันตอนผูกใหม่ ยังไม่ใช่ตอนนี้ - course_plo (หน้าเดิม) ยังไม่ได้ลบทิ้ง
- *          ฝั่ง backend เก็บไว้ใช้แสดง curriculum mapping ระดับหลักสูตรเท่านั้น ไม่ใช้คำนวณแล้ว
+ * ถ้าแก้ : ผูก CLO-PLO คู่ใหม่ - weight_percent auto-fill เกลี่ยเท่ากันเองฝั่ง backend เสมอ (ไม่มีช่อง
+ *          กรอกตอน "เพิ่ม" เลย ดู columns ด้านล่าง - editOnly: true) แก้ทีหลังได้ผ่านปุ่ม "แก้ไข" (PUT
+ *          /clo-plo-mapping/{id} - ไม่ trigger การเกลี่ยของคู่อื่นของ CLO เดียวกัน) clo_id/plo_id เป็น
+ *          readOnly ตอนแก้ไข (เปลี่ยนคู่ทำผ่านลบ+สร้างใหม่ ไม่ใช่แก้ - ดู
+ *          CLOPLOMappingUpdateSchema ฝั่ง backend ที่มีแค่ weight_percent field เดียว) course_plo
+ *          (หน้าเดิม) ยังไม่ได้ลบทิ้ง ฝั่ง backend เก็บไว้ใช้แสดง curriculum mapping ระดับหลักสูตรเท่านั้น
+ *          ไม่ใช้คำนวณแล้ว
  *
  *          crossFieldCheck (Workstream 4) เตือน real-time ตอนเลือกครบทั้ง CLO และ PLO ว่า domain/
  *          category ตรงกันไหม โดยเรียก GET /clo-plo-mapping/domain-check ให้ backend เป็นคนตัดสิน
@@ -28,6 +32,7 @@ import {
   listPLO,
   listCLOPLOMapping,
   createCLOPLOMapping,
+  updateCLOPLOMapping,
   deleteCLOPLOMapping,
   checkCLOPLODomainMatch,
 } from "../../api/client.js";
@@ -65,15 +70,44 @@ export default function AdminCLOPLOMapping() {
   }, []);
 
   const columns = [
-    { key: "clo_id", label: "CLO", type: "searchable-select", options: cloOptions, required: true },
-    { key: "plo_id", label: "PLO (ผลลัพธ์ระดับหลักสูตร)", type: "select", options: ploOptions, required: true },
+    {
+      key: "clo_id",
+      label: "CLO",
+      type: "searchable-select",
+      options: cloOptions,
+      required: true,
+      readOnly: true, // เปลี่ยนคู่ทำผ่านลบ+สร้างใหม่ ไม่ใช่แก้ไข
+    },
+    {
+      key: "plo_id",
+      label: "PLO (ผลลัพธ์ระดับหลักสูตร)",
+      type: "select",
+      options: ploOptions,
+      required: true,
+      readOnly: true,
+    },
+    {
+      key: "weight_percent",
+      label: "น้ำหนัก (%)",
+      type: "number",
+      decimal: true,
+      min: 0.01,
+      max: 100,
+      required: true,
+      editOnly: true, // ไม่มีช่องกรอกตอน "เพิ่ม" เลย - backend auto-fill เกลี่ยเท่ากันเองเสมอ
+    },
   ];
 
   return (
     <CrudManager
       title="เชื่อมโยง CLO กับ PLO"
       columns={columns}
-      api={{ list: listCLOPLOMapping, create: createCLOPLOMapping, remove: deleteCLOPLOMapping }}
+      api={{
+        list: listCLOPLOMapping,
+        create: createCLOPLOMapping,
+        update: updateCLOPLOMapping,
+        remove: deleteCLOPLOMapping,
+      }}
       crossFieldCheck={CLO_PLO_CROSS_FIELD_CHECK}
     />
   );

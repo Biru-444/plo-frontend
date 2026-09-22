@@ -10,9 +10,10 @@ export function matchesSearch(query, ...fields) {
   return fields.some((f) => (f ?? "").toLowerCase().includes(q));
 }
 
-// ช่วง % บรรลุ - หมายเหตุ: ภายใต้กติกาปัจจุบัน (all-or-nothing ทั้ง PLO และ YLO ต่อนักศึกษา 1 คน)
-// achieved_percent มีค่าได้แค่ 0 หรือ 100 เท่านั้น ช่วง 1-49%/50-99% จึงจะไม่มีผลลัพธ์เลยเสมอในทางปฏิบัติ
-// ทุกวันนี้ - คงตัวเลือกไว้ให้ครบตามที่ขอ (ไม่เสียหายอะไร) เผื่ออนาคตกติกาการคำนวณเปลี่ยนเป็นแบบ partial
+// ช่วง % บรรลุ - ใช้ร่วมกันทั้งหน้า PLO (PLOStudentBreakdown.jsx) และ YLO (YLOStudentBreakdown.jsx)
+// แต่สองอย่างนี้ไม่เหมือนกันแล้วตั้งแต่ Workstream 3: PLO เปลี่ยนเป็นคะแนนถ่วงน้ำหนักต่อเนื่อง (0-100
+// จริง) ช่วง 1-49%/50-99% จึงมีผลลัพธ์จริงแล้ว - ส่วน YLO ยังเป็น all-or-nothing เหมือนเดิม (ไม่ได้
+// เปลี่ยนตาม ดู ylo_calculation.py) achieved_percent ของ YLO เลยยังมีค่าได้แค่ 0 หรือ 100 เท่านั้น
 export const PERCENT_BUCKET_OPTIONS = [
   { value: "all", label: "ทั้งหมด" },
   { value: "0", label: "0%" },

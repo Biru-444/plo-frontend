@@ -447,8 +447,18 @@ export async function listCLOPLOMapping(filters = {}) {
   return data;
 }
 
+// weight_percent ไม่ได้ส่งใน payload เลย (ไม่มี field นี้ใน CLOPLOMappingCreateSchema ฝั่ง backend) -
+// backend auto-fill เกลี่ยเท่ากันเองเสมอตอนสร้างคู่ใหม่ (Workstream 3) แก้ทีหลังได้ผ่าน
+// updateCLOPLOMapping เท่านั้น
 export async function createCLOPLOMapping(payload) {
   const { data } = await api.post("/clo-plo-mapping", payload);
+  return data;
+}
+
+// แก้ได้แค่ weight_percent เท่านั้น (ดู CLOPLOMappingUpdateSchema ฝั่ง backend) - ไม่ trigger การเกลี่ย
+// น้ำหนักของคู่อื่นของ CLO เดียวกัน (ต่างจาก create/delete)
+export async function updateCLOPLOMapping(id, payload) {
+  const { data } = await api.put(`/clo-plo-mapping/${id}`, payload);
   return data;
 }
 

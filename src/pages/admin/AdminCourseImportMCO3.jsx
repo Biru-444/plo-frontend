@@ -11,12 +11,18 @@
  *             Phase 1 ซ้ำตอนกดยืนยัน (ต่างจาก AdminRosterImport.jsx ที่ dry-run/commit เรียก endpoint
  *             เดียวกันซ้ำด้วยไฟล์เดิม เพราะไฟล์ roster deterministic แต่ผลลัพธ์ AI ต้องให้คนแก้ก่อนเสมอ)
  *
- * ถ้าแก้ : แต่ละแถว CLO เก็บ ploCodes (Set ของรหัส PLO ที่ผูกไว้) เป็น field บนตัว row เอง คีย์ด้วย
- *          rowId ที่คงที่ตลอด ไม่ใช่ code - แก้รหัส CLO ของแถวนั้นจึงไม่ทำให้ mapping ที่เลือกไว้หลุด
- *          ลบแถว CLO ก็ลบ mapping ของแถวนั้นไปด้วยในตัว (เป็น field เดียวกัน ไม่ต้อง cascade แยก) —
- *          flags[]/instructor_name/semester_display ที่ Phase 1 ส่งมา **ห้ามส่งต่อไป Phase 2 เด็ดขาด**
- *          (ไม่มีคอลัมน์ปลายทางให้เก็บ ดู CourseImportSaveRequest ฝั่ง backend) — payload ที่ส่งไป
- *          Phase 2 ต้อง trim/derive จาก state ที่นี่เท่านั้น
+ * ถ้าแก้ : แต่ละแถว CLO เก็บ ploWeights ({ [plo_code]: weight_percent }) เป็น field บนตัว row เอง
+ *          คีย์ด้วย rowId ที่คงที่ตลอด ไม่ใช่ code - แก้รหัส CLO ของแถวนั้นจึงไม่ทำให้ mapping ที่เลือก
+ *          ไว้หลุด ลบแถว CLO ก็ลบ mapping ของแถวนั้นไปด้วยในตัว (เป็น field เดียวกัน ไม่ต้อง cascade
+ *          แยก) — flags[]/instructor_name/semester_display ที่ Phase 1 ส่งมา **ห้ามส่งต่อไป Phase 2
+ *          เด็ดขาด** (ไม่มีคอลัมน์ปลายทางให้เก็บ ดู CourseImportSaveRequest ฝั่ง backend) — payload ที่
+ *          ส่งไป Phase 2 ต้อง trim/derive จาก state ที่นี่เท่านั้น
+ *
+ *          weight_percent (Workstream 3) : Phase 1/Gemini ไม่รู้จัก field นี้เลย (ดู
+ *          MCO3CLOPLOMappingItem ฝั่ง backend - แยกจาก MCO3CLOPLOMappingSaveItem ที่ใช้ตอน Phase 2)
+ *          toggleCloPlo เกลี่ยเท่ากันเองทุกครั้งที่ติ๊ก/ถอด PLO ของแถวนั้น (evenWeightPercent - สูตร
+ *          เดียวกับ _rebalance_clo_weights_evenly ฝั่ง backend) updateCloPloWeight แก้เองด้วยมือได้ทีหลัง
+ *          ทีละคู่ ไม่กระทบคู่อื่น - handleSave เช็คว่าทุกน้ำหนักต้อง > 0 และ <= 100 ก่อนส่ง Phase 2 เสมอ
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Sparkles, Upload } from "lucide-react";
@@ -37,6 +43,13 @@ const FIXED_CATEGORY_OPTIONS = ["วิชาแกน", "วิชาบัง�
 const OTHER_CATEGORY_VALUE = "__other__";
 
 const SEVERE_FLAG_TYPES = new Set(["duplicate_course_code", "curriculum_mismatch"]);
+
+// เกลี่ยน้ำหนักเท่ากันสำหรับ CLO 1 แถว ตอนติ๊ก/ถอด PLO (Workstream 3) - ปัดเหลือ 2 ตำแหน่งทศนิยม เหมือน
+// _rebalance_clo_weights_evenly ฝั่ง backend (app/routes/clo_plo_mapping.py) ทุกประการ เพื่อให้พฤติกรรม
+// ตรงกัน ไม่ว่าจะผูกผ่านหน้านี้หรือหน้า AdminCLOPLOMapping.jsx
+function evenWeightPercent(count) {
+  return Math.round((100 / count) * 100) / 100;
+}
 
 const FLAG_TYPE_LABEL = {
   category_mismatch: "หมวดหมู่วิชาไม่ตรง",
@@ -228,17 +241,21 @@ export default function AdminCourseImportMCO3() {
       setCategory(result.category_mapped || result.category_raw || "");
       setFlags(result.flags || []);
 
-      const rows = (result.clos || []).map((clo) => ({
-        rowId: cloRowIdRef.current++,
-        code: clo.code || "",
-        description: clo.description || "",
-        domain: clo.domain || "",
-        ploCodes: new Set(
-          (result.clo_plo_mapping || [])
-            .filter((m) => m.clo_code === clo.code)
-            .map((m) => m.plo_code)
-        ),
-      }));
+      const rows = (result.clos || []).map((clo) => {
+        const ploCodes = (result.clo_plo_mapping || [])
+          .filter((m) => m.clo_code === clo.code)
+          .map((m) => m.plo_code);
+        // เกลี่ยเท่ากันตั้งแต่แรกที่แกะมาจาก Gemini (Phase 1 ไม่รู้จัก weight เลย - ดู
+        // MCO3CLOPLOMappingItem) เหมือนกับว่าแอดมินเพิ่งผูกคู่เหล่านี้เองทีละคู่
+        const weight = ploCodes.length > 0 ? evenWeightPercent(ploCodes.length) : null;
+        return {
+          rowId: cloRowIdRef.current++,
+          code: clo.code || "",
+          description: clo.description || "",
+          domain: clo.domain || "",
+          ploWeights: Object.fromEntries(ploCodes.map((code) => [code, weight])),
+        };
+      });
       setCloRows(rows);
       setExtracted(true);
     } catch (err) {
@@ -254,22 +271,37 @@ export default function AdminCourseImportMCO3() {
     setCloRows((prev) => prev.map((r) => (r.rowId === rowId ? { ...r, [field]: value } : r)));
   }
 
+  // ติ๊ก/ถอด PLO ให้ CLO แถวนี้ - หลังเปลี่ยนชุด PLO แล้ว เกลี่ยน้ำหนักของทุกคู่ที่เหลือ (รวมคู่ใหม่ที่
+  // เพิ่งติ๊กด้วย) ให้เท่ากันเสมอ ทับค่าที่เคยแก้มือไว้ (auto-fill เกลี่ยเท่ากันเสมอตอนโครงสร้างเปลี่ยน -
+  // เหมือน _rebalance_clo_weights_evenly ฝั่ง backend)
   function toggleCloPlo(rowId, ploCode) {
     setCloRows((prev) =>
       prev.map((r) => {
         if (r.rowId !== rowId) return r;
-        const next = new Set(r.ploCodes);
-        if (next.has(ploCode)) next.delete(ploCode);
-        else next.add(ploCode);
-        return { ...r, ploCodes: next };
+        const nextCodes = r.ploWeights[ploCode] !== undefined
+          ? Object.keys(r.ploWeights).filter((c) => c !== ploCode)
+          : [...Object.keys(r.ploWeights), ploCode];
+        if (nextCodes.length === 0) return { ...r, ploWeights: {} };
+        const weight = evenWeightPercent(nextCodes.length);
+        return { ...r, ploWeights: Object.fromEntries(nextCodes.map((c) => [c, weight])) };
       })
+    );
+  }
+
+  // แก้น้ำหนักของคู่เดียวด้วยมือ - ไม่ rebalance คู่อื่นของแถวเดียวกันตาม (เหมือน PUT
+  // /clo-plo-mapping/{id} ฝั่ง backend ที่ไม่ trigger การเกลี่ยคู่พี่น้อง)
+  function updateCloPloWeight(rowId, ploCode, value) {
+    setCloRows((prev) =>
+      prev.map((r) =>
+        r.rowId === rowId ? { ...r, ploWeights: { ...r.ploWeights, [ploCode]: value } } : r
+      )
     );
   }
 
   function addCloRow() {
     setCloRows((prev) => [
       ...prev,
-      { rowId: cloRowIdRef.current++, code: "", description: "", domain: "", ploCodes: new Set() },
+      { rowId: cloRowIdRef.current++, code: "", description: "", domain: "", ploWeights: {} },
     ]);
   }
 
@@ -305,6 +337,13 @@ export default function AdminCourseImportMCO3() {
       setFormError('มี flag "เอกสารอาจเป็นของหลักสูตรอื่น" - กรุณาติ๊กยืนยันด้านล่างก่อนบันทึก');
       return;
     }
+    const hasInvalidWeight = cloRows.some((r) =>
+      Object.values(r.ploWeights).some((w) => !(Number(w) > 0) || Number(w) > 100)
+    );
+    if (hasInvalidWeight) {
+      setFormError("น้ำหนักของทุกคู่ CLO-PLO ต้องเป็นตัวเลขมากกว่า 0 และไม่เกิน 100");
+      return;
+    }
 
     const payload = {
       curriculum_id: Number(curriculumId),
@@ -319,7 +358,11 @@ export default function AdminCourseImportMCO3() {
         domain: r.domain || null,
       })),
       clo_plo_mapping: cloRows.flatMap((r) =>
-        Array.from(r.ploCodes).map((plo_code) => ({ clo_code: r.code.trim(), plo_code }))
+        Object.entries(r.ploWeights).map(([plo_code, weight_percent]) => ({
+          clo_code: r.code.trim(),
+          plo_code,
+          weight_percent: Number(weight_percent),
+        }))
       ),
     };
 
@@ -497,7 +540,7 @@ export default function AdminCourseImportMCO3() {
                         type="button"
                         title={plo.description_th}
                         className={`plo-filter-pill mco3-plo-chip ${
-                          row.ploCodes.has(plo.code) ? "active" : ""
+                          row.ploWeights[plo.code] !== undefined ? "active" : ""
                         }`}
                         onClick={() => toggleCloPlo(row.rowId, plo.code)}
                       >
@@ -505,6 +548,29 @@ export default function AdminCourseImportMCO3() {
                       </button>
                     ))}
                   </div>
+                  {/* น้ำหนักของแต่ละคู่ที่ติ๊กไว้ - auto-fill เกลี่ยเท่ากันเองทุกครั้งที่ติ๊ก/ถอด (ดู
+                      toggleCloPlo) แก้เองด้วยมือได้ต่อคู่ ไม่กระทบคู่อื่นของแถวเดียวกัน (ดู
+                      updateCloPloWeight) */}
+                  {Object.keys(row.ploWeights).length > 0 && (
+                    <div className="mco3-clo-row-weights">
+                      {Object.entries(row.ploWeights).map(([ploCode, weight]) => (
+                        <label key={ploCode} className="mco3-clo-row-weight-field">
+                          {ploCode}
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            max="100"
+                            value={weight}
+                            onChange={(e) =>
+                              updateCloPloWeight(row.rowId, ploCode, e.target.value)
+                            }
+                          />
+                          %
+                        </label>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

@@ -7,16 +7,24 @@ import SearchableSelect from "../SearchableSelect.jsx";
  * Generic CRUD manager: table + add/edit form (in a modal) + delete, ใช้ซ้ำได้ทุกตาราง
  * columns: [{ key, label, type: 'text'|'number'|'password'|'select'|'searchable-select'|'custom', options?: [{value,label}],
  *             required?: bool, nullable?: bool, omitIfEmptyOnUpdate?: bool,
- *             min?: number, max?: number (type: 'number' only - ตัวเลขต้องเป็นจำนวนเต็มเสมอ (step=1
- *                                 คงที่ ไม่รับทศนิยม) และถ้าใส่ min/max ไว้ ค่าต้องอยู่ในช่วงนั้น เช่น
- *                                 เปอร์เซ็นต์ให้ใส่ min:0, max:100 - เช็คทั้งฝั่ง input (attribute)
+ *             min?: number, max?: number (type: 'number' only - ค่าเริ่มต้นต้องเป็นจำนวนเต็มเสมอ
+ *                                 (step=1 คงที่ ไม่รับทศนิยม) และถ้าใส่ min/max ไว้ ค่าต้องอยู่ในช่วงนั้น
+ *                                 เช่น เปอร์เซ็นต์ให้ใส่ min:0, max:100 - เช็คทั้งฝั่ง input (attribute)
  *                                 และตอนบันทึกจริงใน buildPayload ไม่ใช่แค่ HTML attribute เฉยๆ)
+ *             decimal?: bool (type: 'number' เท่านั้น - รับทศนิยม 2 ตำแหน่งได้ (step="0.01") แทนที่จะ
+ *                                 บังคับจำนวนเต็ม ใช้กับค่าแบบ weight_percent ที่เกลี่ยเท่ากันแล้วไม่ลง
+ *                                 ตัว เช่น 100/3 = 33.33 - buildPayload ปัดเหลือ 2 ตำแหน่งด้วย
+ *                                 Math.round(x*100)/100 แทนการบังคับ Number.isInteger)
  *             render?: (value, onChange) => ReactNode (เฉพาะ type: 'custom' - ให้ผู้เรียกวาด field เอง
  *                                 ทั้งหมด เหมือน QuickFormModal.jsx ทุกประการ - required ของ type
  *                                 'custom' ไม่มี HTML `required` attribute ให้เบราว์เซอร์เช็คเอง (field
  *                                 ไม่ใช่ input/select ธรรมดา) buildPayload จึงเช็คแทนตอนบันทึก: ค่าว่าง +
  *                                 required=true → โยน Error ให้ handleSave ดักไปแสดงเหมือน field อื่น)
  *             readOnly?: bool (ล็อกไม่ให้แก้ตอน editingId !== "new" - เช่น primary key ที่ตั้งได้ตอนสร้างครั้งเดียว)
+ *             editOnly?: bool (ตรงข้าม readOnly - ซ่อนจากฟอร์ม "เพิ่ม" ไปเลย โผล่แค่ตอน "แก้ไข" เท่านั้น
+ *                                 (ยังโชว์ในตารางปกติเสมอไม่ว่ากรณีไหน) ใช้กับ field ที่ backend ไม่รับตอน
+ *                                 สร้าง (auto-fill ให้เองเสมอ) แต่แก้ทีหลังได้ผ่าน PUT เช่น weight_percent
+ *                                 ของ clo_plo_mapping - buildPayload ก็ข้าม field นี้ตอนสร้างเช่นกัน)
  *             displayOnly?: bool (โชว์แค่ในตาราง ไม่โผล่ในฟอร์มเพิ่ม/แก้ไขเลย ไม่ถูกส่งใน buildPayload
  *                                 ด้วย - ใช้กับค่าที่ compute/join มาจากที่อื่น เช่น "PLO ที่ผูกไว้" ของ
  *                                 CLO ที่มาจาก clo_plo_mapping คนละตารางกับ clo เอง ผู้เรียกต้องเตรียม
@@ -157,6 +165,7 @@ export default function CrudManager({
     const payload = {};
     columns.forEach((c) => {
       if (c.displayOnly) return; // ค่าที่ compute/join มา ไม่ใช่ field จริงของตาราง ไม่ส่งกลับ backend
+      if (c.editOnly && editingId === "new") return; // backend auto-fill เองตอนสร้าง ไม่รับค่าจาก client
       const raw = form[c.key];
       const isEmpty = raw === "" || raw === undefined;
       if (isEmpty && c.omitIfEmptyOnUpdate && editingId !== "new") {
@@ -169,16 +178,22 @@ export default function CrudManager({
         payload[c.key] = c.nullable ? null : raw;
       } else if (c.type === "number") {
         const parsed = Number(raw);
-        if (!Number.isInteger(parsed)) {
-          throw new Error(`"${c.label}" ต้องเป็นจำนวนเต็ม ไม่มีทศนิยม`);
+        if (Number.isNaN(parsed)) {
+          throw new Error(`"${c.label}" ต้องเป็นตัวเลข`);
         }
-        if (c.min !== undefined && parsed < c.min) {
+        if (c.decimal) {
+          payload[c.key] = Math.round(parsed * 100) / 100; // ปัดเหลือ 2 ตำแหน่งทศนิยม
+        } else if (!Number.isInteger(parsed)) {
+          throw new Error(`"${c.label}" ต้องเป็นจำนวนเต็ม ไม่มีทศนิยม`);
+        } else {
+          payload[c.key] = parsed;
+        }
+        if (c.min !== undefined && payload[c.key] < c.min) {
           throw new Error(`"${c.label}" ต้องไม่น้อยกว่า ${c.min}`);
         }
-        if (c.max !== undefined && parsed > c.max) {
+        if (c.max !== undefined && payload[c.key] > c.max) {
           throw new Error(`"${c.label}" ต้องไม่เกิน ${c.max}`);
         }
-        payload[c.key] = parsed;
       } else {
         payload[c.key] = raw;
       }
@@ -383,7 +398,7 @@ export default function CrudManager({
 
             <form className="crud-form" onSubmit={handleSave}>
               {columns
-                .filter((c) => !c.displayOnly)
+                .filter((c) => !c.displayOnly && !(c.editOnly && editingId === "new"))
                 .map((c) => (
                 <label key={c.key}>
                   {c.label}
@@ -415,7 +430,7 @@ export default function CrudManager({
                   ) : (
                     <input
                       type={c.type === "number" ? "number" : c.type === "password" ? "password" : "text"}
-                      step={c.type === "number" ? "1" : undefined}
+                      step={c.type === "number" ? (c.decimal ? "0.01" : "1") : undefined}
                       min={c.type === "number" ? c.min : undefined}
                       max={c.type === "number" ? c.max : undefined}
                       value={form[c.key] ?? ""}
