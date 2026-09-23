@@ -69,7 +69,7 @@ export function YearLevelFilter({ value, onChange, label = "ชั้นปี�
         <option value="">ทั้งหมด</option>
         {YEAR_LEVEL_OPTIONS.map((year) => (
           <option key={year} value={year}>
-            ปี {year}
+            {year === 4 ? "ปี 4+" : `ปี ${year}`}
           </option>
         ))}
       </select>

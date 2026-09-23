@@ -60,8 +60,23 @@ export function matchesAchievementStatus(isAchieved, status, hasData = true) {
 }
 
 // ชั้นปีมี 4 ระดับเสมอตามโครงสร้างหลักสูตร (สมมติฐานเดียวกับที่ใช้อยู่แล้วทั่วระบบ - ดู
-// YLOYearProgress.jsx/ylo_calculation.py)
+// YLOYearProgress.jsx/ylo_calculation.py) ตัวเลือกสุดท้าย (4) หมายถึง "4 หรือมากกว่า" - รวมนักศึกษาที่
+// beyond_curriculum=true ด้วย (ดู current_year_level ของ backend ที่เปลี่ยนมาคำนวณสดจาก cohort_year
+// แล้วไม่ clamp บนอีกต่อไป - อาจเกิน 4 ได้จริงถ้านักศึกษาเรียนเกินหลักสูตร)
 export const YEAR_LEVEL_OPTIONS = [1, 2, 3, 4];
+
+// ชั้นปี "สำหรับเทียบ/กรอง" ของนักศึกษา 1 คน (raw student object ที่มี current_year_level +
+// beyond_curriculum จาก backend) - ต่างจากเลขจริงตรงที่ beyond_curriculum ถูก cap ไว้ที่ 4 เสมอ ให้ตรง
+// กับตัวเลือกกรองสุดท้าย ("ปี 4+") ใน YEAR_LEVEL_OPTIONS
+export function effectiveYearLevel(student) {
+  return student.beyond_curriculum ? 4 : student.current_year_level;
+}
+
+// ข้อความแสดงผลชั้นปีของนักศึกษา 1 คน - "ปี 4+" ถ้าเกินหลักสูตรจริง (beyond_curriculum) แทนเลขจริงที่
+// อาจดูแปลก (เช่น "ปี 7")
+export function formatYearLevel(student) {
+  return student.beyond_curriculum ? "ปี 4+" : `ปี ${student.current_year_level}`;
+}
 
 export const STUDENT_SORT_OPTIONS = [
   { value: "percent-asc", label: "% บรรลุ (น้อย → มาก)" },

@@ -4,6 +4,8 @@
  *
  * เชื่อมกับ : รับ student/curriculumName เป็น prop ตรงๆ ไม่ fetch เอง (ผู้เรียกต้องโหลดมาให้)
  */
+import { formatYearLevel } from "../utils/studentFilters.js";
+
 // เดียวกับ STATUS_BADGE_CLASS ใน StudentList.jsx - คง class เดิม (status-active ฯลฯ) ไว้
 // เพื่อให้ badge ใช้ CSS ชุดเดียวกันทั้งสองหน้า แทนที่จะสร้าง selector ใหม่จากข้อความไทยตรงๆ
 const STATUS_BADGE_CLASS = {
@@ -35,7 +37,7 @@ export default function StudentProfileCard({ student, curriculumName }) {
         </div>
         <div>
           <dt>ชั้นปีปัจจุบัน</dt>
-          <dd>ปี {student.current_year_level}</dd>
+          <dd>{formatYearLevel(student)}</dd>
         </div>
         <div>
           <dt>สถานะ</dt>

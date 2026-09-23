@@ -16,7 +16,7 @@ import LinkRow from "../components/LinkRow.jsx";
 import { Search, ArrowLeft, ChevronRight } from "lucide-react";
 import { listStudents, listCurricula } from "../api/client.js";
 import { SortSelect, YearLevelFilter } from "../components/StudentFilterControls.jsx";
-import { ROSTER_SORT_OPTIONS } from "../utils/studentFilters.js";
+import { ROSTER_SORT_OPTIONS, effectiveYearLevel, formatYearLevel } from "../utils/studentFilters.js";
 
 // เรียงรายชื่อนักศึกษา - สอดคล้องกับ sortKey เดียวกับที่หน้าภาพรวม PLO/YLO ใช้ (ROSTER_SORT_OPTIONS:
 // id/name/year) แค่ field ของ Student ดิบต่างจาก achievement row shape ที่ compareStudentRows ในหน้า
@@ -175,7 +175,7 @@ export default function StudentList() {
         }
       }
       if (selectedStatus !== "all" && student.status !== selectedStatus) return false;
-      if (selectedYearLevel !== null && student.current_year_level !== selectedYearLevel) return false;
+      if (selectedYearLevel !== null && effectiveYearLevel(student) !== selectedYearLevel) return false;
       if (!trimmed) return true;
       const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
       const curriculumName = (curriculumById[student.curriculum_id]?.name ?? "").toLowerCase();
@@ -367,7 +367,7 @@ export default function StudentList() {
                           <td className="student-table-cell">
                             {curriculumById[student.curriculum_id]?.name ?? `#${student.curriculum_id}`}
                           </td>
-                          <td className="student-table-cell">{`ปี ${student.current_year_level}`}</td>
+                          <td className="student-table-cell">{formatYearLevel(student)}</td>
                           <td className="student-table-cell">
                             <span className={`status-badge ${STATUS_BADGE_CLASS[student.status] ?? ""}`}>
                               {student.status}

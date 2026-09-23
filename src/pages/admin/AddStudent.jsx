@@ -5,8 +5,9 @@
  *             "/admin/students" (admin เท่านั้น) ปกติข้อมูลนักศึกษาส่วนใหญ่จะเข้ามาทาง
  *             AdminRosterImport.jsx (นำเข้าไฟล์จากมหาวิทยาลัย) มากกว่าพิมพ์เพิ่มทีละคนที่นี่
  *
- * ถ้าแก้ : field "id" (รหัสนักศึกษา) เป็น readOnly หลังสร้างแล้ว (primary key แก้ไม่ได้) —
- *          current_year_level ต้องอัปเดตเองทุกปีการศึกษา ไม่ได้คำนวณอัตโนมัติจาก cohort_year
+ * ถ้าแก้ : field "id" (รหัสนักศึกษา) เป็น readOnly หลังสร้างแล้ว (primary key แก้ไม่ได้) — ไม่มีฟอร์ม
+ *          กรอกชั้นปีปัจจุบันแล้ว (คำนวณสดจาก cohort_year เสมอ ตั้งไม่ได้โดยตรง - ดู
+ *          app/services/year_level.py ฝั่ง backend)
  */
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
@@ -52,14 +53,6 @@ export default function AddStudent() {
       ],
     },
     { key: "cohort_year", label: "ปีที่เข้าศึกษา", type: "number", min: 0, required: true, filterable: true },
-    {
-      key: "current_year_level",
-      label: "ชั้นปีปัจจุบัน",
-      type: "number",
-      min: 1,
-      required: true,
-      filterable: true,
-    },
     { key: "section", label: "หมู่", type: "text", nullable: true, filterable: true },
   ];
 
