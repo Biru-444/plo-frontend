@@ -636,11 +636,10 @@ export async function getOfferingCLOAchievement(offeringId) {
 }
 
 /**
- * ดาวน์โหลดไฟล์ไบนารี (Excel/Word) แบบ blob พร้อม Authorization header ที่ interceptor ของ `api` แนบให้
- * อัตโนมัติ (เปิดเป็น <a href> ตรงๆ ไม่ได้ เพราะไม่มีทางแนบ header นี้) คืนทั้ง blob และชื่อไฟล์ที่ backend
- * ตั้งให้ (จาก Content-Disposition) ให้ผู้เรียกสร้างลิงก์ดาวน์โหลดเอง (การสร้าง <a> ชั่วคราวเป็นเรื่องของ
- * DOM ฝั่ง component ไม่ใช่ของชั้น API) - ใช้ร่วมกันโดย exportOfferingMco5Excel/exportOfferingMco5Docx
- * เพราะ error-handling ของ blob response เหมือนกันเป๊ะทั้งสองอัน (ดูคอมเมนต์ในนี้)
+ * ดาวน์โหลดไฟล์ไบนารีแบบ blob พร้อม Authorization header ที่ interceptor ของ `api` แนบให้อัตโนมัติ
+ * (เปิดเป็น <a href> ตรงๆ ไม่ได้ เพราะไม่มีทางแนบ header นี้) คืนทั้ง blob และชื่อไฟล์ที่ backend ตั้งให้
+ * (จาก Content-Disposition) ให้ผู้เรียกสร้างลิงก์ดาวน์โหลดเอง (การสร้าง <a> ชั่วคราวเป็นเรื่องของ DOM
+ * ฝั่ง component ไม่ใช่ของชั้น API)
  */
 async function _downloadBlob(url, params, fallbackFilename) {
   try {
@@ -666,27 +665,14 @@ async function _downloadBlob(url, params, fallbackFilename) {
 }
 
 /**
- * ดาวน์โหลดไฟล์ Excel ประกอบการกรอก มคอ.5 ของ offering เดียว (ระดับ CLO เท่านั้น - ดู
- * TASK-export-mco5.md) Backend: GET /clo-achievement/export/mco5?offering_id=&target_rate=
+ * ดาวน์โหลดรายงานผลบรรลุ CLO เป็น Excel ของ offering เดียว (ระดับ CLO เท่านั้น - ไม่ยึดตามแบบฟอร์ม
+ * ราชการใดๆ) Backend: GET /clo-achievement/export?offering_id=&target_rate=
  */
-export async function exportOfferingMco5Excel(offeringId, targetRate) {
+export async function exportOfferingCLOReport(offeringId, targetRate) {
   return _downloadBlob(
-    "/clo-achievement/export/mco5",
+    "/clo-achievement/export",
     { offering_id: offeringId, target_rate: targetRate },
-    `mco5_offering_${offeringId}.xlsx`
-  );
-}
-
-/**
- * ดาวน์โหลดไฟล์ Word (.docx) ตามโครงแบบฟอร์ม OBE5 BRU ของ offering เดียว (Phase 2 - ดู
- * TASK-export-mco5.md ข้อ 6) Backend: GET /clo-achievement/export/mco5-docx?offering_id=&target_rate=
- * ไม่มีข้อมูลรายบุคคลในไฟล์นี้เลย (ต่างจาก Excel) จึงไม่ต้องเตือนเรื่อง PDPA แยกฝั่ง frontend
- */
-export async function exportOfferingMco5Docx(offeringId, targetRate) {
-  return _downloadBlob(
-    "/clo-achievement/export/mco5-docx",
-    { offering_id: offeringId, target_rate: targetRate },
-    `mco5_offering_${offeringId}.docx`
+    `clo_report_offering_${offeringId}.xlsx`
   );
 }
 

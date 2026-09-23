@@ -4,12 +4,11 @@ import {
   listAssessmentItems,
   listItemCLO,
   getOfferingCLOAchievement,
-  exportOfferingMco5Excel,
-  exportOfferingMco5Docx,
+  exportOfferingCLOReport,
 } from "../api/client.js";
 
-// ตัวดาวน์โหลดใช้ร่วมกันทั้งปุ่ม Excel/Word - สร้าง <a> ชั่วคราวกดดาวน์โหลดเอง (เปิดเป็นลิงก์ตรงไม่ได้
-// เพราะต้องแนบ Authorization header ผ่าน axios) ตั้งชื่อไฟล์ตามที่ backend ส่งมาใน Content-Disposition
+// สร้าง <a> ชั่วคราวกดดาวน์โหลดเอง (เปิดเป็นลิงก์ตรงไม่ได้เพราะต้องแนบ Authorization header ผ่าน axios)
+// ตั้งชื่อไฟล์ตามที่ backend ส่งมาใน Content-Disposition
 function _triggerBlobDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -31,27 +30,24 @@ function _triggerBlobDownload(blob, filename) {
  * เดียวกับ ScoresPanel.jsx - CourseOfferingWorkspace มีแท็บ "โครงสร้างการประเมิน" ในตัว แต่
  * AdminCourseGrading ต้องชี้ไปหน้า /admin/item-clo แทน) - ไม่ระบุ = ใช้ข้อความเดิมที่มีอยู่แล้ว
  *
- * ปุ่ม "Export ข้อมูล มคอ.5" 2 ปุ่ม (Excel - Phase 1, Word ตามแบบฟอร์ม OBE5 BRU - Phase 2 ดู
- * TASK-export-mco5.md) : ดาวน์โหลดผ่าน exportOfferingMco5Excel/exportOfferingMco5Docx (responseType:
- * 'blob') แชร์ target_rate เดียวกัน (ค่าเริ่มต้น 70 ตรงกับ default ฝั่ง backend ทั้งสอง endpoint)
+ * ปุ่ม "Export ผลการบรรลุ CLO (Excel)" : ดาวน์โหลดผ่าน exportOfferingCLOReport (responseType: 'blob')
+ * ใช้ target_rate เดียวกับค่าเริ่มต้นฝั่ง backend (70)
  */
 export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
   const [targetRate, setTargetRate] = useState("70");
-  // 'excel' | 'docx' | null - รู้ว่าปุ่มไหนกำลังโหลดอยู่ เพื่อ disable แค่ตัวเองหรือขึ้นข้อความเฉพาะตัว
-  const [exportingFormat, setExportingFormat] = useState(null);
+  const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
 
-  async function handleExport(format) {
-    setExportingFormat(format);
+  async function handleExport() {
+    setExporting(true);
     setExportError("");
     try {
-      const exportFn = format === "docx" ? exportOfferingMco5Docx : exportOfferingMco5Excel;
-      const { blob, filename } = await exportFn(offeringId, Number(targetRate) || 70);
+      const { blob, filename } = await exportOfferingCLOReport(offeringId, Number(targetRate) || 70);
       _triggerBlobDownload(blob, filename);
     } catch (err) {
       setExportError(err?.response?.data?.detail || "Export ไม่สำเร็จ ลองใหม่อีกครั้ง");
     } finally {
-      setExportingFormat(null);
+      setExporting(false);
     }
   }
 
@@ -132,12 +128,12 @@ export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
   return (
     <>
       <div className="workspace-section">
-        <h2>Export ข้อมูล มคอ.5</h2>
+        <h2>Export รายงานผลบรรลุ CLO</h2>
         <div className="workspace-inline-form">
-          <label htmlFor="mco5-target-rate">
+          <label htmlFor="clo-report-target-rate">
             เกณฑ์บรรลุระดับรายวิชา (%)
             <input
-              id="mco5-target-rate"
+              id="clo-report-target-rate"
               type="number"
               min="0"
               max="100"
@@ -145,21 +141,9 @@ export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
               onChange={(e) => setTargetRate(e.target.value)}
             />
           </label>
-          <button
-            type="button"
-            onClick={() => handleExport("excel")}
-            disabled={exportingFormat !== null}
-          >
+          <button type="button" onClick={handleExport} disabled={exporting}>
             <Download size={16} strokeWidth={2} />
-            {exportingFormat === "excel" ? "กำลังสร้างไฟล์..." : "Export มคอ.5 (Excel)"}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleExport("docx")}
-            disabled={exportingFormat !== null}
-          >
-            <Download size={16} strokeWidth={2} />
-            {exportingFormat === "docx" ? "กำลังสร้างไฟล์..." : "Export มคอ.5 (Word)"}
+            {exporting ? "กำลังสร้างไฟล์..." : "Export ผลการบรรลุ CLO (Excel)"}
           </button>
         </div>
         {hasNoScoresAtAll && (
