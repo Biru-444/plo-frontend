@@ -24,10 +24,19 @@ import {
  * need help float to the top. Each row expands (accordion, several at once,
  * same pattern as CourseOfferingWorkspace's CLO achievement table) to show
  * every course linked to this PLO with a pass/fail badge for that student
- * specifically - fetched lazily per row and cached, calling the same
- * /plo/{id}/students/{id}/course-breakdown endpoint that reuses
- * _student_passed_course_for_plo from plo_calculation.py, so this can never
- * drift from the "% บรรลุ" number shown on the row itself.
+ * specifically - fetched lazily per row and cached, calling
+ * /plo/{id}/students/{id}/course-breakdown, which reuses
+ * _student_passed_course_for_plo from plo_calculation.py.
+ *
+ * IMPORTANT (2026-09 audit): that per-course badge answers a DIFFERENT
+ * question than the row's own "% บรรลุ" - the row is a weighted average
+ * across every course linked to this PLO (achieved_percent >= 60%), while
+ * each expanded course is all-or-nothing (every CLO of THAT course must
+ * pass). These can and do disagree - a student can clear the PLO overall
+ * while failing one specific course that's outweighed by stronger ones, or
+ * the reverse. An earlier version of this comment claimed the two "can
+ * never drift" - that was wrong; see the per-course badge label/tooltip
+ * below, which spells this out instead of implying equivalence.
  *
  * แต่ละวิชาในลิสต์ที่ขยายออกมากดต่อได้อีกชั้น (2026-09-09) เพื่อดูว่า CLO ข้อไหนไม่ผ่านและมาจากคะแนน
  * ชิ้นงานไหน - reuse CourseCLOBreakdown ตัวเดียวกับที่หน้า /student-plo ใช้ (StudentYearBreakdown.jsx)
@@ -207,8 +216,11 @@ export default function PLOStudentBreakdown({ ploId, students }) {
                                       <span className="student-year-course-name">
                                         {c.course_code} {c.name_th}
                                       </span>
-                                      <span className={`plo-badge ${c.passed ? "achieved" : "not-achieved"}`}>
-                                        {c.passed ? "ผ่าน" : "ไม่ผ่าน"}
+                                      <span
+                                        className={`plo-badge ${c.passed ? "achieved" : "not-achieved"}`}
+                                        title="% บรรลุ PLO ด้านบนคือค่าเฉลี่ยถ่วงน้ำหนักรวมทุกวิชาที่เกี่ยวข้อง - วิชานี้วิชาเดียวไม่ผ่านได้ ในขณะที่ภาพรวม PLO ยังบรรลุอยู่"
+                                      >
+                                        {c.passed ? "ผ่านวิชานี้" : "ไม่ผ่านวิชานี้"}
                                       </span>
                                     </div>
                                     {isCourseExpanded && (

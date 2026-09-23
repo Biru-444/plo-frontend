@@ -22,13 +22,20 @@ const RESPONSIBILITY_LABEL = { primary: "หลัก", secondary: "รอง" }
 // ยังไม่มีคะแนนบันทึกเลยสักรายการ) - คนละความหมายกับ false (มีคะแนนแล้วแต่ไม่ถึงเกณฑ์) ห้ามแสดงเป็น
 // "ไม่ผ่าน" ตอนที่จริงๆ ยังไม่มีข้อมูล (โทนสีเดียวกับ badge "บรรลุ"/"ไม่บรรลุ" ที่ .plo-badge.achieved/
 // .not-achieved ใน index.css ใช้อยู่แล้ว)
+//
+// ป้าย "ผ่าน/ไม่ผ่านวิชานี้" (2026-09 audit) : ตอบคำถามคนละข้อกับ % บรรลุ PLO ที่หน้า PLODetailPage
+// (ดูคอมเมนต์เดียวกันใน PLOStudentBreakdown.jsx) - ที่นี่เป็น all-or-nothing เฉพาะวิชานี้วิชาเดียว ส่วน
+// % บรรลุ PLO เป็นค่าเฉลี่ยถ่วงน้ำหนักรวมทุกวิชา นักศึกษาอาจ "ไม่ผ่านวิชานี้" แต่ยังบรรลุ PLO โดยรวมได้
 function PLOAchievedBadge({ achieved }) {
   if (achieved === null || achieved === undefined) {
     return <span className="plo-achieved-empty">—</span>;
   }
   return (
-    <span className={`plo-badge ${achieved ? "achieved" : "not-achieved"}`}>
-      {achieved ? "ผ่าน" : "ไม่ผ่าน"}
+    <span
+      className={`plo-badge ${achieved ? "achieved" : "not-achieved"}`}
+      title="% บรรลุ PLO ในหน้าภาพรวมคือค่าเฉลี่ยถ่วงน้ำหนักรวมทุกวิชาที่เกี่ยวข้อง - วิชานี้วิชาเดียวไม่ผ่านได้ ในขณะที่ภาพรวม PLO ยังบรรลุอยู่"
+    >
+      {achieved ? "ผ่านวิชานี้" : "ไม่ผ่านวิชานี้"}
     </span>
   );
 }
