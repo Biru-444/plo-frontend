@@ -1,9 +1,9 @@
 /**
  * ทำอะไร : Phase 3 ของฟีเจอร์ "นำเข้าข้อมูลวิชาจาก มคอ.3 ด้วย AI" (route /admin/course-import-mco3)
  *          — เลือกหลักสูตร + อัปโหลดไฟล์ .pdf/.docx -> เรียก Phase 1 (แกะข้อมูลด้วย Gemini) ->
- *          แสดงผลลัพธ์ทั้งหมดในฟอร์มที่แก้ไขได้ทุกฟิลด์ (วิชา, CLO ทีละแถว, ความสัมพันธ์กับ PLO) พร้อม
- *          ไฮไลต์ flag ที่เจอ -> กด "ยืนยันบันทึก" เรียก Phase 2 (บันทึกจริงเป็น Course+CLO+
- *          CLOPLOMapping)
+ *          แสดงผลลัพธ์ทั้งหมดในฟอร์มที่แก้ไขได้ทุกฟิลด์ (วิชา, CLO ทีละแถว, ความสัมพันธ์กับ PLO, ชั้นปี/
+ *          ภาคการศึกษา) พร้อมไฮไลต์ flag ที่เจอ -> กด "ยืนยันบันทึก" เรียก Phase 2 (บันทึกจริงเป็น
+ *          Course+CLO+CLOPLOMapping+StudyPlan 1 แถว)
  *
  * เชื่อมกับ : importCourseFromMco3/saveCourseFromMco3 ใน api/client.js — หลัง Phase 1 สำเร็จ
  *             ข้อมูลทั้งหมดย้ายเข้า local state ของหน้านี้ทั้งชุด (ไม่ใช่แค่แสดงผล response ตรงๆ)
@@ -14,15 +14,23 @@
  * ถ้าแก้ : แต่ละแถว CLO เก็บ ploWeights ({ [plo_code]: weight_percent }) เป็น field บนตัว row เอง
  *          คีย์ด้วย rowId ที่คงที่ตลอด ไม่ใช่ code - แก้รหัส CLO ของแถวนั้นจึงไม่ทำให้ mapping ที่เลือก
  *          ไว้หลุด ลบแถว CLO ก็ลบ mapping ของแถวนั้นไปด้วยในตัว (เป็น field เดียวกัน ไม่ต้อง cascade
- *          แยก) — flags[]/instructor_name/semester_display ที่ Phase 1 ส่งมา **ห้ามส่งต่อไป Phase 2
- *          เด็ดขาด** (ไม่มีคอลัมน์ปลายทางให้เก็บ ดู CourseImportSaveRequest ฝั่ง backend) — payload ที่
- *          ส่งไป Phase 2 ต้อง trim/derive จาก state ที่นี่เท่านั้น
+ *          แยก) — flags[]/instructor_name/semester_display (ข้อความดิบ) ที่ Phase 1 ส่งมา **ห้ามส่งต่อ
+ *          ไป Phase 2 เด็ดขาด** (ไม่มีคอลัมน์ปลายทางให้เก็บ ดู CourseImportSaveRequest ฝั่ง backend) —
+ *          payload ที่ส่งไป Phase 2 ต้อง trim/derive จาก state ที่นี่เท่านั้น
  *
  *          weight_percent (Workstream 3) : Phase 1/Gemini ไม่รู้จัก field นี้เลย (ดู
  *          MCO3CLOPLOMappingItem ฝั่ง backend - แยกจาก MCO3CLOPLOMappingSaveItem ที่ใช้ตอน Phase 2)
  *          toggleCloPlo เกลี่ยเท่ากันเองทุกครั้งที่ติ๊ก/ถอด PLO ของแถวนั้น (evenWeightPercent - สูตร
  *          เดียวกับ _rebalance_clo_weights_evenly ฝั่ง backend) updateCloPloWeight แก้เองด้วยมือได้ทีหลัง
  *          ทีละคู่ ไม่กระทบคู่อื่น - handleSave เช็คว่าทุกน้ำหนักต้อง > 0 และ <= 100 ก่อนส่ง Phase 2 เสมอ
+ *
+ *          ชั้นปี/ภาคการศึกษา (เพิ่ม 2026-09) : parseSemesterDisplay เดา year_level/semester จาก
+ *          semester_display (ข้อความดิบ เช่น "1/2568 ชั้นปีที่ 1") ให้อัตโนมัติแบบ best-effort ล้วนๆ
+ *          (regex ไม่เรียก Gemini ซ้ำ) เติมลงช่องแก้ไขได้ทันทีหลัง Phase 1 เสร็จ - แอดมินแก้เองได้เสมอถ้า
+ *          เดาผิด/เดาไม่ออก (เดาไม่ออก = ปล่อยช่องว่าง บังคับให้แอดมินกรอกเองก่อนบันทึก) เก็บข้อความดิบ
+ *          (semesterDisplayRaw) ไว้แสดงอ้างอิงข้างๆ ช่องเท่านั้น ไม่ส่งไป Phase 2 (ดูย่อหน้าบน) ส่งแค่
+ *          yearLevel/semester (ตัวเลขสุดท้ายที่แอดมินยืนยันแล้ว) ไป Phase 2 -> สร้าง study_plan 1 แถว
+ *          คู่กับ course เสมอ (cohort_year=NULL แผนมาตรฐาน)
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Sparkles, Upload } from "lucide-react";
@@ -49,6 +57,40 @@ const SEVERE_FLAG_TYPES = new Set(["duplicate_course_code", "curriculum_mismatch
 // ตรงกัน ไม่ว่าจะผูกผ่านหน้านี้หรือหน้า AdminCLOPLOMapping.jsx
 function evenWeightPercent(count) {
   return Math.round((100 / count) * 100) / 100;
+}
+
+// เดา year_level/semester จากข้อความดิบ semester_display ของ Phase 1 แบบ best-effort (regex ล้วนๆ ไม่
+// เรียก Gemini ซ้ำ) - แค่ prefill ให้ช่องแก้ไข แอดมินแก้เองได้เสมอถ้าเดาผิด/เดาไม่ออก (คืน null = เดาไม่ออก
+// ปล่อยให้ช่องว่างบังคับแอดมินกรอกเอง ดีกว่าเดามั่วแล้วดูน่าเชื่อถือเกินจริง)
+//
+// เทอม : ลองรูปแบบ "N/พ.ศ." ก่อน (เช่น "1/2568" - รูปแบบที่พบบ่อยสุดตามตัวอย่างใน system instruction ของ
+// Gemini) แล้วค่อย "ภาคเรียนที่/ภาคการศึกษาที่/ภาคที่/เทอม N" แล้วค่อยคำเต็มไม่มีเลข (ภาคต้น/ภาคปลาย/
+// ภาคฤดูร้อน) - ชั้นปี : "ชั้นปี(ที่) N" หรือ "ปี(ที่) N" (ไม่ชนกับ "ปีการศึกษา" เพราะไม่มีเลขตามหลังคำนั้น
+// ทันทีในรูปแบบเอกสารจริง - ทดสอบแล้วด้วย test เฉพาะ)
+export function parseSemesterDisplay(text) {
+  if (!text) return { yearLevel: null, semester: null };
+
+  let semester = null;
+  let m = text.match(/(\d)\s*\/\s*25\d{2}/);
+  if (m) semester = Number(m[1]);
+  if (semester === null) {
+    m = text.match(/(?:ภาคเรียนที่|ภาคการศึกษาที่|ภาคที่|เทอม)\s*(\d)/);
+    if (m) semester = Number(m[1]);
+  }
+  if (semester === null) {
+    if (/ภาคต้น/.test(text)) semester = 1;
+    else if (/ภาคปลาย/.test(text)) semester = 2;
+    else if (/ภาคฤดูร้อน/.test(text)) semester = 3;
+  }
+
+  let yearLevel = null;
+  m = text.match(/(?:ชั้นปี|ปี)\s*(?:ที่)?\s*(\d)/);
+  if (m) yearLevel = Number(m[1]);
+
+  return {
+    semester: semester !== null && semester >= 1 && semester <= 3 ? semester : null,
+    yearLevel: yearLevel !== null && yearLevel >= 1 && yearLevel <= 4 ? yearLevel : null,
+  };
 }
 
 const FLAG_TYPE_LABEL = {
@@ -156,6 +198,13 @@ export default function AdminCourseImportMCO3() {
   const [credit, setCredit] = useState("");
   const [category, setCategory] = useState("");
 
+  // ชั้นปี/ภาคการศึกษา (สำหรับ study_plan) - yearLevel/semester เริ่มจากค่าที่ parseSemesterDisplay
+  // เดาได้ (ดู handleExtract) แอดมินแก้เองได้เสมอ semesterDisplayRaw เก็บไว้แสดงอ้างอิงข้างๆ ช่องเท่านั้น
+  // ไม่ส่งไป Phase 2 เลย (ดู module docstring)
+  const [semesterDisplayRaw, setSemesterDisplayRaw] = useState("");
+  const [yearLevel, setYearLevel] = useState("");
+  const [semester, setSemester] = useState("");
+
   // rowId เป็น key ที่คงที่ตลอดของแต่ละแถว CLO (คนละตัวกับ code ที่แก้ไขได้) - ดู module docstring
   const cloRowIdRef = useRef(0);
   const [cloRows, setCloRows] = useState([]);
@@ -199,6 +248,9 @@ export default function AdminCourseImportMCO3() {
     setCredit("");
     setCategory("");
     setCloRows([]);
+    setSemesterDisplayRaw("");
+    setYearLevel("");
+    setSemester("");
     setAckCurriculumMismatch(false);
     setFormError("");
     setSaveError("");
@@ -240,6 +292,11 @@ export default function AdminCourseImportMCO3() {
       setCredit(result.credit != null ? String(result.credit) : "");
       setCategory(result.category_mapped || result.category_raw || "");
       setFlags(result.flags || []);
+
+      setSemesterDisplayRaw(result.semester_display || "");
+      const guessed = parseSemesterDisplay(result.semester_display);
+      setYearLevel(guessed.yearLevel != null ? String(guessed.yearLevel) : "");
+      setSemester(guessed.semester != null ? String(guessed.semester) : "");
 
       const rows = (result.clos || []).map((clo) => {
         const ploCodes = (result.clo_plo_mapping || [])
@@ -324,6 +381,16 @@ export default function AdminCourseImportMCO3() {
       setFormError('"หน่วยกิต" ต้องเป็นจำนวนเต็มมากกว่า 0');
       return;
     }
+    const parsedYearLevel = Number(yearLevel);
+    if (!Number.isInteger(parsedYearLevel) || parsedYearLevel < 1 || parsedYearLevel > 4) {
+      setFormError('"ชั้นปี" ต้องเป็นจำนวนเต็ม 1-4 (ระบบเดาให้อัตโนมัติจากเอกสาร - ถ้าเดาผิด/ว่างให้แก้เอง)');
+      return;
+    }
+    const parsedSemester = Number(semester);
+    if (!Number.isInteger(parsedSemester) || parsedSemester < 1 || parsedSemester > 3) {
+      setFormError('"ภาคการศึกษา" ต้องเป็นจำนวนเต็ม 1-3 (ระบบเดาให้อัตโนมัติจากเอกสาร - ถ้าเดาผิด/ว่างให้แก้เอง)');
+      return;
+    }
     const trimmedCodes = cloRows.map((r) => r.code.trim());
     if (trimmedCodes.some((c) => !c)) {
       setFormError("ทุกแถว CLO ต้องมีรหัส (เช่น CLO1)");
@@ -352,6 +419,8 @@ export default function AdminCourseImportMCO3() {
       name_en: nameEn.trim() || null,
       credit: parsedCredit,
       category: category.trim() || null,
+      year_level: parsedYearLevel,
+      semester: parsedSemester,
       clos: cloRows.map((r) => ({
         code: r.code.trim(),
         description: r.description.trim(),
@@ -475,7 +544,36 @@ export default function AdminCourseImportMCO3() {
                   onChange={(e) => setCredit(e.target.value)}
                 />
               </div>
+              <div className="form-field">
+                <label htmlFor="mco3-year-level">ชั้นปี</label>
+                <input
+                  id="mco3-year-level"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="4"
+                  value={yearLevel}
+                  onChange={(e) => setYearLevel(e.target.value)}
+                />
+              </div>
+              <div className="form-field">
+                <label htmlFor="mco3-semester">ภาคการศึกษา</label>
+                <input
+                  id="mco3-semester"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="3"
+                  value={semester}
+                  onChange={(e) => setSemester(e.target.value)}
+                />
+              </div>
             </div>
+            {semesterDisplayRaw && (
+              <p className="workspace-hint-inline">
+                ข้อความจากเอกสารต้นฉบับ (อ้างอิงเท่านั้น ไม่ได้บันทึก): "{semesterDisplayRaw}"
+              </p>
+            )}
             <div className="form-field mco3-course-category-field">
               <label>หมวดหมู่วิชา</label>
               <CourseCategoryPicker value={category} onChange={setCategory} />
@@ -607,7 +705,9 @@ export default function AdminCourseImportMCO3() {
         <div className="workspace-section">
           <p className="success-message">
             <CheckCircle2 size={16} strokeWidth={2} /> บันทึกสำเร็จ: {saveResult.course.course_code}{" "}
-            {saveResult.course.name_th} ({saveResult.clos.length} CLO) - เลือกไฟล์อื่นด้านบนเพื่อนำเข้าวิชาต่อไป
+            {saveResult.course.name_th} ({saveResult.clos.length} CLO) - แผนการศึกษา: ชั้นปีที่{" "}
+            {saveResult.study_plan.year_level} ภาคการศึกษาที่ {saveResult.study_plan.semester} (แผนมาตรฐาน) -
+            เลือกไฟล์อื่นด้านบนเพื่อนำเข้าวิชาต่อไป
           </p>
         </div>
       )}
