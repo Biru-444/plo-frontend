@@ -20,6 +20,7 @@
 import { useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Info, Sparkles, Upload } from "lucide-react";
 import { importCurriculumFromMco2, saveCurriculumFromMco2 } from "../../api/client.js";
+import { normalizeCode } from "../../utils/codeNormalize.js";
 
 const PLO_CATEGORY_OPTIONS = [
   { value: "", label: "-- ยังไม่ระบุ --" },
@@ -77,7 +78,13 @@ export default function AdminCurriculumImportMCO2() {
   const [saveError, setSaveError] = useState("");
   const [saveResult, setSaveResult] = useState(null);
 
-  const existingPloCodeSet = useMemo(() => new Set(existingPloCodes), [existingPloCodes]);
+  // normalize ทั้งสองฝั่งก่อนเทียบเสมอ (ไม่ใช่ String ดิบ) - existing_plo_codes มาจาก DB ตรงๆ (canonical
+  // แล้วหลัง migration) แต่ trimmedCode ที่แอดมินพิมพ์/Gemini แกะมาอาจยังไม่ใช่รูปแบบเดียวกัน (เช่น
+  // "PLO 4" vs "PLO4") - ดู plo-utils/codeNormalize.js
+  const existingPloCodeSet = useMemo(
+    () => new Set(existingPloCodes.map(normalizeCode)),
+    [existingPloCodes]
+  );
 
   function resetReviewState() {
     setExtracted(false);
@@ -178,7 +185,11 @@ export default function AdminCurriculumImportMCO2() {
       setFormError("ทุกแถว PLO ต้องมีรหัส (เช่น PLO1)");
       return;
     }
-    if (new Set(trimmedCodes).size !== trimmedCodes.length) {
+    // เทียบแบบ normalize แล้ว (ไม่ใช่ String ดิบ) - "PLO4"/"PLO 4"/"plo4" ต้องนับเป็นรหัสเดียวกัน ห้ามผ่าน
+    // ไปเป็น 2 แถวซ้ำซ้อนที่ backend เก็บเป็นแถวเดียวกันหลัง normalize (409 ชนกันเองที่ backend ถ้าไม่กัน
+    // ตรงนี้ก่อน)
+    const normalizedCodes = trimmedCodes.map(normalizeCode);
+    if (new Set(normalizedCodes).size !== normalizedCodes.length) {
       setFormError("รหัส PLO ซ้ำกันภายในคำขอนี้ - แก้ให้รหัสไม่ซ้ำก่อนบันทึก");
       return;
     }
@@ -304,7 +315,7 @@ export default function AdminCurriculumImportMCO2() {
             <h2>PLO ({ploRows.length} ข้อ)</h2>
             {ploRows.map((row) => {
               const trimmedCode = row.code.trim();
-              const isUpdate = useExisting && trimmedCode && existingPloCodeSet.has(trimmedCode);
+              const isUpdate = useExisting && trimmedCode && existingPloCodeSet.has(normalizeCode(trimmedCode));
               return (
                 <div key={row.rowId} className="mco3-clo-row">
                   <div className="mco3-clo-row-fields">

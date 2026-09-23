@@ -33,11 +33,20 @@
  *          เท่านั้น ไม่ส่งไป Phase 2 (ดูย่อหน้าบน) ส่งแค่ yearLevel/semester (ตัวเลขสุดท้ายที่แอดมินยืนยัน
  *          แล้ว หรือ null คู่กันถ้าเว้นว่างไว้) ไป Phase 2 -> สร้าง study_plan 1 แถวคู่กับ course ถ้ามีค่า
  *          (cohort_year=NULL แผนมาตรฐาน) ไม่สร้างเลยถ้า null ทั้งคู่
+ *
+ *          การจับคู่รหัส PLO/CLO (แก้บั๊ก 2026-09-23) : รหัสที่ Gemini แกะได้ (เช่น "PLO4") อาจเขียนคนละ
+ *          รูปแบบกับที่บันทึกไว้ใน DB จริง (เช่น "PLO 4" มีช่องว่าง จากที่ มคอ.2 import เคยบันทึกไว้ก่อน
+ *          จะมี normalize) - handleExtract จับคู่ผ่าน normalizeCode() เสมอ (ดู
+ *          plo-frontend/src/utils/codeNormalize.js - กฎเดียวกับ app/services/code_normalize.py ฝั่ง
+ *          backend) รหัส PLO ที่จับคู่กับ PLO จริงในหลักสูตรไม่ได้ **ไม่ถูกเลือก/ทดแทนด้วย PLO อื่นเงียบๆ
+ *          เด็ดขาด** - เก็บแยกไว้ใน row.unmatchedPloCodes แสดงเป็นชิปสีแดงเตือนแทน (ดู
+ *          mco3-plo-chip-unmatched) ให้แอดมินไปแก้รหัส PLO ในหลักสูตร หรือผูกเองด้วยมือผ่านชิปปกติ
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Sparkles, Upload } from "lucide-react";
 import SearchableSelect from "../../components/SearchableSelect.jsx";
 import { importCourseFromMco3, listCurricula, listPLO, saveCourseFromMco3 } from "../../api/client.js";
+import { normalizeCode } from "../../utils/codeNormalize.js";
 
 const DOMAIN_OPTIONS = [
   { value: "", label: "ไม่ระบุ" },
@@ -301,18 +310,36 @@ export default function AdminCourseImportMCO3() {
       setSemester(guessed.semester != null ? String(guessed.semester) : "");
 
       const rows = (result.clos || []).map((clo) => {
-        const ploCodes = (result.clo_plo_mapping || [])
-          .filter((m) => m.clo_code === clo.code)
-          .map((m) => m.plo_code);
+        const cloCodeNormalized = normalizeCode(clo.code);
+        // จับคู่ plo_code ที่ Gemini แกะได้กับ PLO จริงในหลักสูตรผ่าน normalizeCode() เสมอ (ไม่ใช่ ===
+        // ตรงๆ) - รหัสที่จับคู่ไม่ได้ **ไม่เลือก/ทดแทนด้วย PLO อื่นเงียบๆ เด็ดขาด** เก็บแยกไว้ใน
+        // unmatchedPloCodes แสดงเป็นชิปเตือนแทน (ดู module docstring ด้านบน)
+        const matchedPloCodes = [];
+        const unmatchedPloCodes = [];
+        (result.clo_plo_mapping || [])
+          .filter((m) => normalizeCode(m.clo_code) === cloCodeNormalized)
+          .forEach((m) => {
+            const matched = curriculumPlos.find((p) => normalizeCode(p.code) === normalizeCode(m.plo_code));
+            if (matched) {
+              // ใช้ code จริงจาก DB เป็น key ของ ploWeights เสมอ (canonical อยู่แล้ว) ไม่ใช่ข้อความดิบที่
+              // Gemini แกะมา แม้จะจับคู่กันได้แล้วก็ตาม (กันกรณี normalize แล้วเท่ากันแต่สะกดคนละแบบ
+              // เช่น "plo4" vs "PLO4" ทำให้ ploWeights มีคีย์ซ้ำความหมายแต่คนละ string)
+              if (!matchedPloCodes.includes(matched.code)) matchedPloCodes.push(matched.code);
+            } else {
+              unmatchedPloCodes.push(m.plo_code);
+            }
+          });
         // เกลี่ยเท่ากันตั้งแต่แรกที่แกะมาจาก Gemini (Phase 1 ไม่รู้จัก weight เลย - ดู
-        // MCO3CLOPLOMappingItem) เหมือนกับว่าแอดมินเพิ่งผูกคู่เหล่านี้เองทีละคู่
-        const weight = ploCodes.length > 0 ? evenWeightPercent(ploCodes.length) : null;
+        // MCO3CLOPLOMappingItem) เหมือนกับว่าแอดมินเพิ่งผูกคู่เหล่านี้เองทีละคู่ (นับเฉพาะคู่ที่จับคู่ได้
+        // จริง - unmatched ไม่มี weight เพราะไม่ได้ถูกผูกเลย)
+        const weight = matchedPloCodes.length > 0 ? evenWeightPercent(matchedPloCodes.length) : null;
         return {
           rowId: cloRowIdRef.current++,
           code: clo.code || "",
           description: clo.description || "",
           domain: clo.domain || "",
-          ploWeights: Object.fromEntries(ploCodes.map((code) => [code, weight])),
+          ploWeights: Object.fromEntries(matchedPloCodes.map((code) => [code, weight])),
+          unmatchedPloCodes,
         };
       });
       setCloRows(rows);
@@ -661,6 +688,23 @@ export default function AdminCourseImportMCO3() {
                       </button>
                     ))}
                   </div>
+                  {/* รหัส PLO ที่ Gemini แกะได้แต่จับคู่กับ PLO จริงในหลักสูตรไม่ได้ (แม้ normalize แล้ว
+                      ก็ตาม) - แสดงเตือนตรงๆ ไม่เลือก/ทดแทนด้วย PLO อื่นเงียบๆ เด็ดขาด (ดู module
+                      docstring หัวไฟล์) แอดมินต้องไปแก้รหัส PLO ในหลักสูตร หรือผูกเองด้วยมือผ่านชิปปกติ
+                      ด้านบนแทน */}
+                  {row.unmatchedPloCodes && row.unmatchedPloCodes.length > 0 && (
+                    <div className="mco3-clo-row-unmatched-plos">
+                      {row.unmatchedPloCodes.map((code) => (
+                        <span
+                          key={code}
+                          className="plo-filter-pill mco3-plo-chip-unmatched"
+                          title={`เอกสารระบุ PLO "${code}" แต่ไม่พบ PLO นี้ในหลักสูตร (เทียบแบบไม่สนตัวพิมพ์เล็ก-ใหญ่/ช่องว่างแล้ว) - ไม่ได้ผูกให้อัตโนมัติ ตรวจสอบรหัส PLO ในหลักสูตรหรือในเอกสารต้นฉบับ แล้วผูกเองด้วยมือถ้าถูกต้อง`}
+                        >
+                          <AlertTriangle size={12} strokeWidth={2} /> {code} (ไม่พบในหลักสูตร)
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   {/* น้ำหนักของแต่ละคู่ที่ติ๊กไว้ - auto-fill เกลี่ยเท่ากันเองทุกครั้งที่ติ๊ก/ถอด (ดู
                       toggleCloPlo) แก้เองด้วยมือได้ต่อคู่ ไม่กระทบคู่อื่นของแถวเดียวกัน (ดู
                       updateCloPloWeight) */}

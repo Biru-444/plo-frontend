@@ -2684,6 +2684,26 @@ tr.student-table-row.link-row:focus-visible {
   font-size: 0.8rem;
 }
 
+/* รหัส PLO ที่ Gemini แกะได้แต่จับคู่กับ PLO จริงในหลักสูตรไม่ได้ (แม้ normalize แล้ว) - แดงเตือน
+   ชัดเจน ไม่ใช้สีเดียวกับชิป PLO ปกติ (ป้องกันสับสนว่าเป็น PLO ที่เลือกไว้จริง) */
+.mco3-clo-row-unmatched-plos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mco3-plo-chip-unmatched {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  background: var(--color-red-100);
+  border-color: var(--color-red-700);
+  color: var(--color-red-700);
+  cursor: help;
+}
+
 /* น้ำหนัก (%) ของแต่ละคู่ CLO-PLO ที่ติ๊กไว้ในแถวนี้ (Workstream 3) - แสดงต่อจาก chip picker เป็นแถว
    ช่องกรอกเล็กๆ ต่อ PLO ที่เลือกไว้ */
 .mco3-clo-row-weights {
