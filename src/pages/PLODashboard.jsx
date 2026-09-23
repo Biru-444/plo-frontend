@@ -9,7 +9,10 @@
  *             filter เดิม และ refresh/แชร์ลิงก์ได้ตรง
  *
  * ถ้าแก้ : COHORT_ACHIEVED_THRESHOLD (50%) ใช้ตัดสินสีการ์ด/filter pill "บรรลุแล้ว" เท่านั้น ไม่ใช่
- *          เกณฑ์ที่ backend ใช้ตัดสินผลบรรลุรายบุคคล (all-or-nothing คนละเรื่องกัน)
+ *          เกณฑ์ที่ backend ใช้ตัดสินผลบรรลุรายบุคคล (all-or-nothing คนละเรื่องกัน) - ข้อความ error ทั้ง
+ *          2 จุด (โหลดหลักสูตร, โหลดผลบรรลุ) ผ่าน _describeFetchError() เดียวกันเสมอ (แยก timeout/
+ *          เซิร์ฟเวอร์ล่ม/เครือข่ายมีปัญหา + console.error error object เต็มๆ ไว้เสมอ) เพิ่มเข้ามาหลังจาก
+ *          เจอ regression ที่วินิจฉัยยากเพราะ .catch() เดิมกลืน error ทิ้งไม่มีร่องรอยเลย
  */
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -44,6 +47,26 @@ const FILTERS = [
   { key: "achieved", label: "บรรลุแล้ว" },
   { key: "at-risk", label: "ต้องเฝ้าระวัง" },
 ];
+
+// แยกข้อความ error ตามสาเหตุจริง (timeout/เซิร์ฟเวอร์ล่ม/เครือข่าย) แทนข้อความเดียวกันหมดทุกกรณี - และ
+// log error object เต็มๆ ไว้ใน console เสมอ (เดิมกลืน error ทิ้งใน .catch() แบบไม่มีร่องรอยเลย ทำให้
+// วินิจฉัยย้อนหลังไม่ได้ว่าจริงๆ แล้ว endpoint ไหนพัง/ทำไมพัง) err.code === "ECONNABORTED" คือ axios
+// timeout (client.js ตั้งไว้ 10 วินาทีใน `api` instance) err.response เป็น undefined = request ไม่ถึง
+// ปลายทางเลย (เซิร์ฟเวอร์ปิดอยู่/เครือข่ายมีปัญหา/CORS) err.response.status >= 500 = เซิร์ฟเวอร์รับ
+// request ได้แต่ประมวลผลพัง (ควรมี traceback ให้ดูใน backend log)
+function _describeFetchError(err) {
+  console.error("PLODashboard: failed to load PLO achievement data:", err);
+  if (err?.code === "ECONNABORTED" || /timeout/i.test(err?.message ?? "")) {
+    return "คำขอข้อมูลใช้เวลานานเกินไป (เกิน 10 วินาที) - เซิร์ฟเวอร์อาจช้าหรือข้อมูลมีเยอะเกินไป ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้";
+  }
+  if (!err?.response) {
+    return "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้";
+  }
+  if (err.response.status >= 500) {
+    return `เซิร์ฟเวอร์ขัดข้อง (รหัส ${err.response.status}) ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้`;
+  }
+  return "ดึงข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้";
+}
 
 export default function PLODashboard() {
   // หลักสูตร/รุ่นที่เลือกอยู่ใน URL query param เสมอ (ไม่ใช่ local state เฉยๆ เหมือนก่อนงานนี้) - เพื่อให้
@@ -104,9 +127,9 @@ export default function PLODashboard() {
           setSearchParams({ curriculum: String(data[0].id) }, { replace: true });
         }
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
-          setError("ดึงข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
+          setError(_describeFetchError(err));
         }
       })
       .finally(() => {
@@ -140,9 +163,9 @@ export default function PLODashboard() {
         setSummary(summaryData);
         setTotalCourseCount(byYearData.years.reduce((sum, year) => sum + year.course_count, 0));
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
-          setError("ดึงข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
+          setError(_describeFetchError(err));
         }
       })
       .finally(() => {
