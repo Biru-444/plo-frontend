@@ -24,13 +24,15 @@
  *          เดียวกับ _rebalance_clo_weights_evenly ฝั่ง backend) updateCloPloWeight แก้เองด้วยมือได้ทีหลัง
  *          ทีละคู่ ไม่กระทบคู่อื่น - handleSave เช็คว่าทุกน้ำหนักต้อง > 0 และ <= 100 ก่อนส่ง Phase 2 เสมอ
  *
- *          ชั้นปี/ภาคการศึกษา (เพิ่ม 2026-09) : parseSemesterDisplay เดา year_level/semester จาก
- *          semester_display (ข้อความดิบ เช่น "1/2568 ชั้นปีที่ 1") ให้อัตโนมัติแบบ best-effort ล้วนๆ
- *          (regex ไม่เรียก Gemini ซ้ำ) เติมลงช่องแก้ไขได้ทันทีหลัง Phase 1 เสร็จ - แอดมินแก้เองได้เสมอถ้า
- *          เดาผิด/เดาไม่ออก (เดาไม่ออก = ปล่อยช่องว่าง บังคับให้แอดมินกรอกเองก่อนบันทึก) เก็บข้อความดิบ
- *          (semesterDisplayRaw) ไว้แสดงอ้างอิงข้างๆ ช่องเท่านั้น ไม่ส่งไป Phase 2 (ดูย่อหน้าบน) ส่งแค่
- *          yearLevel/semester (ตัวเลขสุดท้ายที่แอดมินยืนยันแล้ว) ไป Phase 2 -> สร้าง study_plan 1 แถว
- *          คู่กับ course เสมอ (cohort_year=NULL แผนมาตรฐาน)
+ *          ชั้นปี/ภาคการศึกษา (เพิ่ม 2026-09, เว้นว่างได้ 2026-09-23) : parseSemesterDisplay เดา
+ *          year_level/semester จาก semester_display (ข้อความดิบ เช่น "1/2568 ชั้นปีที่ 1") ให้อัตโนมัติ
+ *          แบบ best-effort ล้วนๆ (regex ไม่เรียก Gemini ซ้ำ) เติมลงช่องแก้ไขได้ทันทีหลัง Phase 1 เสร็จ -
+ *          แอดมินแก้เองได้เสมอถ้าเดาผิด/เดาไม่ออก **ทั้งสองช่องเว้นว่างพร้อมกันได้** (วิชาเลือกหลายวิชา
+ *          ไม่มีชั้นปีตายตัวในเอกสารจริง) แต่ต้องเป็นคู่เสมอ - กรอกแค่ช่องเดียวโดน formError กันไว้ก่อนส่ง
+ *          (ตรงกับกฎ 422 ฝั่ง backend เป๊ะ) เก็บข้อความดิบ (semesterDisplayRaw) ไว้แสดงอ้างอิงข้างๆ ช่อง
+ *          เท่านั้น ไม่ส่งไป Phase 2 (ดูย่อหน้าบน) ส่งแค่ yearLevel/semester (ตัวเลขสุดท้ายที่แอดมินยืนยัน
+ *          แล้ว หรือ null คู่กันถ้าเว้นว่างไว้) ไป Phase 2 -> สร้าง study_plan 1 แถวคู่กับ course ถ้ามีค่า
+ *          (cohort_year=NULL แผนมาตรฐาน) ไม่สร้างเลยถ้า null ทั้งคู่
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Sparkles, Upload } from "lucide-react";
@@ -381,15 +383,27 @@ export default function AdminCourseImportMCO3() {
       setFormError('"หน่วยกิต" ต้องเป็นจำนวนเต็มมากกว่า 0');
       return;
     }
-    const parsedYearLevel = Number(yearLevel);
-    if (!Number.isInteger(parsedYearLevel) || parsedYearLevel < 1 || parsedYearLevel > 4) {
-      setFormError('"ชั้นปี" ต้องเป็นจำนวนเต็ม 1-4 (ระบบเดาให้อัตโนมัติจากเอกสาร - ถ้าเดาผิด/ว่างให้แก้เอง)');
-      return;
-    }
-    const parsedSemester = Number(semester);
-    if (!Number.isInteger(parsedSemester) || parsedSemester < 1 || parsedSemester > 3) {
-      setFormError('"ภาคการศึกษา" ต้องเป็นจำนวนเต็ม 1-3 (ระบบเดาให้อัตโนมัติจากเอกสาร - ถ้าเดาผิด/ว่างให้แก้เอง)');
-      return;
+    // ชั้นปี/ภาคการศึกษา เว้นว่างได้ทั้งคู่ (วิชาเลือกที่ไม่มีชั้นปีตายตัว) แต่ต้องเป็นคู่เสมอ - มีค่าแค่
+    // ช่องเดียวคือข้อมูลไม่ครบ (ตรงกับกฎฝั่ง backend เป๊ะ - ดู CourseImportSaveRequest)
+    const yearLevelTrimmed = yearLevel.trim();
+    const semesterTrimmed = semester.trim();
+    let parsedYearLevel = null;
+    let parsedSemester = null;
+    if (yearLevelTrimmed || semesterTrimmed) {
+      if (!yearLevelTrimmed || !semesterTrimmed) {
+        setFormError('ต้องกรอกทั้ง "ชั้นปี" และ "ภาคการศึกษา" คู่กัน หรือเว้นว่างทั้งคู่ (ถ้าวิชานี้ไม่มีชั้นปีตายตัว)');
+        return;
+      }
+      parsedYearLevel = Number(yearLevelTrimmed);
+      if (!Number.isInteger(parsedYearLevel) || parsedYearLevel < 1 || parsedYearLevel > 4) {
+        setFormError('"ชั้นปี" ต้องเป็นจำนวนเต็ม 1-4 (ระบบเดาให้อัตโนมัติจากเอกสาร - ถ้าเดาผิดให้แก้เอง หรือเว้นว่างทั้งคู่)');
+        return;
+      }
+      parsedSemester = Number(semesterTrimmed);
+      if (!Number.isInteger(parsedSemester) || parsedSemester < 1 || parsedSemester > 3) {
+        setFormError('"ภาคการศึกษา" ต้องเป็นจำนวนเต็ม 1-3 (ระบบเดาให้อัตโนมัติจากเอกสาร - ถ้าเดาผิดให้แก้เอง หรือเว้นว่างทั้งคู่)');
+        return;
+      }
     }
     const trimmedCodes = cloRows.map((r) => r.code.trim());
     if (trimmedCodes.some((c) => !c)) {
@@ -569,6 +583,7 @@ export default function AdminCourseImportMCO3() {
                 />
               </div>
             </div>
+            <p className="workspace-hint-inline">เว้นว่างได้ สำหรับวิชาเลือกที่ไม่กำหนดชั้นปี</p>
             {semesterDisplayRaw && (
               <p className="workspace-hint-inline">
                 ข้อความจากเอกสารต้นฉบับ (อ้างอิงเท่านั้น ไม่ได้บันทึก): "{semesterDisplayRaw}"
@@ -705,9 +720,11 @@ export default function AdminCourseImportMCO3() {
         <div className="workspace-section">
           <p className="success-message">
             <CheckCircle2 size={16} strokeWidth={2} /> บันทึกสำเร็จ: {saveResult.course.course_code}{" "}
-            {saveResult.course.name_th} ({saveResult.clos.length} CLO) - แผนการศึกษา: ชั้นปีที่{" "}
-            {saveResult.study_plan.year_level} ภาคการศึกษาที่ {saveResult.study_plan.semester} (แผนมาตรฐาน) -
-            เลือกไฟล์อื่นด้านบนเพื่อนำเข้าวิชาต่อไป
+            {saveResult.course.name_th} ({saveResult.clos.length} CLO) -{" "}
+            {saveResult.study_plan
+              ? `แผนการศึกษา: ชั้นปีที่ ${saveResult.study_plan.year_level} ภาคการศึกษาที่ ${saveResult.study_plan.semester} (แผนมาตรฐาน)`
+              : "ไม่ได้สร้างแผนการศึกษา (ไม่ได้ระบุชั้นปี/ภาคการศึกษา)"}{" "}
+            - เลือกไฟล์อื่นด้านบนเพื่อนำเข้าวิชาต่อไป
           </p>
         </div>
       )}
