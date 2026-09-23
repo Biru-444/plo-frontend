@@ -13,11 +13,31 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { getCohortPLOAchievement, getPLOAchievementByYear, listCurricula } from "../api/client.js";
+import { Download } from "lucide-react";
+import {
+  exportPLOReport,
+  getCohortPLOAchievement,
+  getPLOAchievementByYear,
+  listCurricula,
+} from "../api/client.js";
 import PLODonut from "../components/PLODonut.jsx";
 import PLOSummaryCard from "../components/PLOSummaryCard.jsx";
 
 const COHORT_ACHIEVED_THRESHOLD = 50;
+const PLO_REPORT_TARGET_RATE = 70;
+
+// สร้าง <a> ชั่วคราวกดดาวน์โหลดเอง (เปิดเป็นลิงก์ตรงไม่ได้เพราะต้องแนบ Authorization header ผ่าน axios)
+// ตั้งชื่อไฟล์ตามที่ backend ส่งมาใน Content-Disposition - เหมือนกับที่ CLOAchievementPanel.jsx ใช้
+function _triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 const FILTERS = [
   { key: "all", label: "ทั้งหมด" },
@@ -36,6 +56,8 @@ export default function PLODashboard() {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState(null);
   const [filterMode, setFilterMode] = useState("all");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   const selectedCurriculumId = searchParams.get("curriculum") ? Number(searchParams.get("curriculum")) : null;
   const selectedCohortYear = searchParams.get("cohort") ? Number(searchParams.get("cohort")) : null;
@@ -50,6 +72,23 @@ export default function PLODashboard() {
     if (cohortYear) next.set("cohort", String(cohortYear));
     else next.delete("cohort");
     setSearchParams(next);
+  }
+
+  async function handleExportReport() {
+    setExporting(true);
+    setExportError("");
+    try {
+      const { blob, filename } = await exportPLOReport(
+        selectedCurriculumId,
+        selectedCohortYear,
+        PLO_REPORT_TARGET_RATE
+      );
+      _triggerBlobDownload(blob, filename);
+    } catch (err) {
+      setExportError(err?.response?.data?.detail || "Export ไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setExporting(false);
+    }
   }
 
   useEffect(() => {
@@ -190,9 +229,20 @@ export default function PLODashboard() {
               </select>
             </>
           )}
+
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={handleExportReport}
+            disabled={exporting || !selectedCurriculumId}
+          >
+            <Download size={16} strokeWidth={2} />
+            {exporting ? "กำลังสร้างไฟล์..." : "Export รายงาน PLO (Excel)"}
+          </button>
         </div>
       )}
 
+      {exportError && <p className="error-message">{exportError}</p>}
       {error && <p className="error-message">{error}</p>}
 
       {loadingCurricula && <p className="loading-message">กำลังโหลดข้อมูล...</p>}

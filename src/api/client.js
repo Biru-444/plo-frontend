@@ -677,6 +677,23 @@ export async function exportOfferingCLOReport(offeringId, targetRate) {
 }
 
 /**
+ * ดาวน์โหลดรายงานภาพรวม PLO ↔ รายวิชาของหลักสูตรเดียวเป็น Excel (ระดับหลักสูตร/รุ่น - ไม่ยึดตามแบบฟอร์ม
+ * ราชการใดๆ) cohortYear เป็น optional (ไม่ใส่ = รวมทุกรุ่น จะมีชีตเปรียบเทียบรายรุ่นเพิ่ม)
+ * Backend: GET /plo/achievement/export?curriculum_id=&cohort_year=&target_rate=
+ */
+export async function exportPLOReport(curriculumId, cohortYear, targetRate) {
+  return _downloadBlob(
+    "/plo/achievement/export",
+    {
+      curriculum_id: curriculumId,
+      ...(cohortYear ? { cohort_year: cohortYear } : {}),
+      target_rate: targetRate,
+    },
+    `plo_report_curriculum_${curriculumId}.xlsx`
+  );
+}
+
+/**
  * เจาะลึกระดับ CLO -> คะแนน สำหรับนักศึกษาคนเดียวในวิชาเดียว (ทำไมวิชานี้ถึงผ่าน/ไม่ผ่าน) - ใช้ตอนกด
  * ขยายแถววิชาในหน้า /student-plo (ดู StudentYearBreakdown.jsx)
  * Backend: GET /clo-achievement/student-course?student_id=...&course_id=...
