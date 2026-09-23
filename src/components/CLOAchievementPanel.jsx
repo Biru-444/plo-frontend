@@ -1,6 +1,11 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { listAssessmentItems, listItemCLO, getOfferingCLOAchievement } from "../api/client.js";
+import { ChevronDown, ChevronRight, Download } from "lucide-react";
+import {
+  listAssessmentItems,
+  listItemCLO,
+  getOfferingCLOAchievement,
+  exportOfferingMco5Excel,
+} from "../api/client.js";
 
 /**
  * "ผลบรรลุ CLO" (สรุประดับชั้นเรียน + breakdown รายบุคคล×CLO, คลิกแถว CLO ขยายดูว่าดึงคะแนนจาก
@@ -11,8 +16,37 @@ import { listAssessmentItems, listItemCLO, getOfferingCLOAchievement } from "../
  * noMappingHint: ข้อความ empty-state ตอน CLO ยังไม่ได้ผูกกับชิ้นงานประเมิน ปรับได้ต่อ caller (เหตุผล
  * เดียวกับ ScoresPanel.jsx - CourseOfferingWorkspace มีแท็บ "โครงสร้างการประเมิน" ในตัว แต่
  * AdminCourseGrading ต้องชี้ไปหน้า /admin/item-clo แทน) - ไม่ระบุ = ใช้ข้อความเดิมที่มีอยู่แล้ว
+ *
+ * ปุ่ม "Export ข้อมูล มคอ.5" (ดู TASK-export-mco5.md) : ดาวน์โหลดผ่าน exportOfferingMco5Excel
+ * (responseType: 'blob') แล้วสร้าง <a> ชั่วคราวกดดาวน์โหลดเอง (เปิดเป็นลิงก์ตรงไม่ได้ เพราะต้องแนบ
+ * Authorization header) ตั้งชื่อไฟล์ตามที่ backend ส่งมาใน Content-Disposition - target_rate ปรับได้
+ * ก่อนกด (ค่าเริ่มต้น 70 ตรงกับ default ฝั่ง backend)
  */
 export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
+  const [targetRate, setTargetRate] = useState("70");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+
+  async function handleExportMco5() {
+    setExporting(true);
+    setExportError("");
+    try {
+      const { blob, filename } = await exportOfferingMco5Excel(offeringId, Number(targetRate) || 70);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err?.response?.data?.detail || "Export ไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   // ผล CLO ทั้งห้อง (สรุป+คะแนนรายบุคคล) จาก GET /clo-achievement
   const [cloAchievement, setCloAchievement] = useState(null);
   // mapping ชิ้นงาน<->CLO เฉพาะของ offering นี้ (กรองจากทั้งระบบด้วย itemIds ด้านล่าง) ใช้ตอนขยายแถว
@@ -84,8 +118,38 @@ export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
     student_name: s.student_name,
   }));
 
+  // ยังไม่มีใครมีคะแนนเลยสักชิ้นในทุก CLO - ปุ่ม export ยังกดได้ แค่เตือนว่าไฟล์จะออกมาเป็นค่าว่างเปล่า
+  const hasNoScoresAtAll = clo_achievements.every((c) => c.passed_count + c.failed_count === 0);
+
   return (
     <>
+      <div className="workspace-section">
+        <h2>Export ข้อมูล มคอ.5</h2>
+        <div className="workspace-inline-form">
+          <label htmlFor="mco5-target-rate">
+            เกณฑ์บรรลุระดับรายวิชา (%)
+            <input
+              id="mco5-target-rate"
+              type="number"
+              min="0"
+              max="100"
+              value={targetRate}
+              onChange={(e) => setTargetRate(e.target.value)}
+            />
+          </label>
+          <button type="button" onClick={handleExportMco5} disabled={exporting}>
+            <Download size={16} strokeWidth={2} />
+            {exporting ? "กำลังสร้างไฟล์..." : "Export ข้อมูล มคอ.5 (Excel)"}
+          </button>
+        </div>
+        {hasNoScoresAtAll && (
+          <p className="workspace-hint-inline">
+            ยังไม่มีคะแนนบันทึกไว้เลยสักชิ้น - ไฟล์ที่ได้จะมีแต่ตารางเปล่า
+          </p>
+        )}
+        {exportError && <p className="error-message">{exportError}</p>}
+      </div>
+
       <div className="workspace-section">
         <h2>สรุปผลบรรลุ CLO ระดับชั้นเรียน</h2>
         <p className="workspace-hint">คลิกแถว CLO เพื่อดูว่าดึงคะแนนมาจากชิ้นงานประเมินใดบ้าง</p>

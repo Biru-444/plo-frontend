@@ -636,6 +636,41 @@ export async function getOfferingCLOAchievement(offeringId) {
 }
 
 /**
+ * ดาวน์โหลดไฟล์ Excel ประกอบการกรอก มคอ.5 ของ offering เดียว (ระดับ CLO เท่านั้น - ดู
+ * TASK-export-mco5.md) Backend: GET /clo-achievement/export/mco5?offering_id=&target_rate=
+ * responseType: 'blob' เพราะ response เป็นไฟล์ไบนารี (.xlsx) ไม่ใช่ JSON - ต้องเรียกผ่าน axios แบบนี้
+ * (ไม่ใช่เปิดเป็น <a href> ตรงๆ) เพราะต้องแนบ Authorization header (interceptor ของ `api` ทำให้อัตโนมัติ
+ * อยู่แล้ว) คืนทั้ง blob และชื่อไฟล์ที่ backend ตั้งให้ (จาก Content-Disposition) ให้ผู้เรียกสร้างลิงก์
+ * ดาวน์โหลดเอง (ไฟล์นี้ไม่มี wrapper ให้ component เรียกใช้ตรง ๆ เพราะการสร้าง <a> ชั่วคราวเป็นเรื่องของ
+ * DOM ฝั่ง component ไม่ใช่ของชั้น API)
+ */
+export async function exportOfferingMco5Excel(offeringId, targetRate) {
+  try {
+    const response = await api.get("/clo-achievement/export/mco5", {
+      params: { offering_id: offeringId, target_rate: targetRate },
+      responseType: "blob",
+    });
+    const disposition = response.headers["content-disposition"] || "";
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : `mco5_offering_${offeringId}.xlsx`;
+    return { blob: response.data, filename };
+  } catch (err) {
+    // responseType: 'blob' ทำให้ error response (403/404 ที่จริงเป็น JSON ธรรมดา) ถูกยัดเป็น Blob ไป
+    // ด้วย - err.response.data.detail จะเป็น undefined ถ้าไม่แปลงกลับก่อน (pattern
+    // err?.response?.data?.detail ใช้แสดง error message อยู่ทั่วทั้งระบบ) แปลงเป็น object ธรรมดาก่อน
+    // throw ต่อ เพื่อให้ caller ใช้ pattern เดิมได้โดยไม่ต้องรู้เรื่อง blob เลย
+    if (err?.response?.data instanceof Blob && err.response.data.type === "application/json") {
+      try {
+        err.response.data = JSON.parse(await err.response.data.text());
+      } catch {
+        // เนื้อหาไม่ใช่ JSON จริงๆ - ปล่อยเป็น Blob เดิม ผู้เรียกจะได้ error message default แทน
+      }
+    }
+    throw err;
+  }
+}
+
+/**
  * เจาะลึกระดับ CLO -> คะแนน สำหรับนักศึกษาคนเดียวในวิชาเดียว (ทำไมวิชานี้ถึงผ่าน/ไม่ผ่าน) - ใช้ตอนกด
  * ขยายแถววิชาในหน้า /student-plo (ดู StudentYearBreakdown.jsx)
  * Backend: GET /clo-achievement/student-course?student_id=...&course_id=...
