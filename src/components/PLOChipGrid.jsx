@@ -19,17 +19,21 @@ export default function PLOChipGrid({ achievements, selected, onSelect }) {
     <div className="plo-chip-grid">
       {achievements.map((plo) => {
         const isSelected = selected === plo.plo_code;
+        // has_data (TASK-plo-denominator): false = ยังไม่มีคะแนนให้ตัดสิน PLO ข้อนี้เลย (เช่น นักศึกษา
+        // ชั้นปีต้นยังไม่ได้เรียนวิชาที่วัด) ต่างจาก "ไม่บรรลุ" (มีข้อมูลแล้วแต่ยังไม่ถึงเกณฑ์) - แสดงเทา
+        // + "-" แทน 0% เพื่อไม่ให้ดูเหมือนสอบตกทั้งที่ยังไม่ถึงเวลาวัด
+        const statusClass = plo.has_data === false ? "no-data" : plo.is_achieved ? "achieved" : "not-achieved";
         return (
           <button
             key={plo.plo_id}
             type="button"
-            className={`plo-chip ${plo.is_achieved ? "achieved" : "not-achieved"} ${
-              isSelected ? "selected" : ""
-            }`}
+            className={`plo-chip ${statusClass} ${isSelected ? "selected" : ""}`}
             onClick={() => onSelect(isSelected ? null : plo.plo_code)}
           >
             <span className="plo-chip-code">{plo.plo_code}</span>
-            <span className="plo-chip-percent">{plo.achieved_percent.toFixed(0)}%</span>
+            <span className="plo-chip-percent">
+              {plo.has_data === false ? "-" : `${plo.achieved_percent.toFixed(0)}%`}
+            </span>
             <Info size={12} className="plo-chip-info" title={plo.description} />
           </button>
         );

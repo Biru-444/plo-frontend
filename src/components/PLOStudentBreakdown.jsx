@@ -76,6 +76,7 @@ export default function PLOStudentBreakdown({ ploId, students }) {
             studentName: student.student_name,
             achievedPercent: achievement.achieved_percent,
             isAchieved: achievement.is_achieved,
+            hasData: achievement.has_data,
           };
         })
         .filter((row) => row !== null),
@@ -85,8 +86,8 @@ export default function PLOStudentBreakdown({ ploId, students }) {
   const visibleRows = useMemo(() => {
     const filtered = rows.filter((row) => {
       if (!matchesSearch(searchQuery, row.studentId, row.studentName)) return false;
-      if (!matchesAchievementStatus(row.isAchieved, achievementFilter)) return false;
-      if (!matchesPercentBucket(row.achievedPercent, percentBucket)) return false;
+      if (!matchesAchievementStatus(row.isAchieved, achievementFilter, row.hasData)) return false;
+      if (!matchesPercentBucket(row.achievedPercent, percentBucket, row.hasData)) return false;
       if (yearLevelFilter !== null && yearLevelByStudentId?.[row.studentId] !== yearLevelFilter) {
         return false;
       }
@@ -163,11 +164,17 @@ export default function PLOStudentBreakdown({ ploId, students }) {
                     </td>
                     <td className="student-table-cell">{row.studentId}</td>
                     <td className="student-table-cell">{row.studentName}</td>
-                    <td className="student-table-cell">{row.achievedPercent.toFixed(1)}%</td>
                     <td className="student-table-cell">
-                      <span className={`plo-badge ${row.isAchieved ? "achieved" : "not-achieved"}`}>
-                        {row.isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
-                      </span>
+                      {row.hasData === false ? "-" : `${row.achievedPercent.toFixed(1)}%`}
+                    </td>
+                    <td className="student-table-cell">
+                      {row.hasData === false ? (
+                        <span className="plo-badge no-data">ยังไม่มีข้อมูล</span>
+                      ) : (
+                        <span className={`plo-badge ${row.isAchieved ? "achieved" : "not-achieved"}`}>
+                          {row.isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
+                        </span>
+                      )}
                     </td>
                   </tr>
                   {isExpanded && (

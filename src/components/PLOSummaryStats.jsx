@@ -10,14 +10,23 @@
  *          จริงเดียว คือ PLO_ACHIEVEMENT_THRESHOLD_PERCENT ใน plo_calculation.py กันสองค่านี้ drift
  *          ไม่ตรงกันในอนาคต) PLODonut ยังรับ threshold=60 (ค่า default ของมันเอง) ไว้แค่กำหนดสี
  *          เขียว/แดงของวงแหวนเฉลี่ยเท่านั้น
+ *
+ *          TASK-plo-denominator: "ค่าเฉลี่ยรวมทุก PLO" หารด้วย PLO ที่ has_data=true เท่านั้น (ไม่ใช่
+ *          ทุกข้อ) เหตุผลเดียวกับตัวหารระดับรุ่นฝั่ง backend - นักศึกษาชั้นปีต้นที่ยังไม่ได้เรียนวิชาที่
+ *          วัด PLO ส่วนใหญ่ไม่ควรถูกคิดเป็น "ได้ 0%" ในค่าเฉลี่ยของตัวเอง เป็น null (แสดง "ยังไม่มีข้อมูล")
+ *          ถ้าไม่มี PLO ข้อไหนมีข้อมูลเลยสักข้อ "PLO ที่บรรลุ" ยังคงเทียบกับ PLO ทั้งหมดในหลักสูตรเหมือนเดิม
+ *          (เป็นตัวชี้ความคืบหน้าโดยรวม ไม่ใช่ค่าเฉลี่ยที่ถูกลากลงจากข้อที่ยังไม่มีข้อมูล)
  */
 import PLODonut from "./PLODonut.jsx";
 
 export default function PLOSummaryStats({ achievements }) {
   const total = achievements.length;
   const achievedCount = achievements.filter((a) => a.is_achieved).length;
+  const withData = achievements.filter((a) => a.has_data !== false);
   const avgPercent =
-    total === 0 ? 0 : achievements.reduce((sum, a) => sum + a.achieved_percent, 0) / total;
+    withData.length === 0
+      ? null
+      : withData.reduce((sum, a) => sum + a.achieved_percent, 0) / withData.length;
 
   return (
     <div className="plo-summary-stats">
@@ -28,10 +37,10 @@ export default function PLOSummaryStats({ achievements }) {
         <span className="stat-label">PLO ที่บรรลุ</span>
       </div>
       <div className="stat-tile stat-tile-donut">
-        <PLODonut percent={total === 0 ? null : avgPercent} size={52} />
+        <PLODonut percent={avgPercent} size={52} />
         <div>
-          <span className="stat-value">{avgPercent.toFixed(1)}%</span>
-          <span className="stat-label">ค่าเฉลี่ยรวมทุก PLO</span>
+          <span className="stat-value">{avgPercent === null ? "ยังไม่มีข้อมูล" : `${avgPercent.toFixed(1)}%`}</span>
+          <span className="stat-label">ค่าเฉลี่ยรวมทุก PLO ({withData.length}/{total} ข้อมีข้อมูล)</span>
         </div>
       </div>
     </div>

@@ -22,6 +22,10 @@ export default function PLOCohortBar({
   achievedStudentCount,
   totalStudents,
   achievedRatePercent,
+  // TASK-plo-denominator: จำนวน/สัดส่วนนักศึกษาที่มีข้อมูลของ PLO นี้ - undefined = ผู้เรียกยังไม่ส่งมา
+  // (เข้ากันได้กับที่เรียกเก่า) ถือว่า "มีข้อมูลเท่ากับทั้งหมด" ไปก่อน
+  studentCountWithData,
+  coveragePercent,
   isExpandable = false,
   isExpanded = false,
   onToggle,
@@ -37,6 +41,12 @@ export default function PLOCohortBar({
       ? "expected-this-year"
       : "not-expected-this-year";
 
+  // achievedRatePercent = null (TASK-plo-denominator) หมายถึงไม่มีใครมีข้อมูลของ PLO นี้เลย - ต้องแสดง
+  // "ยังไม่มีข้อมูล" (เทา) แทน "ไม่บรรลุ" (แดง) เพราะยังตัดสินไม่ได้เลยว่าบรรลุหรือไม่ ไม่ใช่สอบตก
+  const hasData = achievedRatePercent !== null && achievedRatePercent !== undefined;
+  const statusClass = !hasData ? "no-data" : isAchieved ? "at-goal" : "at-risk";
+  const resolvedColor = !hasData ? "var(--color-gray-400)" : isAchieved ? "var(--color-green-700)" : "var(--color-red-700)";
+
   function handleKeyDown(e) {
     if (!isExpandable) return;
     if (e.key === "Enter" || e.key === " ") {
@@ -47,7 +57,7 @@ export default function PLOCohortBar({
 
   return (
     <div
-      className={`plo-bar-row ${isAchieved ? "at-goal" : "at-risk"} ${isExpandable ? "expandable" : ""} ${expectationClass}`}
+      className={`plo-bar-row ${statusClass} ${isExpandable ? "expandable" : ""} ${expectationClass}`}
       onClick={isExpandable ? onToggle : undefined}
       onKeyDown={handleKeyDown}
       role={isExpandable ? "button" : undefined}
@@ -59,8 +69,8 @@ export default function PLOCohortBar({
           <span className={`expand-icon ${isExpanded ? "expanded" : ""}`}>▸</span>
         )}
         <span className="plo-code">{code}</span>
-        <span className={`plo-badge ${isAchieved ? "achieved" : "not-achieved"}`}>
-          {isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
+        <span className={`plo-badge ${!hasData ? "no-data" : isAchieved ? "achieved" : "not-achieved"}`}>
+          {!hasData ? "ยังไม่มีข้อมูล" : isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
         </span>
         {isExpectedThisYear && <span className="plo-year-target-badge">เป้าหมายปีนี้</span>}
       </div>
@@ -68,18 +78,21 @@ export default function PLOCohortBar({
         {truncate(description, KEYWORD_MAX_LENGTH)}
       </p>
       <div className="plo-bar-stats">
-        {/* วงแหวนโชว์สัดส่วนคนบรรลุด้วยสี ไม่โชว์ตัวเลข % (hideLabel) - สีระบุเองจาก isAchieved ที่ผู้เรียก
-            คำนวณมาแล้ว (เกณฑ์ในระบบนี้คือ 50% ไม่ใช่ 60% ที่ PLODonut ใช้เป็นค่า default ถ้าไม่ระบุสี) */}
-        <PLODonut
-          percent={achievedRatePercent}
-          size={48}
-          color={isAchieved ? "var(--color-green-700)" : "var(--color-red-700)"}
-          hideLabel
-        />
+        {/* วงแหวนโชว์สัดส่วนคนบรรลุด้วยสี ไม่โชว์ตัวเลข % (hideLabel) - สีระบุเองจาก isAchieved/hasData
+            ที่ผู้เรียกคำนวณมาแล้ว (เกณฑ์ในระบบนี้คือ 50% ไม่ใช่ 60% ที่ PLODonut ใช้เป็นค่า default ถ้าไม่
+            ระบุสี) */}
+        <PLODonut percent={achievedRatePercent} size={48} color={resolvedColor} hideLabel />
         <div className="plo-bar-stats-text">
           <div className="plo-bar-percent">
-            บรรลุ {achievedStudentCount} จาก {totalStudents} คน
+            {hasData
+              ? `บรรลุ ${achievedStudentCount} จาก ${studentCountWithData ?? totalStudents} คนที่มีข้อมูล`
+              : "ยังไม่มีข้อมูลให้ตัดสิน"}
           </div>
+          {studentCountWithData !== undefined && coveragePercent !== undefined && (
+            <div className="plo-bar-coverage">
+              จากนักศึกษาทั้งหมด {totalStudents} คน ({coveragePercent.toFixed(0)}% มีข้อมูล)
+            </div>
+          )}
         </div>
       </div>
     </div>

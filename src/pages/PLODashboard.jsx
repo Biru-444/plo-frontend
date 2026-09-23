@@ -158,23 +158,35 @@ export default function PLODashboard() {
   // ผ่านเกณฑ์คำนวณจริงอย่างน้อย 1 วิชา (qualifying_plo_count/total_plo_count) ไม่ใช่ครบ 9 ข้อเสมอไป
   // เพราะ PLO ที่ไม่มีวิชาเชื่อมเลยเป็นไปไม่ได้ที่จะบรรลุอยู่แล้วโดยดีไซน์ (ดู plo_calculation.py) -
   // เดิมคำนวณฝั่ง frontend เองจาก summary.students[].plo_achievements ทุกข้อ ย้ายไป backend แล้ว
+  // TASK-plo-denominator: ตัวหาร (dataCompleteCount) เปลี่ยนจากนักศึกษาทั้งหมดเป็นนักศึกษาที่มีข้อมูล
+  // ครบทุก qualifying PLO (all_plo_data_complete_count) - percent เป็น null ถ้าไม่มีใครมีข้อมูลครบเลย
   const allAchievedStats = useMemo(() => {
-    if (!summary || summary.total_students === 0) return { count: 0, percent: null, qualifying: 0, total: 0 };
+    if (!summary || summary.total_students === 0) {
+      return { count: 0, percent: null, qualifying: 0, total: 0, dataCompleteCount: 0 };
+    }
     return {
       count: summary.all_plo_achieved_count,
       percent: summary.all_plo_achieved_percent,
       qualifying: summary.qualifying_plo_count,
       total: summary.total_plo_count,
+      dataCompleteCount: summary.all_plo_data_complete_count,
     };
   }, [summary]);
 
+  // TASK-plo-denominator: achieved_rate_percent เป็น null ได้แล้ว (ไม่มีใครมีข้อมูลของ PLO นั้นเลย) -
+  // ต้องแยก "ต้องเฝ้าระวัง" (มีข้อมูลแล้วแต่ต่ำกว่าเกณฑ์) ออกจาก "ยังไม่มีข้อมูล" (ตัดสินไม่ได้เลย) ให้
+  // ชัดเจน ไม่งั้น PLO ที่ไม่มีข้อมูลจะถูกนับเป็น "ต้องเฝ้าระวัง" ปนไปด้วย (null < 50 เป็น true ใน JS)
   const filteredPloSummary = useMemo(() => {
     if (!summary) return [];
     if (filterMode === "achieved") {
-      return summary.plo_summary.filter((plo) => plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD);
+      return summary.plo_summary.filter(
+        (plo) => plo.achieved_rate_percent !== null && plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD
+      );
     }
     if (filterMode === "at-risk") {
-      return summary.plo_summary.filter((plo) => plo.achieved_rate_percent < COHORT_ACHIEVED_THRESHOLD);
+      return summary.plo_summary.filter(
+        (plo) => plo.achieved_rate_percent !== null && plo.achieved_rate_percent < COHORT_ACHIEVED_THRESHOLD
+      );
     }
     return summary.plo_summary;
   }, [summary, filterMode]);
@@ -182,7 +194,9 @@ export default function PLODashboard() {
   const atRiskCount = useMemo(
     () =>
       summary
-        ? summary.plo_summary.filter((plo) => plo.achieved_rate_percent < COHORT_ACHIEVED_THRESHOLD).length
+        ? summary.plo_summary.filter(
+            (plo) => plo.achieved_rate_percent !== null && plo.achieved_rate_percent < COHORT_ACHIEVED_THRESHOLD
+          ).length
         : 0,
     [summary]
   );
@@ -261,7 +275,8 @@ export default function PLODashboard() {
               </span>
               <span className="dashboard-hero-label">นักศึกษาบรรลุ PLO ครบทุกข้อ</span>
               <span className="dashboard-hero-sub">
-                {allAchievedStats.count} จาก {summary.total_students} คน · {summary.curriculum_name}
+                {allAchievedStats.count} จาก {allAchievedStats.dataCompleteCount} คนที่มีข้อมูลครบทุก PLO
+                (ทั้งหมด {summary.total_students} คน) · {summary.curriculum_name}
               </span>
               <span className="dashboard-hero-sub">
                 ({allAchievedStats.qualifying} จาก {allAchievedStats.total} ข้อที่มีวิชาหลัก)
@@ -299,7 +314,11 @@ export default function PLODashboard() {
                     achievedRatePercent={plo.achieved_rate_percent}
                     achievedCount={plo.achieved_student_count}
                     totalStudents={summary.total_students}
-                    isAchieved={plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD}
+                    studentCountWithData={plo.student_count_with_data}
+                    coveragePercent={plo.coverage_percent}
+                    isAchieved={
+                      plo.achieved_rate_percent !== null && plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD
+                    }
                     to={`/plo/overview/${plo.plo_id}${detailQuery}`}
                   />
                 ))}

@@ -133,6 +133,10 @@ body {
   border-left-color: var(--color-red-700);
 }
 
+.plo-bar-row.no-data {
+  border-left-color: var(--color-gray-400);
+}
+
 .plo-bar-header {
   display: flex;
   align-items: center;
@@ -170,6 +174,11 @@ body {
   color: var(--color-red-700);
 }
 
+.plo-badge.no-data {
+  background: var(--color-gray-200);
+  color: var(--color-gray-600);
+}
+
 .plo-achieved-empty {
   color: var(--color-gray-400);
 }
@@ -199,6 +208,11 @@ body {
 .plo-bar-stats-text .plo-cohort-subtitle {
   margin-top: 0;
   text-align: left;
+}
+
+.plo-bar-coverage {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
 }
 
 .loading-message {
@@ -698,6 +712,10 @@ tr.student-table-row.link-row:focus-visible {
   border-left-color: var(--color-red-700);
 }
 
+.plo-summary-card.no-data {
+  border-left-color: var(--color-gray-400);
+}
+
 .plo-summary-card:hover {
   border-color: var(--color-purple-600);
   box-shadow: var(--shadow-card-hover);
@@ -720,6 +738,16 @@ tr.student-table-row.link-row:focus-visible {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-gray-700);
+}
+
+.plo-summary-card-nodata {
+  color: var(--color-gray-400);
+  font-style: italic;
+}
+
+.plo-summary-card-coverage {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
 }
 
 .plo-summary-card-desc {
@@ -1664,6 +1692,12 @@ tr.student-table-row.link-row:focus-visible {
 .plo-chip.not-achieved {
   background: var(--color-gray-100);
   color: var(--color-gray-600);
+}
+
+.plo-chip.no-data {
+  background: var(--color-gray-100);
+  color: var(--color-gray-400);
+  font-style: italic;
 }
 
 .plo-chip.selected {

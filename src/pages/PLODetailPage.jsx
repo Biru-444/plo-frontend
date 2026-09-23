@@ -97,12 +97,18 @@ export default function PLODetailPage() {
   // กรองตามรุ่นแบบนี้ให้ตรงๆ) โดยใช้ field เดียวกับที่ PLOStudentBreakdown ใช้อยู่แล้วเป๊ะ (แต่ละคนมี
   // plo_achievements[].is_achieved ต่อ PLO อยู่แล้วในข้อมูลชุดเดียวกับ header) สูตรเดียวกับที่ backend ใช้
   // (_aggregate_plo_percent_stats ใน plo_calculation.py): อัตราบรรลุ = จำนวนคนบรรลุ/จำนวนคนทั้งหมด*100
+  // TASK-plo-denominator: average/rate หารด้วยนักศึกษาที่มีข้อมูล (has_data=true) ไม่ใช่นักศึกษาทั้งหมด
+  // - สูตรเดียวกับ backend ฝั่ง compute_cohort_plo_achievement ตอนไม่ได้กรองรุ่น (studentListCohortPrefix
+  // ว่าง) ใช้ค่าที่ backend คำนวณมาให้ตรงๆ (plo.student_count_with_data/coverage_percent) ตอนกรองรุ่น
+  // เองฝั่ง frontend ต้องคำนวณซ้ำด้วยหลักเดียวกัน (ไม่ใช่หารด้วยนักศึกษาที่กรองได้ทั้งหมดเหมือนเดิม)
   const headerStats = useMemo(() => {
     if (!plo || !summary) return null;
     if (!studentListCohortPrefix) {
       return {
         achievedStudentCount: plo.achieved_student_count,
         totalStudents: summary.total_students,
+        studentCountWithData: plo.student_count_with_data,
+        coveragePercent: plo.coverage_percent,
         achievedRatePercent: plo.achieved_rate_percent,
       };
     }
@@ -110,14 +116,27 @@ export default function PLODetailPage() {
       .map((s) => s.plo_achievements.find((item) => item.plo_id === plo.plo_id))
       .filter(Boolean);
     const totalStudents = achievements.length;
+    const achievementsWithData = achievements.filter((a) => a.has_data !== false);
+    const studentCountWithData = achievementsWithData.length;
     if (totalStudents === 0) {
-      return { achievedStudentCount: 0, totalStudents: 0, achievedRatePercent: 0 };
+      return {
+        achievedStudentCount: 0,
+        totalStudents: 0,
+        studentCountWithData: 0,
+        coveragePercent: 0,
+        achievedRatePercent: null,
+      };
     }
-    const achievedStudentCount = achievements.filter((a) => a.is_achieved).length;
+    const achievedStudentCount = achievementsWithData.filter((a) => a.is_achieved).length;
     return {
       achievedStudentCount,
       totalStudents,
-      achievedRatePercent: Number(((achievedStudentCount / totalStudents) * 100).toFixed(1)),
+      studentCountWithData,
+      coveragePercent: Number(((studentCountWithData / totalStudents) * 100).toFixed(1)),
+      achievedRatePercent:
+        studentCountWithData === 0
+          ? null
+          : Number(((achievedStudentCount / studentCountWithData) * 100).toFixed(1)),
     };
   }, [plo, summary, studentListCohortPrefix, filteredStudentListStudents]);
 
@@ -153,9 +172,14 @@ export default function PLODetailPage() {
           <PLOCohortBar
             code={plo.plo_code}
             description={plo.description}
-            isAchieved={headerStats.achievedRatePercent >= COHORT_ACHIEVED_THRESHOLD}
+            isAchieved={
+              headerStats.achievedRatePercent !== null &&
+              headerStats.achievedRatePercent >= COHORT_ACHIEVED_THRESHOLD
+            }
             achievedStudentCount={headerStats.achievedStudentCount}
             totalStudents={headerStats.totalStudents}
+            studentCountWithData={headerStats.studentCountWithData}
+            coveragePercent={headerStats.coveragePercent}
             achievedRatePercent={headerStats.achievedRatePercent}
             isExpandable={false}
           />

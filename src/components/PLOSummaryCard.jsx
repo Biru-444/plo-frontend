@@ -14,28 +14,45 @@ function truncate(text, max) {
  * ย้ายไปอยู่หน้ารายละเอียดทั้งหมด) - `to` ต้องมี query param หลักสูตร/รุ่นที่กำลังเลือกอยู่ติดไปด้วย
  * ผู้เรียกเป็นคนสร้าง URL เอง กันไม่ให้ filter หายตอนเปลี่ยนหน้า
  */
+// TASK-plo-denominator: achievedRatePercent เป็น null ได้ (ไม่มีใครมีข้อมูลของ PLO นี้เลย) - แยกสถานะ
+// "no-data" (เทา) ออกจาก "at-goal"/"at-risk" ชัดเจน แสดง coverage (studentCountWithData/totalStudents)
+// คู่กับจำนวนที่บรรลุเสมอ ผู้เรียกเก่าที่ยังไม่ส่ง studentCountWithData/coveragePercent มา (ไม่ควรมีแล้ว
+// แต่กันไว้) จะไม่เห็นบรรทัด coverage เพิ่ม ไม่พัง
 export default function PLOSummaryCard({
   code,
   description,
   achievedRatePercent,
   achievedCount,
   totalStudents,
+  studentCountWithData,
+  coveragePercent,
   isAchieved,
   to,
 }) {
+  const hasData = achievedRatePercent !== null && achievedRatePercent !== undefined;
+  const statusClass = !hasData ? "no-data" : isAchieved ? "at-goal" : "at-risk";
   return (
-    <Link to={to} className={`plo-summary-card ${isAchieved ? "at-goal" : "at-risk"}`}>
+    <Link to={to} className={`plo-summary-card ${statusClass}`}>
       <PLODonut
         percent={achievedRatePercent}
         size={56}
-        color={isAchieved ? "var(--color-green-700)" : "var(--color-red-700)"}
+        color={!hasData ? "var(--color-gray-400)" : isAchieved ? "var(--color-green-700)" : "var(--color-red-700)"}
         hideLabel
       />
       <div className="plo-summary-card-text">
         <span className="plo-summary-card-code">{code}</span>
-        <span className="plo-summary-card-count">
-          {achievedCount}/{totalStudents} คน
-        </span>
+        {hasData ? (
+          <span className="plo-summary-card-count">
+            {achievedCount}/{studentCountWithData ?? totalStudents} คนที่มีข้อมูล
+          </span>
+        ) : (
+          <span className="plo-summary-card-count plo-summary-card-nodata">ยังไม่มีข้อมูล</span>
+        )}
+        {studentCountWithData !== undefined && coveragePercent !== undefined && (
+          <span className="plo-summary-card-coverage">
+            จากทั้งหมด {totalStudents} คน ({coveragePercent.toFixed(0)}% มีข้อมูล)
+          </span>
+        )}
         <span className="plo-summary-card-desc" title={description}>
           {truncate(description, KEYWORD_MAX_LENGTH)}
         </span>

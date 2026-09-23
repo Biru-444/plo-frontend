@@ -22,7 +22,13 @@ export const PERCENT_BUCKET_OPTIONS = [
   { value: "100", label: "100%" },
 ];
 
-export function matchesPercentBucket(percent, bucket) {
+// hasData (TASK-plo-denominator): true/undefined = มีข้อมูล (ค่าเริ่มต้น - เข้ากันได้กับผู้เรียกที่ไม่มี
+// แนวคิด has_data เลย เช่น YLOStudentBreakdown.jsx ที่ยังเป็น all-or-nothing ไม่ได้แก้ตาม task นี้) -
+// คนไม่มีข้อมูล (hasData === false) ไม่เข้า bucket เปอร์เซ็นต์ไหนเลย (แม้แต่ "0%") เพราะ 0 ของเขาคือ
+// "ยังไม่มีคะแนนให้ตัดสิน" ไม่ใช่ "ได้ 0% จริง"
+export function matchesPercentBucket(percent, bucket, hasData = true) {
+  if (bucket === "all") return true;
+  if (hasData === false) return false;
   switch (bucket) {
     case "0":
       return percent === 0;
@@ -41,11 +47,15 @@ export const ACHIEVEMENT_STATUS_OPTIONS = [
   { value: "all", label: "ทั้งหมด" },
   { value: "achieved", label: "บรรลุแล้ว" },
   { value: "not-achieved", label: "ยังไม่บรรลุ" },
+  { value: "no-data", label: "ยังไม่มีข้อมูล" },
 ];
 
-export function matchesAchievementStatus(isAchieved, status) {
-  if (status === "achieved") return isAchieved === true;
-  if (status === "not-achieved") return isAchieved === false;
+// hasData (TASK-plo-denominator): ดูหมายเหตุเดียวกับ matchesPercentBucket - "ไม่บรรลุ" ต้องไม่รวมคนที่
+// ไม่มีข้อมูล (เดิมนับปนกันเพราะ is_achieved ของคนไม่มีข้อมูลก็เป็น false เหมือนคนสอบตกจริง)
+export function matchesAchievementStatus(isAchieved, status, hasData = true) {
+  if (status === "no-data") return hasData === false;
+  if (status === "achieved") return hasData !== false && isAchieved === true;
+  if (status === "not-achieved") return hasData !== false && isAchieved === false;
   return true; // "all"
 }
 
@@ -67,16 +77,23 @@ export const ROSTER_SORT_OPTIONS = [
 ];
 
 /**
- * comparator ทั่วไปสำหรับแถวที่มี { studentId, studentName, achievedPercent? } - ใช้ได้ทั้งหน้า PLO/YLO
- * (มี achievedPercent) sortKey ที่ไม่มี field รองรับ (เช่น "percent-asc" ตอนไม่มี achievedPercent) จะ
- * fallback ไปเรียงตาม id แทนอย่างเงียบๆ ไม่ throw
+ * comparator ทั่วไปสำหรับแถวที่มี { studentId, studentName, achievedPercent?, hasData? } - ใช้ได้ทั้ง
+ * หน้า PLO/YLO (มี achievedPercent) sortKey ที่ไม่มี field รองรับ (เช่น "percent-asc" ตอนไม่มี
+ * achievedPercent) จะ fallback ไปเรียงตาม id แทนอย่างเงียบๆ ไม่ throw - hasData (TASK-plo-denominator,
+ * undefined = มีข้อมูล ค่าเริ่มต้นเข้ากันได้กับ YLO ที่ไม่มีแนวคิดนี้) : เรียงตาม % คนที่ไม่มีข้อมูลอยู่
+ * ท้ายแถวเสมอไม่ว่าจะเรียง asc หรือ desc (0% จริงกับ "ไม่มีข้อมูล" ต้องแยกกันให้เห็นชัด ไม่ปนกันที่หัว/
+ * ท้ายตารางแบบเดียวกับคนที่คะแนนต่ำสุด/สูงสุดจริง)
  */
 export function compareStudentRows(a, b, sortKey) {
+  if (sortKey === "percent-asc" || sortKey === "percent-desc") {
+    const aHasData = a.hasData ?? true;
+    const bHasData = b.hasData ?? true;
+    if (aHasData !== bHasData) return aHasData ? -1 : 1;
+    return sortKey === "percent-asc"
+      ? (a.achievedPercent ?? 0) - (b.achievedPercent ?? 0)
+      : (b.achievedPercent ?? 0) - (a.achievedPercent ?? 0);
+  }
   switch (sortKey) {
-    case "percent-asc":
-      return (a.achievedPercent ?? 0) - (b.achievedPercent ?? 0);
-    case "percent-desc":
-      return (b.achievedPercent ?? 0) - (a.achievedPercent ?? 0);
     case "name":
       return (a.studentName ?? "").localeCompare(b.studentName ?? "", "th");
     case "year":
