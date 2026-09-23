@@ -140,8 +140,13 @@ export default function YLOYearProgress() {
     yloByYear[y.year_level] = y;
   });
   const currentYlo = yloByYear[selectedYearLevel];
+  // achieved_rate_percent เป็น null ได้แล้ว (2026-09 YLO rewrite มิเรอร์ TASK-plo-denominator ของ PLO) -
+  // หมายถึงไม่มีนักศึกษาคนไหนมีข้อมูลครบทุก PLO ที่ปีนี้คาดหวังไว้เลย ต้องแสดง "ยังไม่มีข้อมูล" (เทา) แทน
+  // "ไม่บรรลุ" (แดง) เพราะยังตัดสินไม่ได้ ไม่ใช่สอบตก - เช็ค !== null ก่อนเทียบเสมอ (ดู PLOCohortBar.jsx
+  // ที่ใช้ pattern เดียวกันฝั่ง PLO)
+  const hasAchievementData = achievement != null && achievement.achieved_rate_percent !== null;
   const isAchievedOverall =
-    achievement != null && achievement.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD;
+    hasAchievementData && achievement.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD;
 
   return (
     <div className="page">
@@ -248,15 +253,27 @@ export default function YLOYearProgress() {
                     <PLODonut
                       percent={achievement.achieved_rate_percent}
                       size={100}
-                      color={isAchievedOverall ? "var(--color-green-700)" : "var(--color-red-700)"}
+                      color={
+                        !hasAchievementData
+                          ? "var(--color-gray-400)"
+                          : isAchievedOverall
+                          ? "var(--color-green-700)"
+                          : "var(--color-red-700)"
+                      }
                     />
                     <div className="dashboard-hero-text">
                       <span className="dashboard-hero-number">
-                        {achievement.achieved_rate_percent.toFixed(0)}%
+                        {hasAchievementData ? `${achievement.achieved_rate_percent.toFixed(0)}%` : "ยังไม่มีข้อมูล"}
                       </span>
                       <span className="dashboard-hero-label">นักศึกษาบรรลุ YLO ปีนี้</span>
                       <span className="dashboard-hero-sub">
-                        {achievement.achieved_student_count} จาก {achievement.total_students} คน
+                        {hasAchievementData
+                          ? `${achievement.achieved_student_count} จาก ${achievement.student_count_with_data} คนที่มีข้อมูล`
+                          : "ยังไม่มีข้อมูลให้ตัดสิน"}
+                      </span>
+                      <span className="dashboard-hero-sub">
+                        จากนักศึกษาทั้งหมด {achievement.total_students} คน
+                        ({achievement.coverage_percent.toFixed(0)}% มีข้อมูล)
                       </span>
                     </div>
                   </div>

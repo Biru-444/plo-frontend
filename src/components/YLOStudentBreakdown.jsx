@@ -20,10 +20,16 @@ import {
 /**
  * Per-student pass/fail table for one YLO, shown when the hero donut is
  * clicked. YLO achievement is all-or-nothing (no partial score like PLO's
- * average_achieved_percent used to be) so the "% บรรลุ" column is just
- * 100.0/0.0 mirroring is_achieved - same visual language as PLOStudentBreakdown,
+ * average_achieved_percent) so the "% บรรลุ" column is just 100.0/0.0
+ * mirroring is_achieved - same visual language as PLOStudentBreakdown,
  * kept as its own small component instead of reusing that one since the data
  * shape here has no plo_id/achieved_percent to look up.
+ *
+ * has_data (2026-09 YLO rewrite - mirrors PLOStudentBreakdown's hasData handling
+ * added for TASK-plo-denominator): a student with has_data=false hasn't got
+ * evidence for every PLO this YLO year expects yet - shown as the same gray
+ * "ยังไม่มีข้อมูล" badge and "-" percent as PLO, not lumped in with a real 0%/
+ * not-achieved result.
  *
  * ตัวกรอง/เรียงลำดับ (2026-09-09) - component/utility เดียวกับที่ PLOStudentBreakdown.jsx ใช้
  * (StudentFilterControls.jsx, utils/studentFilters.js) เพื่อความสอดคล้องของทั้งสองหน้า ทำงานร่วมกันแบบ
@@ -44,6 +50,7 @@ export default function YLOStudentBreakdown({ students }) {
         studentName: s.student_name,
         achievedPercent: s.is_achieved ? 100 : 0,
         isAchieved: s.is_achieved,
+        hasData: s.has_data,
       })),
     [students]
   );
@@ -51,8 +58,8 @@ export default function YLOStudentBreakdown({ students }) {
   const visibleRows = useMemo(() => {
     const filtered = rows.filter((row) => {
       if (!matchesSearch(searchQuery, row.studentId, row.studentName)) return false;
-      if (!matchesAchievementStatus(row.isAchieved, achievementFilter)) return false;
-      if (!matchesPercentBucket(row.achievedPercent, percentBucket)) return false;
+      if (!matchesAchievementStatus(row.isAchieved, achievementFilter, row.hasData)) return false;
+      if (!matchesPercentBucket(row.achievedPercent, percentBucket, row.hasData)) return false;
       if (yearLevelFilter !== null && yearLevelByStudentId?.[row.studentId] !== yearLevelFilter) {
         return false;
       }
@@ -96,11 +103,17 @@ export default function YLOStudentBreakdown({ students }) {
               >
                 <td className="student-table-cell">{row.studentId}</td>
                 <td className="student-table-cell">{row.studentName}</td>
-                <td className="student-table-cell">{row.achievedPercent.toFixed(1)}%</td>
                 <td className="student-table-cell">
-                  <span className={`plo-badge ${row.isAchieved ? "achieved" : "not-achieved"}`}>
-                    {row.isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
-                  </span>
+                  {row.hasData === false ? "-" : `${row.achievedPercent.toFixed(1)}%`}
+                </td>
+                <td className="student-table-cell">
+                  {row.hasData === false ? (
+                    <span className="plo-badge no-data">ยังไม่มีข้อมูล</span>
+                  ) : (
+                    <span className={`plo-badge ${row.isAchieved ? "achieved" : "not-achieved"}`}>
+                      {row.isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
+                    </span>
+                  )}
                 </td>
                 <td className="student-table-cell student-row-arrow-cell">
                   <ChevronRight size={16} color="var(--color-purple-600)" />

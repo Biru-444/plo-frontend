@@ -80,12 +80,16 @@ export default function StudentYearBreakdown({
                   <Info size={12} className="student-year-ylo-info" title={year.ylo_description} />
                 )}
               </h3>
-              {year.is_reached ? (
+              {!year.is_reached ? (
+                <span className="badge-muted">ยังไม่ถึงชั้นปีนี้</span>
+              ) : !year.has_data ? (
+                // has_data=false (2026-09 YLO rewrite): ยังไม่มีคะแนนครบทุก PLO ที่ปีนี้คาดหวังไว้เลย -
+                // เทาเหมือน "ยังไม่ถึงชั้นปีนี้" แยกจาก "ไม่บรรลุ" (แดง) จริงๆ เพราะยังตัดสินไม่ได้
+                <span className="badge-muted">ยังไม่มีข้อมูล</span>
+              ) : (
                 <span className={year.is_achieved ? "badge-pass" : "badge-fail"}>
                   {year.is_achieved ? "บรรลุ YLO" : "ยังไม่บรรลุ YLO"}
                 </span>
-              ) : (
-                <span className="badge-muted">ยังไม่ถึงชั้นปีนี้</span>
               )}
             </div>
 
