@@ -12,6 +12,7 @@
  */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import LinkRow from "../components/LinkRow.jsx";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { getCourseEnrolledStudents, getPLOCoursePlan, listPLO } from "../api/client.js";
 
@@ -184,22 +185,21 @@ export default function PLOCourseDetailPage() {
               {visibleStudents.map((s) => {
                 const fullName = `${s.title ? `${s.title} ` : ""}${s.first_name} ${s.last_name}`;
                 return (
-                  <Link
+                  <LinkRow
                     key={s.id}
                     to={`/student-clo?offering_id=${s.offering_id}&student_id=${encodeURIComponent(
                       s.id
                     )}&student_name=${encodeURIComponent(fullName)}`}
-                    className="student-table-row"
                   >
-                    <span className="student-table-cell">{s.id}</span>
-                    <span className="student-table-cell">{fullName}</span>
-                    <span className="student-table-cell">
+                    <td className="student-table-cell">{s.id}</td>
+                    <td className="student-table-cell">{fullName}</td>
+                    <td className="student-table-cell">
                       <PLOAchievedBadge achieved={s.plo_achieved} />
-                    </span>
-                    <span className="student-table-cell student-row-arrow-cell">
+                    </td>
+                    <td className="student-table-cell student-row-arrow-cell">
                       <ChevronRight size={16} className="plo-course-chip-arrow" />
-                    </span>
-                  </Link>
+                    </td>
+                  </LinkRow>
                 );
               })}
             </tbody>

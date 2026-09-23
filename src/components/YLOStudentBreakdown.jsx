@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import LinkRow from "./LinkRow.jsx";
 import { ChevronRight } from "lucide-react";
 import {
   AchievementStatusFilter,
@@ -90,23 +90,22 @@ export default function YLOStudentBreakdown({ students }) {
           </thead>
           <tbody>
             {visibleRows.map((row) => (
-              <Link
+              <LinkRow
                 key={row.studentId}
                 to={`/student-plo?student_id=${encodeURIComponent(row.studentId)}`}
-                className="student-table-row"
               >
-                <span className="student-table-cell">{row.studentId}</span>
-                <span className="student-table-cell">{row.studentName}</span>
-                <span className="student-table-cell">{row.achievedPercent.toFixed(1)}%</span>
-                <span className="student-table-cell">
+                <td className="student-table-cell">{row.studentId}</td>
+                <td className="student-table-cell">{row.studentName}</td>
+                <td className="student-table-cell">{row.achievedPercent.toFixed(1)}%</td>
+                <td className="student-table-cell">
                   <span className={`plo-badge ${row.isAchieved ? "achieved" : "not-achieved"}`}>
                     {row.isAchieved ? "บรรลุ" : "ไม่บรรลุ"}
                   </span>
-                </span>
-                <span className="student-table-cell student-row-arrow-cell">
+                </td>
+                <td className="student-table-cell student-row-arrow-cell">
                   <ChevronRight size={16} color="var(--color-purple-600)" />
-                </span>
-              </Link>
+                </td>
+              </LinkRow>
             ))}
           </tbody>
         </table>

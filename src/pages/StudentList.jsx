@@ -12,7 +12,7 @@
  * ถ้าแก้ : ไม่มีตัวกรอง %บรรลุ/สถานะบรรลุในหน้านี้โดยตั้งใจ (เป็นหน้าทะเบียนล้วนๆ)
  */
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import LinkRow from "../components/LinkRow.jsx";
 import { Search, ArrowLeft, ChevronRight } from "lucide-react";
 import { listStudents, listCurricula } from "../api/client.js";
 import { SortSelect, YearLevelFilter } from "../components/StudentFilterControls.jsx";
@@ -355,29 +355,28 @@ export default function StudentList() {
                     </thead>
                     <tbody>
                       {sortedStudents.map((student) => (
-                        <Link
+                        <LinkRow
                           key={student.id}
                           to={`/student-plo?student_id=${encodeURIComponent(student.id)}`}
-                          className="student-table-row"
                         >
-                          <span className="student-table-cell">{student.id}</span>
-                          <span className="student-table-cell">
+                          <td className="student-table-cell">{student.id}</td>
+                          <td className="student-table-cell">
                             {student.title ? `${student.title} ` : ""}
                             {student.first_name} {student.last_name}
-                          </span>
-                          <span className="student-table-cell">
+                          </td>
+                          <td className="student-table-cell">
                             {curriculumById[student.curriculum_id]?.name ?? `#${student.curriculum_id}`}
-                          </span>
-                          <span className="student-table-cell">{`ปี ${student.current_year_level}`}</span>
-                          <span className="student-table-cell">
+                          </td>
+                          <td className="student-table-cell">{`ปี ${student.current_year_level}`}</td>
+                          <td className="student-table-cell">
                             <span className={`status-badge ${STATUS_BADGE_CLASS[student.status] ?? ""}`}>
                               {student.status}
                             </span>
-                          </span>
-                          <span className="student-table-cell student-row-arrow-cell">
+                          </td>
+                          <td className="student-table-cell student-row-arrow-cell">
                             <ChevronRight size={16} color="var(--color-purple-600)" />
-                          </span>
-                        </Link>
+                          </td>
+                        </LinkRow>
                       ))}
                     </tbody>
                   </table>

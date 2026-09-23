@@ -415,25 +415,31 @@ body {
   background: var(--color-gray-50);
 }
 
-/* จุดที่กดได้จริง 2 แบบ: a.student-table-row (ลิงก์ไปหน้าอื่น) กับ tr.student-table-row.expandable
+/* จุดที่กดได้จริง 2 แบบ: tr.student-table-row.link-row (ลิงก์ไปหน้าอื่น ผ่าน components/LinkRow.jsx - เดิมเป็น
+   a.student-table-row ซึ่งผิดโครง HTML เพราะ <a> อยู่ใต้ <tbody> ตรงๆ) กับ tr.student-table-row.expandable
    (ขยาย/ยุบแถวในตารางเดียวกัน มี onClick) - ให้มีพื้นหลังสีม่วงอ่อนสังเกตได้ตั้งแต่ยังไม่ hover ก็รู้ว่า
    กดได้ ส่วนแถวข้อมูลธรรมดา (tr เฉยๆ ไม่มี onClick เช่น แถวแสดงคะแนน/รายวิชา) ไม่ใช้ selector นี้เลย
    จึงไม่มี cursor/hover หลอกว่ากดได้ทั้งที่กดไม่ได้ (ของเดิม cursor:pointer ใช้กับทุกแถวเหมือนกันหมด) */
-a.student-table-row,
+tr.student-table-row.link-row,
 tr.student-table-row.expandable {
   cursor: pointer;
   background: var(--clickable-hover-bg);
   transition: background-color 0.15s ease;
 }
 
-a.student-table-row:nth-child(even),
+tr.student-table-row.link-row:nth-child(even),
 tr.student-table-row.expandable:nth-child(even) {
   background: var(--clickable-hover-bg);
 }
 
-a.student-table-row:hover,
+tr.student-table-row.link-row:hover,
 tr.student-table-row.expandable:hover {
   background: var(--color-purple-100);
+}
+
+tr.student-table-row.link-row:focus-visible {
+  outline: 2px solid var(--color-purple-600);
+  outline-offset: -2px;
 }
 
 .student-table-detail-row {

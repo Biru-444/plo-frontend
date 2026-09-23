@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import LinkRow from "./LinkRow.jsx";
 import { ChevronRight, Info } from "lucide-react";
 import { getPLOCoursePlan } from "../api/client.js";
 
@@ -63,19 +63,19 @@ export default function PLOCourseBreakdown({ ploId, cohortYear, curriculumId }) 
             <table className="student-table">
               <tbody>
                 {coursePlan.courses.map((c) => (
-                  <Link key={c.course_id} to={courseHref(c.course_id)} className="student-table-row">
-                    <span className="student-table-cell">
+                  <LinkRow key={c.course_id} to={courseHref(c.course_id)}>
+                    <td className="student-table-cell">
                       {c.course_code} {c.name_th}
-                    </span>
-                    <span className="student-table-cell">
+                    </td>
+                    <td className="student-table-cell">
                       <span className="plo-course-chip-badge">
                         {RESPONSIBILITY_LABEL[c.responsibility_level] ?? c.responsibility_level}
                       </span>
-                    </span>
-                    <span className="student-table-cell student-row-arrow-cell">
+                    </td>
+                    <td className="student-table-cell student-row-arrow-cell">
                       <ChevronRight size={16} className="plo-course-chip-arrow" />
-                    </span>
-                  </Link>
+                    </td>
+                  </LinkRow>
                 ))}
               </tbody>
             </table>
