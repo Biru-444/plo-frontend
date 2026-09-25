@@ -1,10 +1,15 @@
 /**
  * ทำอะไร : ศูนย์รวมเมนูจัดการระบบของ admin (route "/admin") — การ์ด grid แบ่งเป็น section ตามหมวดงาน
- *          บวกการ์ดพิเศษ 2 อัน (กรอกคะแนน/ผลบรรลุ CLO และนำเข้ารายชื่อ) ที่ยกไว้ด้านบนสุดเพราะเป็นงาน
- *          ที่ทำบ่อยที่สุด — ไม่มี logic/state อะไรในหน้านี้เลย เป็นแค่การจัดวาง config ล้วนๆ
+ *          ไม่มี logic/state อะไรในหน้านี้เลย เป็นแค่การจัดวาง config ล้วนๆ — เดิมเคยมีการ์ดพิเศษ 2 อัน
+ *          (กรอกคะแนน/ผลบรรลุ CLO และนำเข้ารายชื่อ) ยกไว้ด้านบนสุด เอาออกแล้ว (2026-09-25) เพราะ "กรอก
+ *          คะแนน/ผลบรรลุ CLO" ย้ายไปเป็นงานของอาจารย์เท่านั้น (ดู /admin/course-grading ใน App.jsx) และ
+ *          "นำเข้ารายชื่อ" ยังมีการ์ดเดิมอยู่ในหมวด "เครื่องมือเสริม" ด้านล่างอยู่แล้ว ไม่ต้องมีซ้ำ
  *
  * เชื่อมกับ : ทุก item ใน SECTIONS ลิงก์ไปหน้า admin/* ที่ตรงกับ route ใน App.jsx (requireAdmin ทุก
- *             เส้นทาง)
+ *             เส้นทาง) — "การเปิดสอน" (/admin/course-offerings), "งานประเมิน"
+ *             (/admin/assessment-items), "งานประเมิน-CLO Mapping" (/admin/item-clo) ไม่มีการ์ดในหน้านี้
+ *             แล้วเช่นกัน (2026-09-25) แต่ route ยังอยู่ เข้าได้ด้วย URL ตรงเท่านั้น (ตัดสินใจร่วมกับ
+ *             ผู้ใช้แล้วว่าไม่ต้องหาที่ทางอื่นให้)
  *
  * ถ้าแก้ : เพิ่มเมนูใหม่ให้เติมใน SECTIONS (หรือสร้าง section ใหม่) ไม่ใช่เขียน JSX แยกในฟังก์ชัน
  *          AdminHome ตรงๆ เพื่อให้ layout/สไตล์สอดคล้องกันทั้งหน้า
@@ -17,16 +22,12 @@ import {
   Link2,
   ClipboardList,
   BookMarked,
-  CalendarClock,
   Flag,
-  FileText,
   Users,
   UserPlus,
   UserCog,
-  PencilLine,
   FileSpreadsheet,
   Sparkles,
-  ArrowRight,
   Info,
 } from "lucide-react";
 
@@ -52,25 +53,18 @@ const SECTIONS = [
   {
     key: "academics",
     title: "จัดการเรียนการสอน",
-    tooltip:
-      "งานที่ทำทุกภาคเรียน: เปิดสอนรายวิชาและกำหนดผู้สอน สร้างงานประเมิน และเชื่อมงานประเมินกับ CLO",
+    tooltip: "เชื่อมโยง CLO ของรายวิชา และ YLO ของแต่ละชั้นปี เข้ากับ PLO ของหลักสูตร",
     items: [
       {
-        to: "/admin/course-offerings",
-        label: "การเปิดสอน",
-        sublabel: "เปิดวิชา กำหนดผู้สอนต่อภาคเรียน",
-        icon: CalendarClock,
+        to: "/admin/clo-plo-mapping",
+        label: "CLO-PLO Mapping",
+        sublabel: "เชื่อมโยง CLO กับ PLO ที่เกี่ยวข้องโดยตรง",
+        icon: Link2,
       },
       {
-        to: "/admin/assessment-items",
-        label: "งานประเมิน",
-        sublabel: "ควิซ สอบกลางภาค สอบปลายภาคต่อวิชา",
-        icon: FileText,
-      },
-      {
-        to: "/admin/item-clo",
-        label: "งานประเมิน-CLO Mapping",
-        sublabel: "ผูกน้ำหนักงานประเมินกับ CLO",
+        to: "/admin/ylo-plo-mapping",
+        label: "YLO-PLO Mapping",
+        sublabel: "เชื่อมโยง YLO กับ PLO ที่เกี่ยวข้อง",
         icon: Link2,
       },
     ],
@@ -85,12 +79,6 @@ const SECTIONS = [
         label: "การลงทะเบียน",
         sublabel: "ลงทะเบียนนักศึกษาเข้าวิชาทีละคน",
         icon: UserPlus,
-      },
-      {
-        to: "/admin/roster-import",
-        label: "นำเข้ารายชื่อนักศึกษา",
-        sublabel: "รองรับไฟล์ .xlsx / .xls จากระบบทะเบียน",
-        icon: FileSpreadsheet,
       },
     ],
   },
@@ -110,7 +98,7 @@ const SECTIONS = [
     key: "tools",
     title: "เครื่องมือเสริม",
     tooltip:
-      "นำเข้าข้อมูลจาก มคอ.2 / มคอ.3 ด้วย AI (ตรวจสอบก่อนบันทึก), เชื่อมโยง CLO และ YLO กับ PLO และจัดแผนการศึกษา",
+      "นำเข้าข้อมูลจาก มคอ.2 / มคอ.3 ด้วย AI (ตรวจสอบก่อนบันทึก), จัดแผนการศึกษา และนำเข้ารายชื่อนักศึกษาจากไฟล์ Excel",
     items: [
       {
         to: "/admin/curriculum-import-mco2",
@@ -125,22 +113,16 @@ const SECTIONS = [
         icon: Sparkles,
       },
       {
-        to: "/admin/clo-plo-mapping",
-        label: "CLO-PLO Mapping",
-        sublabel: "เชื่อมโยง CLO กับ PLO ที่เกี่ยวข้องโดยตรง",
-        icon: Link2,
-      },
-      {
-        to: "/admin/ylo-plo-mapping",
-        label: "YLO-PLO Mapping",
-        sublabel: "เชื่อมโยง YLO กับ PLO ที่เกี่ยวข้อง",
-        icon: Link2,
-      },
-      {
         to: "/admin/study-plan",
         label: "แผนการศึกษา",
         sublabel: "วิชาที่ต้องเรียนแต่ละชั้นปี",
         icon: ClipboardList,
+      },
+      {
+        to: "/admin/roster-import",
+        label: "นำเข้ารายชื่อนักศึกษา",
+        sublabel: "รองรับไฟล์ .xlsx / .xls จากระบบทะเบียน",
+        icon: FileSpreadsheet,
       },
     ],
   },
@@ -174,34 +156,6 @@ export default function AdminHome() {
   return (
     <div className="page">
       <h1>จัดการระบบ</h1>
-
-      <Link to="/admin/course-grading" className="admin-home-primary-card">
-        <PencilLine size={22} strokeWidth={2} />
-        <div>
-          <strong>กรอกคะแนน / ผลบรรลุ CLO</strong>
-          <span>กรอกคะแนนทั้งชั้น + ดูผลบรรลุ CLO ของวิชาหนึ่งในหน้าเดียว</span>
-        </div>
-        <Info
-          size={14}
-          className="admin-home-primary-card-info"
-          title='ใช้เมนูนี้เป็นหลักสำหรับงานประจำภาคเรียน ส่วนลงทะเบียนนักศึกษาไปที่ "การลงทะเบียน" ด้านล่างแทน'
-        />
-        <ArrowRight size={18} />
-      </Link>
-
-      <Link to="/admin/roster-import" className="admin-home-primary-card">
-        <FileSpreadsheet size={22} strokeWidth={2} />
-        <div>
-          <strong>นำเข้ารายชื่อจากไฟล์ Excel มหาวิทยาลัย</strong>
-          <span>รองรับไฟล์ .xlsx / .xls จากระบบทะเบียน</span>
-        </div>
-        <Info
-          size={14}
-          className="admin-home-primary-card-info"
-          title="โยนไฟล์ .xls ที่มหาวิทยาลัยส่งให้อาจารย์เข้าไป ระบบจะสร้าง/จับคู่วิชาที่เปิดสอน ผู้สอน และรายชื่อนักศึกษาให้อัตโนมัติ ไม่ต้องพิมพ์ชื่อเอง"
-        />
-        <ArrowRight size={18} />
-      </Link>
 
       {SECTIONS.map((section) => (
         <section className="admin-home-section" key={section.key}>
