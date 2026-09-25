@@ -83,9 +83,13 @@ export default function CLOAchievementPanel({ offeringId, noMappingHint }) {
         setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
         setCloAchievement(achievement);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
-          setLoadError("โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
+          setLoadError(
+            err?.response?.status === 403
+              ? "คุณไม่มีสิทธิ์เข้าถึงรายวิชานี้"
+              : "โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้"
+          );
         }
       })
       .finally(() => {

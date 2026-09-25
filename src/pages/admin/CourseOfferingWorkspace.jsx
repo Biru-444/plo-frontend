@@ -209,8 +209,14 @@ export default function CourseOfferingWorkspace() {
       const itemIds = new Set(items.map((i) => i.id));
       setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
       setEnrollments(offeringEnrollments);
-    } catch {
-      setWorkspaceError("โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
+    } catch (err) {
+      // 403 = ไม่ใช่ offering ของอาจารย์คนนี้ (เช่น URL เก่า/แชร์มาจากอาจารย์คนอื่น หรือถูกถอดออกจาก
+      // วิชานี้แล้ว) - แยกข้อความให้เข้าใจได้ชัดกว่า error ทั่วไป (เช่น เน็ตหลุด/backend ล่ม)
+      setWorkspaceError(
+        err?.response?.status === 403
+          ? "คุณไม่มีสิทธิ์เข้าถึงรายวิชานี้"
+          : "โหลดข้อมูลไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้"
+      );
     } finally {
       setLoadingWorkspace(false);
     }
