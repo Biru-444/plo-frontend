@@ -39,56 +39,27 @@ const SECTIONS = [
   {
     key: "curriculum",
     title: "โครงสร้างหลักสูตร",
-    tooltip: "ข้อมูลตั้งค่าโครงสร้างหลักสูตร - ทำครั้งเดียวตอนตั้งหลักสูตรใหม่ ปกติไม่ค่อยกลับมาแก้",
+    tooltip:
+      "ตั้งค่าข้อมูลหลักของหลักสูตรตามลำดับ: หลักสูตร → PLO → รายวิชา → CLO → YLO ควรทำตามลำดับจากซ้ายไปขวา เพราะแต่ละขั้นต้องใช้ข้อมูลจากขั้นก่อนหน้า",
     items: [
       { to: "/admin/curriculum", label: "หลักสูตร", sublabel: "ชื่อและปีหลักสูตร", icon: GraduationCap },
       { to: "/admin/plo", label: "PLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับหลักสูตร", icon: Target },
-      {
-        to: "/admin/curriculum-import-mco2",
-        label: "นำเข้าหลักสูตร/PLO จาก มคอ.2 ด้วย AI",
-        sublabel: "อัปโหลด .pdf/.docx แกะชื่อ/ปีหลักสูตร+PLO ให้ตรวจก่อนบันทึก",
-        icon: Sparkles,
-      },
+      { to: "/admin/course", label: "รายวิชา", sublabel: "รหัส ชื่อ หน่วยกิตรายวิชา", icon: BookMarked },
+      { to: "/admin/clo", label: "CLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับรายวิชา", icon: Flag },
       { to: "/admin/ylo", label: "YLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับชั้นปี", icon: CalendarCheck },
-      {
-        to: "/admin/ylo-plo-mapping",
-        label: "YLO-PLO Mapping",
-        sublabel: "เชื่อมโยง YLO กับ PLO ที่เกี่ยวข้อง",
-        icon: Link2,
-      },
-      {
-        to: "/admin/study-plan",
-        label: "แผนการศึกษา",
-        sublabel: "วิชาที่ต้องเรียนแต่ละชั้นปี",
-        icon: ClipboardList,
-      },
     ],
   },
   {
     key: "academics",
     title: "จัดการเรียนการสอน",
     tooltip:
-      "จัดการรายวิชา การเปิดสอน และโครงสร้างการประเมิน (CLO/งานประเมิน) ทีละรายการ - ถ้าต้องการกรอกคะแนน/ดูผลบรรลุ CLO ของวิชาหนึ่งในหน้าเดียว ใช้การ์ด \"กรอกคะแนน / ผลบรรลุ CLO\" ด้านบนแทน",
+      "งานที่ทำทุกภาคเรียน: เปิดสอนรายวิชาและกำหนดผู้สอน สร้างงานประเมิน และเชื่อมงานประเมินกับ CLO",
     items: [
-      { to: "/admin/course", label: "รายวิชา", sublabel: "รหัส ชื่อ หน่วยกิตรายวิชา", icon: BookMarked },
-      {
-        to: "/admin/course-import-mco3",
-        label: "นำเข้าวิชาจาก มคอ.3 ด้วย AI",
-        sublabel: "อัปโหลด .pdf/.docx แกะวิชา+CLO+PLO mapping ให้ตรวจก่อนบันทึก",
-        icon: Sparkles,
-      },
       {
         to: "/admin/course-offerings",
         label: "การเปิดสอน",
         sublabel: "เปิดวิชา กำหนดผู้สอนต่อภาคเรียน",
         icon: CalendarClock,
-      },
-      { to: "/admin/clo", label: "CLO", sublabel: "ผลลัพธ์การเรียนรู้ระดับรายวิชา", icon: Flag },
-      {
-        to: "/admin/clo-plo-mapping",
-        label: "CLO-PLO Mapping",
-        sublabel: "เชื่อมโยง CLO กับ PLO ที่เกี่ยวข้องโดยตรง",
-        icon: Link2,
       },
       {
         to: "/admin/assessment-items",
@@ -132,6 +103,44 @@ const SECTIONS = [
         label: "บัญชีผู้ใช้",
         sublabel: "บัญชีแอดมินและอาจารย์ผู้สอน",
         icon: UserCog,
+      },
+    ],
+  },
+  {
+    key: "tools",
+    title: "เครื่องมือเสริม",
+    tooltip:
+      "นำเข้าข้อมูลจาก มคอ.2 / มคอ.3 ด้วย AI (ตรวจสอบก่อนบันทึก), เชื่อมโยง CLO และ YLO กับ PLO และจัดแผนการศึกษา",
+    items: [
+      {
+        to: "/admin/curriculum-import-mco2",
+        label: "นำเข้าหลักสูตร/PLO จาก มคอ.2 ด้วย AI",
+        sublabel: "อัปโหลด .pdf/.docx แกะชื่อ/ปีหลักสูตร+PLO ให้ตรวจก่อนบันทึก",
+        icon: Sparkles,
+      },
+      {
+        to: "/admin/course-import-mco3",
+        label: "นำเข้าวิชาจาก มคอ.3 ด้วย AI",
+        sublabel: "อัปโหลด .pdf/.docx แกะวิชา+CLO+PLO mapping ให้ตรวจก่อนบันทึก",
+        icon: Sparkles,
+      },
+      {
+        to: "/admin/clo-plo-mapping",
+        label: "CLO-PLO Mapping",
+        sublabel: "เชื่อมโยง CLO กับ PLO ที่เกี่ยวข้องโดยตรง",
+        icon: Link2,
+      },
+      {
+        to: "/admin/ylo-plo-mapping",
+        label: "YLO-PLO Mapping",
+        sublabel: "เชื่อมโยง YLO กับ PLO ที่เกี่ยวข้อง",
+        icon: Link2,
+      },
+      {
+        to: "/admin/study-plan",
+        label: "แผนการศึกษา",
+        sublabel: "วิชาที่ต้องเรียนแต่ละชั้นปี",
+        icon: ClipboardList,
       },
     ],
   },
