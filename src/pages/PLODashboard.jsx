@@ -184,15 +184,20 @@ export default function PLODashboard() {
   // TASK-plo-denominator: ตัวหาร (dataCompleteCount) เปลี่ยนจากนักศึกษาทั้งหมดเป็นนักศึกษาที่มีข้อมูล
   // ครบทุก qualifying PLO (all_plo_data_complete_count) - percent เป็น null ถ้าไม่มีใครมีข้อมูลครบเลย
   const allAchievedStats = useMemo(() => {
-    if (!summary || summary.total_students === 0) {
+    if (!summary) {
       return { count: 0, percent: null, qualifying: 0, total: 0, dataCompleteCount: 0 };
     }
+    // qualifying/total เป็นคุณสมบัติของ PLO/CLO setup ของหลักสูตร ไม่ใช่ของนักศึกษา - ต้องอ่านจาก
+    // backend เสมอไม่ว่า total_students จะเป็น 0 หรือไม่ก็ตาม (เดิม hardcode เป็น 0 ทั้งคู่ตอนไม่มี
+    // นักศึกษา ทำให้ "0 จาก 0 ข้อที่มีวิชาหลัก" โชว์ผิด ทั้งที่ backend มี total_plo_count จริงส่งมาให้
+    // อยู่แล้ว) มีแค่ count/percent/dataCompleteCount ที่เป็นสถิติเกี่ยวกับนักศึกษาจริงๆ ที่ยัง fallback
+    // เป็น 0/null ตอนไม่มีนักศึกษาได้ตามปกติ
     return {
-      count: summary.all_plo_achieved_count,
-      percent: summary.all_plo_achieved_percent,
+      count: summary.total_students === 0 ? 0 : summary.all_plo_achieved_count,
+      percent: summary.total_students === 0 ? null : summary.all_plo_achieved_percent,
       qualifying: summary.qualifying_plo_count,
       total: summary.total_plo_count,
-      dataCompleteCount: summary.all_plo_data_complete_count,
+      dataCompleteCount: summary.total_students === 0 ? 0 : summary.all_plo_data_complete_count,
     };
   }, [summary]);
 
@@ -308,49 +313,48 @@ export default function PLODashboard() {
             </div>
           </div>
 
-          {summary.total_students === 0 ? (
+          {summary.total_students === 0 && (
             <p className="student-list-empty">หลักสูตรนี้ยังไม่มีนักศึกษา</p>
-          ) : (
-            <>
-              <div className="plo-filter-pills">
-                {FILTERS.map((f) => (
-                  <button
-                    key={f.key}
-                    type="button"
-                    className={`plo-filter-pill ${filterMode === f.key ? "active" : ""}`}
-                    onClick={() => setFilterMode(f.key)}
-                  >
-                    {f.label}
-                    {f.key === "at-risk" && atRiskCount > 0 && (
-                      <span className="plo-filter-pill-count">{atRiskCount}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
+          )}
 
-              <div className="plo-grid">
-                {filteredPloSummary.map((plo) => (
-                  <PLOSummaryCard
-                    key={plo.plo_id}
-                    code={plo.plo_code}
-                    description={plo.description}
-                    achievedRatePercent={plo.achieved_rate_percent}
-                    achievedCount={plo.achieved_student_count}
-                    totalStudents={summary.total_students}
-                    studentCountWithData={plo.student_count_with_data}
-                    coveragePercent={plo.coverage_percent}
-                    isAchieved={
-                      plo.achieved_rate_percent !== null && plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD
-                    }
-                    to={`/plo/overview/${plo.plo_id}${detailQuery}`}
-                  />
-                ))}
-              </div>
+          <div className="plo-filter-pills">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                className={`plo-filter-pill ${filterMode === f.key ? "active" : ""}`}
+                onClick={() => setFilterMode(f.key)}
+              >
+                {f.label}
+                {f.key === "at-risk" && atRiskCount > 0 && (
+                  <span className="plo-filter-pill-count">{atRiskCount}</span>
+                )}
+              </button>
+            ))}
+          </div>
 
-              {filteredPloSummary.length === 0 && (
-                <p className="student-list-empty">ไม่มี PLO ในหมวดนี้</p>
-              )}
-            </>
+          <div className="plo-grid">
+            {filteredPloSummary.map((plo) => (
+              <PLOSummaryCard
+                key={plo.plo_id}
+                code={plo.plo_code}
+                description={plo.description}
+                achievedRatePercent={plo.achieved_rate_percent}
+                achievedCount={plo.achieved_student_count}
+                totalStudents={summary.total_students}
+                studentCountWithData={plo.student_count_with_data}
+                coveragePercent={plo.coverage_percent}
+                hasCloMapping={plo.has_clo_mapping}
+                isAchieved={
+                  plo.achieved_rate_percent !== null && plo.achieved_rate_percent >= COHORT_ACHIEVED_THRESHOLD
+                }
+                to={`/plo/overview/${plo.plo_id}${detailQuery}`}
+              />
+            ))}
+          </div>
+
+          {filteredPloSummary.length === 0 && (
+            <p className="student-list-empty">ไม่มี PLO ในหมวดนี้</p>
           )}
         </>
       )}

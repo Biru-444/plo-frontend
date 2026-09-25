@@ -18,6 +18,17 @@ function truncate(text, max) {
 // "no-data" (เทา) ออกจาก "at-goal"/"at-risk" ชัดเจน แสดง coverage (studentCountWithData/totalStudents)
 // คู่กับจำนวนที่บรรลุเสมอ ผู้เรียกเก่าที่ยังไม่ส่ง studentCountWithData/coveragePercent มา (ไม่ควรมีแล้ว
 // แต่กันไว้) จะไม่เห็นบรรทัด coverage เพิ่ม ไม่พัง
+//
+// 2026-09: การ์ด no-data แยกเหตุผลตาม hasCloMapping (ดู PLOCohortSummaryItem.has_clo_mapping) แทน
+// ข้อความ "ยังไม่มีข้อมูล" เดียวกันหมด - false = PLO ยังไม่มี CLO ผูกเลย (ตั้งค่าไม่ครบ), true = ผูกแล้ว
+// แต่ยังไม่มีนักศึกษา/คะแนน (รอข้อมูลจริง) - ผู้เรียกเก่าที่ยังไม่ส่ง hasCloMapping มา (undefined) ยังเห็น
+// ข้อความเดิม "ยังไม่มีข้อมูล" เหมือนก่อนแก้ ไม่พัง
+function noDataReason(hasCloMapping) {
+  if (hasCloMapping === false) return "ยังไม่ผูกกับรายวิชา (ยังไม่มี CLO-PLO Mapping)";
+  if (hasCloMapping === true) return "ยังไม่มีข้อมูลคะแนนนักศึกษา";
+  return "ยังไม่มีข้อมูล";
+}
+
 export default function PLOSummaryCard({
   code,
   description,
@@ -26,6 +37,7 @@ export default function PLOSummaryCard({
   totalStudents,
   studentCountWithData,
   coveragePercent,
+  hasCloMapping,
   isAchieved,
   to,
 }) {
@@ -46,7 +58,9 @@ export default function PLOSummaryCard({
             {achievedCount}/{studentCountWithData ?? totalStudents} คนที่มีข้อมูล
           </span>
         ) : (
-          <span className="plo-summary-card-count plo-summary-card-nodata">ยังไม่มีข้อมูล</span>
+          <span className="plo-summary-card-count plo-summary-card-nodata">
+            {noDataReason(hasCloMapping)}
+          </span>
         )}
         {studentCountWithData !== undefined && coveragePercent !== undefined && (
           <span className="plo-summary-card-coverage">
