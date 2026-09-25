@@ -32,7 +32,6 @@ import AdminRosterImport from "./pages/admin/AdminRosterImport.jsx";
 import AdminCourseImportMCO3 from "./pages/admin/AdminCourseImportMCO3.jsx";
 import AdminCurriculumImportMCO2 from "./pages/admin/AdminCurriculumImportMCO2.jsx";
 import CourseOfferingWorkspace from "./pages/admin/CourseOfferingWorkspace.jsx";
-import AdminCourseGrading from "./pages/admin/AdminCourseGrading.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 /**
@@ -390,21 +389,6 @@ export default function App() {
           <AppLayout>
             <ProtectedRoute>
               <CourseOfferingWorkspace />
-            </ProtectedRoute>
-          </AppLayout>
-        }
-      />
-      {/* ให้เกรดรายวิชา (สรุปคะแนน/เกรดของทั้งห้อง) — เดิม admin เท่านั้น เปลี่ยนเป็นอาจารย์เท่านั้น
-          (2026-09-25) เพราะซ้ำซ้อนกับ /course-workspace ที่อาจารย์มีอยู่แล้ว (ครบกว่าด้วย 4 แท็บ:
-          ลงทะเบียน/โครงสร้างการประเมิน/คะแนน/CLO ในขณะที่หน้านี้มีแค่ 2 แท็บสุดท้าย) - ไม่มีเมนูไหนชี้มา
-          หน้านี้อีกแล้ว (เอาออกจาก AdminHome.jsx) อาจารย์ยังคงใช้ /course-workspace ตามปกติ ไม่ได้ย้าย
-          มาที่นี่ - แค่กัน admin ไม่ให้เข้าเฉยๆ */}
-      <Route
-        path="/admin/course-grading"
-        element={
-          <AppLayout>
-            <ProtectedRoute blockAdmin>
-              <AdminCourseGrading />
             </ProtectedRoute>
           </AppLayout>
         }
