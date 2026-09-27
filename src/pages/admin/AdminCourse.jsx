@@ -13,7 +13,9 @@
  *             ยังทำที่ "/admin/clo" เหมือนเดิม แผงนี้ทำแค่สร้างใหม่แบบเร็ว + ลบ + ดูรายการ
  *
  * ถ้าแก้ : ลบวิชาจะ cascade ลบ course_plo/study_plan/course_offering/clo ที่อ้างถึงไปด้วยทั้งหมด
- *          (รวมถึง CLO ที่สร้างจากแผงล่างนี้ด้วย)
+ *          (รวมถึง CLO ที่สร้างจากแผงล่างนี้ด้วย) - "ประเภท" (domain) บังคับเลือกทุกแถวก่อนบันทึกเสมอ
+ *          (POST /clo ปฏิเสธด้วย 422 ถ้าไม่ส่งมา ตั้งแต่ CLOCreateSchema เปลี่ยนให้ domain เป็น required
+ *          - ดู src/utils/cloDomain.js ที่ AdminCLO.jsx ใช้ตัวเดียวกัน)
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
@@ -29,6 +31,7 @@ import {
   createCLO,
   deleteCLO,
 } from "../../api/client.js";
+import { CLO_DOMAIN_OPTIONS, CLO_DOMAIN_LABEL_TH } from "../../utils/cloDomain.js";
 
 function CLOManagerPanel() {
   const [courseOptions, setCourseOptions] = useState([]);
@@ -87,7 +90,7 @@ function CLOManagerPanel() {
 
   function addCloRow() {
     const rowId = cloRowIdRef.current++;
-    setCloRows((prev) => [...prev, { rowId, description: "", threshold: "60", error: "" }]);
+    setCloRows((prev) => [...prev, { rowId, description: "", threshold: "60", domain: "", error: "" }]);
   }
 
   function removeCloRow(rowId) {
@@ -115,6 +118,8 @@ function CLOManagerPanel() {
       let error = "";
       if (!row.description.trim()) {
         error = "กรุณากรอกคำอธิบาย";
+      } else if (!row.domain) {
+        error = "กรุณาเลือกประเภท";
       } else if (!isValidThresholdInput(row.threshold)) {
         error = "เกณฑ์ผ่านต้องเป็นจำนวนเต็ม 0-100 (ไม่มีทศนิยม)";
       }
@@ -133,6 +138,7 @@ function CLOManagerPanel() {
           course_id: Number(selectedCourseId),
           code: `CLO${existingCloNumberMax + index + 1}`,
           description: row.description.trim(),
+          domain: row.domain,
           pass_threshold_percent: Number(row.threshold),
         })
       )
@@ -207,6 +213,7 @@ function CLOManagerPanel() {
                   <tr>
                     <th>รหัส CLO</th>
                     <th>คำอธิบาย</th>
+                    <th>ประเภท</th>
                     <th>เกณฑ์ผ่าน (%)</th>
                     <th></th>
                   </tr>
@@ -216,6 +223,13 @@ function CLOManagerPanel() {
                     <tr key={clo.id} className="student-table-row">
                       <td className="student-table-cell">{clo.code}</td>
                       <td className="student-table-cell">{clo.description}</td>
+                      <td className="student-table-cell">
+                        {clo.domain ? (
+                          CLO_DOMAIN_LABEL_TH[clo.domain] || clo.domain
+                        ) : (
+                          <span className="badge-muted">ยังไม่ระบุ</span>
+                        )}
+                      </td>
                       <td className="student-table-cell">{clo.pass_threshold_percent}</td>
                       <td className="student-table-cell">
                         <button
@@ -250,6 +264,24 @@ function CLOManagerPanel() {
                             value={row.description}
                             onChange={(e) => updateCloRow(row.rowId, "description", e.target.value)}
                           />
+                        </div>
+                        <div className="form-field">
+                          <label htmlFor={`admin-clo-row-domain-${row.rowId}`}>ประเภท</label>
+                          <select
+                            id={`admin-clo-row-domain-${row.rowId}`}
+                            value={row.domain}
+                            onChange={(e) => updateCloRow(row.rowId, "domain", e.target.value)}
+                            required
+                          >
+                            <option value="" disabled>
+                              -- เลือกประเภท --
+                            </option>
+                            {CLO_DOMAIN_OPTIONS.map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                         <div className="form-field">
                           <label htmlFor={`admin-clo-row-threshold-${row.rowId}`}>เกณฑ์ผ่าน (%)</label>
