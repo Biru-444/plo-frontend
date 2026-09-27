@@ -15,6 +15,10 @@
  *          "หลักสูตรของนักศึกษา" ก่อนถึงจะกดยืนยันได้ (ปุ่มล็อกจนกว่า needs_curriculum_id จะเป็น false)
  *          เลือกหลักสูตรแล้ว preview ซ้ำอัตโนมัติด้วย curriculum_id นั้น เพื่อให้ preview ตรงกับสิ่งที่จะ
  *          บันทึกจริงเป๊ะๆ
+ *
+ *          ResultPanel export ออกไปให้ CourseOfferingWorkspace.jsx ใช้ซ้ำด้วย (2026-09-28 - นำเข้าเข้า
+ *          offering ที่เปิดอยู่ตรงๆ จากหน้าอาจารย์) - เพิ่ม field course_mismatch_warning ที่ endpoint
+ *          นี้ไม่เคยส่งมา (เป็น undefined เสมอที่นี่ ไม่ render อะไรเพิ่ม) ไม่กระทบหน้านี้เลย
  */
 import { useEffect, useState } from "react";
 import { FileSpreadsheet, Upload, AlertTriangle, CheckCircle2, KeyRound } from "lucide-react";
@@ -60,8 +64,11 @@ function actionBadgeClass(action) {
   return "roster-badge";
 }
 
-// แสดงผลลัพธ์ 1 ชุด (ใช้ได้ทั้งตอน preview และหลังบันทึกจริง - โครงสร้างข้อมูลเหมือนกันทุกประการ)
-function ResultPanel({ result }) {
+// แสดงผลลัพธ์ 1 ชุด (ใช้ได้ทั้งตอน preview และหลังบันทึกจริง - โครงสร้างข้อมูลเหมือนกันทุกประการ) - export
+// ไว้ให้ CourseOfferingWorkspace.jsx ใช้ซ้ำได้ด้วย (แท็บ "นักศึกษาลงทะเบียน" ของอาจารย์ - นำเข้าเข้า
+// offering ที่เปิดอยู่ตรงๆ ผ่าน POST /course-offerings/{id}/roster-import คนละ endpoint แต่ response
+// เป็น schema เดียวกัน - ดู importRosterToOffering ใน api/client.js)
+export function ResultPanel({ result }) {
   const s = result.summary || {};
   return (
     <div className="roster-result">
@@ -75,6 +82,13 @@ function ResultPanel({ result }) {
           <p className="roster-warning-box">
             <AlertTriangle size={16} strokeWidth={2} />
             ไม่พบวิชา {result.course_code} ในระบบ จะนำเข้าเฉพาะรายชื่อนักศึกษา ไม่ลงทะเบียนวิชา
+          </p>
+        )}
+
+        {result.course_mismatch_warning && (
+          <p className="roster-warning-box">
+            <AlertTriangle size={16} strokeWidth={2} />
+            {result.course_mismatch_warning}
           </p>
         )}
 

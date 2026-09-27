@@ -28,12 +28,15 @@ import {
   PencilLine,
   Target,
   Users,
+  Upload,
+  CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import SearchableSelect from "../../components/SearchableSelect.jsx";
 import BulkEnrollPanel from "../../components/BulkEnrollPanel.jsx";
 import ScoresPanel from "../../components/ScoresPanel.jsx";
 import CLOAchievementPanel from "../../components/CLOAchievementPanel.jsx";
+import { ResultPanel as RosterResultPanel } from "./AdminRosterImport.jsx";
 import {
   listCourseOfferings,
   listCourses,
@@ -51,6 +54,7 @@ import {
   bulkRemoveByCohort,
   getSiblingSectionEnrollments,
   listStudents,
+  importRosterToOffering,
 } from "../../api/client.js";
 
 const ASSESSMENT_TYPE_OPTIONS = ["quiz", "midterm", "final", "assignment", "project"];
@@ -356,11 +360,22 @@ export default function CourseOfferingWorkspace() {
 
 /**
  * ทำอะไร : แท็บ "นักศึกษาลงทะเบียน" — ตารางรายชื่อที่ลงแล้ว + เพิ่ม/ลบทีละคน + เพิ่ม/ลบทั้งรุ่นในคราว
- *          เดียว (bulk-by-cohort) + BulkEnrollPanel (เลือกหลายคน/อัปโหลดไฟล์) ต่อท้าย
+ *          เดียว (bulk-by-cohort) + นำเข้ารายชื่อจาก Excel มหาวิทยาลัย (2026-09-28) + BulkEnrollPanel
+ *          (เลือกหลายคน/อัปโหลดไฟล์ .csv-.xlsx ง่ายๆ) ต่อท้าย
  *
  * เชื่อมกับ : ฟีเจอร์เพิ่ม/ลบทั้งรุ่น (handleBulkByCohort/handleBulkRemoveByCohort) เป็นโค้ดเฉพาะของ
  *             แท็บนี้ ไม่ได้แยกเป็น component ร่วม (ต่างจากการเพิ่มแบบเลือกหลายคน/อัปโหลดไฟล์ที่ใช้
  *             BulkEnrollPanel ร่วมกับ AdminEnrollments.jsx)
+ *
+ *             "นำเข้ารายชื่อจาก Excel (มหาวิทยาลัย)" เป็นโค้ดเฉพาะของไฟล์นี้เท่านั้น (ตั้งใจไม่ใส่ใน
+ *             BulkEnrollPanel.jsx เพราะไฟล์นั้นใช้ร่วมกับ AdminEnrollments.jsx ด้วย - ไม่อยากให้ฟีเจอร์นี้
+ *             โผล่ในหน้าแอดมินโดยไม่ตั้งใจ เพราะแอดมินมี /admin/roster-import ของตัวเองอยู่แล้วที่ทำงาน
+ *             คนละแบบ - หา/สร้าง course_offering เองจากไฟล์ แทนที่จะผูกกับ offering ที่เลือกอยู่ตรงๆ)
+ *             เรียก POST /course-offerings/{id}/roster-import (คนละ endpoint กับ /admin/roster-import)
+ *             ผ่าน importRosterToOffering() ใน api/client.js ใช้ ResultPanel component เดียวกับหน้า
+ *             /admin/roster-import ซ้ำ (export มาจาก AdminRosterImport.jsx) ไม่สร้างวิชา/offering ใหม่
+ *             และไม่แตะผู้สอนเลยไม่ว่ากรณีใด (สิทธิ์เช็คฝั่ง backend อีกชั้น: instructor นำเข้าได้เฉพาะ
+ *             offering ของตัวเอง แอดมินนำเข้าได้ทุก offering)
  */
 function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, allStudents, onChanged }) {
   // สถานะของฟอร์ม "เพิ่มทีละคน" (ค้นหา + เลือก + error) และ error ของการลบทีละคน
@@ -380,6 +395,72 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
   const [removeCohortSubmitting, setRemoveCohortSubmitting] = useState(false);
   const [removeCohortError, setRemoveCohortError] = useState("");
   const [removeCohortResultMessage, setRemoveCohortResultMessage] = useState("");
+
+  // สถานะของ "นำเข้ารายชื่อจาก Excel มหาวิทยาลัย" (2026-09-28) - ต่างจาก BulkEnrollPanel ด้านล่างที่
+  // ลงทะเบียนได้เฉพาะนักศึกษาที่มีอยู่แล้ว ตัวนี้สร้างนักศึกษาใหม่ให้ได้ด้วย (ดู docstring หัวไฟล์)
+  const [rosterFile, setRosterFile] = useState(null);
+  const [rosterFileInputKey, setRosterFileInputKey] = useState(0);
+  const [rosterPreview, setRosterPreview] = useState(null);
+  const [rosterPreviewLoading, setRosterPreviewLoading] = useState(false);
+  const [rosterPreviewError, setRosterPreviewError] = useState("");
+  const [rosterCommitting, setRosterCommitting] = useState(false);
+  const [rosterCommitResult, setRosterCommitResult] = useState(null);
+  const [rosterCommitError, setRosterCommitError] = useState("");
+
+  // 403 = ไม่ใช่ offering ของอาจารย์คนนี้ - ใช้ข้อความเดียวกับที่หน้านี้ใช้ที่อื่น (ดู loadWorkspace
+  // ด้านล่าง) ไม่พึ่ง err.response.data.detail ตรงๆ เพราะ backend อาจเปลี่ยนคำได้อิสระ
+  function describeRosterImportError(err) {
+    if (err?.response?.status === 403) return "คุณไม่มีสิทธิ์เข้าถึงรายวิชานี้";
+    return err?.response?.data?.detail;
+  }
+
+  async function handleRosterFileChange(e) {
+    const f = e.target.files?.[0] ?? null;
+    setRosterFile(f);
+    setRosterPreview(null);
+    setRosterPreviewError("");
+    setRosterCommitResult(null);
+    setRosterCommitError("");
+    if (!f) return;
+    setRosterPreviewLoading(true);
+    try {
+      const result = await importRosterToOffering(offeringId, f, true);
+      setRosterPreview(result);
+    } catch (err) {
+      setRosterPreviewError(
+        describeRosterImportError(err) || "อ่านไฟล์ไม่สำเร็จ - ตรวจสอบว่าเป็นไฟล์รายชื่อจากมหาวิทยาลัยจริง"
+      );
+    } finally {
+      setRosterPreviewLoading(false);
+    }
+  }
+
+  async function handleConfirmRosterImport() {
+    if (!rosterFile) return;
+    setRosterCommitting(true);
+    setRosterCommitError("");
+    try {
+      const result = await importRosterToOffering(offeringId, rosterFile, false);
+      setRosterCommitResult(result);
+      await onChanged();
+    } catch (err) {
+      setRosterCommitError(describeRosterImportError(err) || "นำเข้าไม่สำเร็จ");
+    } finally {
+      setRosterCommitting(false);
+    }
+  }
+
+  function handleResetRosterImport() {
+    setRosterFile(null);
+    setRosterPreview(null);
+    setRosterPreviewError("");
+    setRosterCommitResult(null);
+    setRosterCommitError("");
+    setRosterFileInputKey((k) => k + 1);
+  }
+
+  const rosterShown = rosterCommitResult || rosterPreview;
+  const rosterCanConfirm = rosterPreview && !rosterCommitResult;
 
   // รายชื่อนักศึกษาที่ลงทะเบียนวิชานี้ไปแล้วในหมู่/section อื่น (วิชาเดียวกัน ภาคเรียนเดียวกัน)
   // ใช้แยกไม่ให้ปนกับคนที่ยังไม่ได้ลงทะเบียนเลย เช่น รุ่น 69 ที่แบ่งเป็น 2 หมู่เพราะคนเยอะ
@@ -735,6 +816,49 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
           </p>
         )}
         {removeCohortResultMessage && <p className="success-message">{removeCohortResultMessage}</p>}
+      </div>
+
+      <div className="workspace-section">
+        <h2>
+          <Upload size={18} strokeWidth={2} /> นำเข้ารายชื่อจาก Excel (มหาวิทยาลัย)
+        </h2>
+        <p className="workspace-hint-inline">
+          ใช้ไฟล์ .xls/.xlsx ที่มหาวิทยาลัยส่งให้อาจารย์โดยตรง (มีรหัสวิชา/section/ผู้สอนในไฟล์เอง) - สร้าง
+          นักศึกษาใหม่ให้อัตโนมัติถ้ายังไม่มีในระบบ ต่างจาก "อัปโหลดไฟล์รายชื่อ (.csv, .xlsx)" ด้านล่างที่
+          ลงทะเบียนได้เฉพาะนักศึกษาที่มีอยู่แล้วเท่านั้น จะไม่มีอะไรถูกบันทึกจนกว่าจะกด "ยืนยันนำเข้าจริง"
+        </p>
+        <div className="workspace-inline-form">
+          <input
+            key={rosterFileInputKey}
+            type="file"
+            accept=".xls,.xlsx"
+            onChange={handleRosterFileChange}
+          />
+          {(rosterPreview || rosterCommitResult) && (
+            <button type="button" onClick={handleResetRosterImport}>
+              เลือกไฟล์อื่น
+            </button>
+          )}
+        </div>
+        {rosterPreviewLoading && <p className="workspace-hint-inline">กำลังอ่านไฟล์...</p>}
+        {rosterPreviewError && <p className="error-message">{rosterPreviewError}</p>}
+
+        {rosterShown && <RosterResultPanel result={rosterShown} />}
+
+        {rosterCanConfirm && (
+          <>
+            {rosterCommitError && <p className="error-message">{rosterCommitError}</p>}
+            <button type="button" onClick={handleConfirmRosterImport} disabled={rosterCommitting}>
+              {rosterCommitting ? "กำลังบันทึก..." : "ยืนยันนำเข้าจริง"}
+            </button>
+          </>
+        )}
+
+        {rosterCommitResult && (
+          <p className="success-message">
+            <CheckCircle2 size={16} strokeWidth={2} /> นำเข้าเสร็จสมบูรณ์
+          </p>
+        )}
       </div>
 
       <BulkEnrollPanel

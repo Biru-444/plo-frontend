@@ -747,6 +747,23 @@ export async function importRoster(file, dryRun, curriculumId) {
   return data;
 }
 
+/**
+ * นำเข้าไฟล์ Excel รายชื่อจากมหาวิทยาลัยเข้า course_offering ที่ระบุตรงๆ (2026-09-28) - ต่างจาก
+ * importRoster ข้างบน (admin เท่านั้น, หา/สร้าง course_offering จากไฟล์เอง) ตัวนี้ใช้ได้ทั้งอาจารย์
+ * เจ้าของ offering และ admin ไม่สร้างวิชา/offering ใหม่ และไม่แตะผู้สอนเลย - response เป็น schema
+ * เดียวกับ importRoster (RosterImportResponse) บวก course_mismatch_warning
+ * Backend: POST /course-offerings/{offeringId}/roster-import
+ */
+export async function importRosterToOffering(offeringId, file, dryRun) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("dry_run", dryRun ? "true" : "false");
+  const { data } = await api.post(`/course-offerings/${offeringId}/roster-import`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+}
+
 // --- Course Import จาก มคอ.3 ด้วย AI (Phase 1: แกะข้อมูล, Phase 2: บันทึกจริง) ---
 
 /**
