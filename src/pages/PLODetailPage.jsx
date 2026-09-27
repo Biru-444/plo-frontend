@@ -1,11 +1,15 @@
 /**
- * ทำอะไร : หน้า "ภาพรวม PLO ข้อเดียว" (route /plo/overview/:ploId) — แสดงสรุปผลบรรลุ + วิชาบังคับของ
- *          PLO นี้ (PLOCourseBreakdown) + ตารางรายชื่อนักศึกษาพร้อมตัวกรอง/เรียงลำดับ ที่กดเปิดดูได้
- *          (PLOStudentBreakdown)
+ * ทำอะไร : หน้า "ภาพรวม PLO ข้อเดียว" (route /plo/overview/:ploId) — แสดงสรุปผลบรรลุ + รายวิชาที่เชื่อม
+ *          กับ PLO นี้ผ่าน CLO-PLO mapping (PLOLinkedCourses) + ตารางรายชื่อนักศึกษาพร้อมตัวกรอง/
+ *          เรียงลำดับ ที่กดเปิดดูได้ (PLOStudentBreakdown)
  *
  * เชื่อมกับ : เรียก getCohortPLOAchievement ครั้งเดียวโหลดข้อมูลทั้งหน้า (ตัวเลขสรุป header + รายชื่อ
  *             นักศึกษาทั้งหมด) — ไม่มี endpoint แยกสำหรับกรองตามรุ่น จึงคำนวณตัวเลขสรุปกรองตามรุ่นเอง
- *             ฝั่ง frontend (headerStats) ด้วยสูตรเดียวกับที่ backend ใช้ (ดูคอมเมนต์ตรง headerStats)
+ *             ฝั่ง frontend (headerStats) ด้วยสูตรเดียวกับที่ backend ใช้ (ดูคอมเมนต์ตรง headerStats) —
+ *             ส่วนวิชาที่เชื่อม (2026-09) เปลี่ยนจาก PLOCourseBreakdown (course_plo/มคอ.2) มาเป็น
+ *             PLOLinkedCourses (clo_plo_mapping) แล้ว เพราะระบบยังอยู่ช่วงทดสอบและการนำเข้าด้วย AI ไม่
+ *             สร้างข้อมูล course_plo ให้ - PLOCourseBreakdown.jsx ยังไม่ถูกลบ (เผื่อกลับมาใช้ในอนาคต)
+ *             แต่ไม่มีทางเข้าจาก UI แล้ว
  *
  * ถ้าแก้ : COHORT_ACHIEVED_THRESHOLD (50%) คือเกณฑ์ตัดสิน isAchieved ที่ใช้ตัดสินสีของ PLOCohortBar
  *          เท่านั้น ไม่ใช่เกณฑ์ที่ backend ใช้ตัดสิน is_achieved ของนักศึกษารายคน (นั่นคือ all-or-nothing
@@ -17,7 +21,7 @@ import { ArrowLeft } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getCohortPLOAchievement } from "../api/client.js";
 import PLOCohortBar from "../components/PLOCohortBar.jsx";
-import PLOCourseBreakdown from "../components/PLOCourseBreakdown.jsx";
+import PLOLinkedCourses from "../components/PLOLinkedCourses.jsx";
 import PLOStudentBreakdown from "../components/PLOStudentBreakdown.jsx";
 
 const COHORT_ACHIEVED_THRESHOLD = 50;
@@ -184,11 +188,7 @@ export default function PLODetailPage() {
             isExpandable={false}
           />
           <div className="plo-expanded-detail">
-            <PLOCourseBreakdown
-              ploId={plo.plo_id}
-              cohortYear={cohortYear ? Number(cohortYear) : null}
-              curriculumId={curriculumId}
-            />
+            <PLOLinkedCourses ploId={plo.plo_id} />
 
             <div className="plo-student-list-toggle-row">
               <button type="button" className="button-secondary" onClick={handleToggleStudentList}>

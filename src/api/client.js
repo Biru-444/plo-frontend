@@ -326,9 +326,22 @@ export async function listPLO() {
   return data;
 }
 
-// วิชาตามแผนหลักสูตร (มคอ.2, course_plo)
+// วิชาตามแผนหลักสูตร (มคอ.2, course_plo) - **ไม่ได้ใช้แสดงในหน้ารายละเอียด PLO แล้ว (2026-09)** ถูก
+// แทนที่ด้วย getPLOLinkedCourses ด้านล่าง (ข้อมูลจริงจาก clo_plo_mapping) เพราะระบบยังอยู่ช่วงทดสอบและ
+// การนำเข้าหลักสูตร/วิชาด้วย AI ไม่ได้สร้างข้อมูล course_plo ให้เลย - เก็บฟังก์ชันนี้ไว้ (ไม่ลบ) เพราะ
+// PLOCourseDetailPage.jsx ยังเรียกอยู่ (แต่ไม่มีทางเข้าหน้านั้นจาก UI แล้วเช่นกัน หลังตัดลิงก์ออกจาก
+// PLOLinkedCourses.jsx - เป็น orphan route ตอนนี้ ไม่ได้ลบเพราะนอก scope งานนี้)
 export async function getPLOCoursePlan(ploId) {
   const { data } = await api.get(`/plo/${ploId}/course-plan`);
+  return data;
+}
+
+// วิชาที่เชื่อมกับ PLO นี้ผ่าน CLO-PLO mapping โดยตรง (clo_plo_mapping) - หลักฐานจริงที่ใช้คำนวณ % บรรลุ
+// PLO/"วิชาหลัก" ในหน้าภาพรวม PLO (ตรงข้ามกับ getPLOCoursePlan ด้านบนที่มาจาก course_plo/มคอ.2 ซึ่งเป็น
+// แค่แผนตอนออกแบบหลักสูตร ไม่ได้ใช้คำนวณจริงแล้ว) ใช้ในหน้ารายละเอียด PLO (PLODetailPage.jsx ผ่าน
+// PLOLinkedCourses.jsx)
+export async function getPLOLinkedCourses(ploId) {
+  const { data } = await api.get(`/plo/${ploId}/linked-courses`);
   return data;
 }
 
@@ -429,11 +442,16 @@ export async function deleteYLOPLOMapping(id) {
   await api.delete(`/ylo-plo-mapping/${id}`);
 }
 
-// course_plo (mapping วิชา<->PLO ระดับ responsibility_level) ไม่มี client function แล้ว - หน้า
-// /admin/course-plo ที่เคยจัดการตารางนี้ถูกแทนที่ด้วย /admin/clo-plo-mapping (AdminCLOPLOMapping.jsx)
-// ทั้งหมดแล้ว เพราะ backend เปลี่ยนไปคำนวณจาก clo_plo_mapping (ดู "CLO-PLO Mapping" ด้านล่าง) ไม่ใช่
-// course_plo อีกต่อไป - ตาราง course_plo ฝั่ง backend ยังไม่ได้ลบ (เก็บไว้แสดง curriculum mapping
-// ระดับหลักสูตรเฉยๆ) แต่ไม่มีหน้าจอไหนอ่าน/เขียนผ่าน frontend แล้ว
+// course_plo (mapping วิชา<->PLO ระดับ responsibility_level) ไม่มี client function สำหรับ
+// create/update/delete แล้ว - หน้า /admin/course-plo ที่เคยจัดการตารางนี้ถูกแทนที่ด้วย
+// /admin/clo-plo-mapping (AdminCLOPLOMapping.jsx) ทั้งหมดแล้ว เพราะ backend เปลี่ยนไปคำนวณจาก
+// clo_plo_mapping (ดู "CLO-PLO Mapping" ด้านล่าง) ไม่ใช่ course_plo อีกต่อไป - ตาราง course_plo ฝั่ง
+// backend ยังไม่ได้ลบ (เก็บไว้แสดงแผนหลักสูตรตอนออกแบบ/มคอ.2 เฉยๆ)
+// **แก้ไข (2026-09)**: ก่อนหน้านี้ตรงนี้เคยเขียนว่า "ไม่มีหน้าจอไหนอ่าน/เขียนผ่าน frontend แล้ว" ซึ่งไม่
+// จริง - getPLOCoursePlan (ฟังก์ชัน read-only ด้านบน) ยังถูกเรียกจริงอยู่ 2 จุด: PLOCourseBreakdown.jsx
+// และ PLOCourseDetailPage.jsx แต่ทั้งสองไฟล์นี้เพิ่งเลิกถูกเรียกจาก PLODetailPage.jsx แล้ว (แทนที่ด้วย
+// PLOLinkedCourses.jsx/getPLOLinkedCourses ด้านบน) จึงกลายเป็น orphan (โค้ดยังอยู่ คอมไพล์ผ่าน แต่ไม่มี
+// ทางเข้าจาก UI ให้ผู้ใช้จริงเจอแล้ว) ไม่ได้ลบเพราะนอก scope งานนี้
 
 // --- CLO-PLO Mapping (เชื่อมโยงระดับ CLO โดยตรง - ตัวที่ใช้คำนวณ % บรรลุ PLO จริงตอนนี้ แทนที่
 // course-plo ด้านบนซึ่งเหลือไว้แค่แสดง curriculum mapping ระดับหลักสูตรเท่านั้น) ---
