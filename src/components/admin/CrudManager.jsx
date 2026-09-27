@@ -35,17 +35,29 @@ import SearchableSelect from "../SearchableSelect.jsx";
  *             filterType?: 'searchable-select' (เฉพาะ column ที่ filterable แต่ type ไม่ใช่ select/
  *                                 searchable-select เช่น number ที่พิมพ์ค่าใหม่ในฟอร์มได้อิสระ - ให้
  *                                 เฉพาะช่องกรองด้านบนตารางเป็น SearchableSelect โดยไม่กระทบช่องกรอกใน
- *                                 ฟอร์มเพิ่ม/แก้ไข ซึ่งยังคงพิมพ์ค่าที่ไม่เคยมีมาก่อนได้ตามปกติ) }]
+ *                                 ฟอร์มเพิ่ม/แก้ไข ซึ่งยังคงพิมพ์ค่าที่ไม่เคยมีมาก่อนได้ตามปกติ)
+ *             renderCell?: (row) => ReactNode (เฉพาะตาราง - แทนที่ displayValue() ปกติ ใช้ตอนต้องการ
+ *                                 จัดสไตล์ค่าที่แสดง เช่น สีเทาสำหรับ "ยังไม่ระบุ" หรือป้ายเตือนเล็กๆ
+ *                                 ไม่กระทบ buildPayload/ฟอร์ม - row ที่ส่งเข้ามาคือทั้งแถวจาก api.list()
+ *                                 ไม่ใช่แค่ค่าของ column นี้ ทำให้ compute จากหลาย field ของแถวได้ด้วย) }]
  * 'searchable-select' = เหมือน 'select' ทุกอย่าง (options เดียวกัน, ผูก value/filter เหมือนกัน) แค่
  *   render เป็น SearchableSelect (พิมพ์ค้นหาได้) แทน <select> ธรรมดา - ใช้ตอนตัวเลือกเยอะ/ชื่อยาว
  * groupBy?: { keys: string[], label: (values: Record<string, any>) => string } - ถ้าส่งมา
  *   จะแบ่งตารางเป็นกลุ่มย่อยตามค่าคอลัมน์ใน keys (เรียงน้อย->มาก) แต่ละกลุ่มมีหัวข้อจาก label()
- * crossFieldCheck?: { watchKeys: string[], check: (form) => Promise<{ message: string } | null> }
- *   - เตือน (ไม่บล็อก) แบบ real-time ในฟอร์มเพิ่ม/แก้ไข ตอนฟิลด์ที่ระบุใน watchKeys มีค่าครบทุกตัว
- *   (เช่น เลือกทั้ง CLO และ PLO แล้วในฟอร์มผูก mapping) เรียก check(form) ทุกครั้งที่ค่าที่ watch อยู่
- *   เปลี่ยน (async - กันผลลัพธ์เก่าค้างทับผลใหม่ด้วย requestId ref) คืน { message } = แสดงคำเตือนเหนือปุ่ม
- *   บันทึก คืน null = ไม่มีคำเตือน ไม่ block การกดบันทึกไม่ว่าจะมีคำเตือนหรือไม่ (ผู้เรียกตัดสินใจเอง) -
- *   ใช้ตัวอย่างจริงที่ AdminCLOPLOMapping.jsx (เตือน domain ของ CLO ไม่ตรงกับ category ของ PLO)
+ * crossFieldCheck?: { watchKeys: string[], check: (form) => Promise<{ message: string } | null>,
+ *                      requireConfirmOnWarning?: bool, confirmTitle?: string,
+ *                      confirmLabel?: string, cancelLabel?: string }
+ *   - เตือน (ไม่บล็อก โดย default) แบบ real-time ในฟอร์มเพิ่ม/แก้ไข ตอนฟิลด์ที่ระบุใน watchKeys มีค่า
+ *   ครบทุกตัว (เช่น เลือกทั้ง CLO และ PLO แล้วในฟอร์มผูก mapping) เรียก check(form) ทุกครั้งที่ค่าที่
+ *   watch อยู่เปลี่ยน (async - กันผลลัพธ์เก่าค้างทับผลใหม่ด้วย requestId ref) คืน { message } = แสดง
+ *   คำเตือนเหนือปุ่มบันทึก คืน null = ไม่มีคำเตือน
+ *   - ปกติไม่ block การกดบันทึก เว้นแต่ตั้ง requireConfirmOnWarning: true - ตอนนั้นถ้ามีคำเตือนอยู่ กด
+ *   "บันทึก" ครั้งแรกจะไม่ยิง api.create/update ทันที แต่โชว์กล่องยืนยันซ้อน (ใช้ .crud-modal เดียวกัน
+ *   ไม่ใช้ window.confirm) หัวข้อ = confirmTitle, ข้อความ = ผลลัพธ์ message ล่าสุดจาก check(), ปุ่ม =
+ *   confirmLabel/cancelLabel (default "ยืนยัน"/"ยกเลิก") - กดยืนยันถึงจะบันทึกจริง กดยกเลิกกลับไปแก้
+ *   ฟอร์มต่อได้ (ฟอร์มหลักไม่ปิด ข้อมูลที่กรอกไว้ไม่หาย)
+ *   - ใช้ตัวอย่างจริงที่ AdminCLOPLOMapping.jsx (เตือน+ยืนยัน domain ของ CLO ไม่ตรงกับ category ของ
+ *   PLO ก่อนผูก)
  * api: { list, create, update?(ไม่ใส่ = ไม่มีปุ่มแก้ไข), remove }
  */
 export default function CrudManager({
@@ -73,6 +85,9 @@ export default function CrudManager({
   // มาทับผลของ request ใหม่กว่าที่ตอบกลับมาถึงก่อน
   const [crossFieldWarning, setCrossFieldWarning] = useState(null);
   const crossFieldRequestIdRef = useRef(0);
+
+  // true = กำลังโชว์กล่องยืนยันซ้อน (requireConfirmOnWarning) รอผู้ใช้กดยืนยัน/ยกเลิก - ดู handleSave
+  const [pendingConfirm, setPendingConfirm] = useState(false);
 
   useEffect(() => {
     if (!crossFieldCheck || editingId === null) {
@@ -134,6 +149,7 @@ export default function CrudManager({
   function cancelEdit() {
     setEditingId(null);
     setForm({});
+    setPendingConfirm(false);
   }
 
   // ปิด modal จากการกระทำของผู้ใช้ (คลิกนอกกล่อง/กด ×/กด Esc) - ห้ามปิดระหว่างกำลังบันทึกอยู่ (saving)
@@ -201,10 +217,9 @@ export default function CrudManager({
     return payload;
   }
 
-  // ส่งฟอร์ม - สร้างใหม่ถ้า editingId เป็น "new" ไม่งั้นแก้ไขแถวเดิม แล้วปิด modal + โหลดตารางใหม่ทั้ง
-  // ชุดเสมอ (ไม่ทำ optimistic update) เพื่อให้ตรงกับข้อมูลจริงในฐานข้อมูล 100%
-  async function handleSave(e) {
-    e.preventDefault();
+  // ทำการบันทึกจริง (เรียก api.create/update) - แยกออกจาก handleSave เพื่อให้กล่องยืนยัน mismatch
+  // เรียกใช้ซ้ำได้หลังผู้ใช้กดยืนยันแล้ว โดยไม่ต้องเช็ค requireConfirmOnWarning ซ้ำอีกรอบ
+  async function performSave() {
     setSaving(true);
     setError("");
     try {
@@ -220,7 +235,19 @@ export default function CrudManager({
       setError(err?.response?.data?.detail || err?.message || "บันทึกไม่สำเร็จ");
     } finally {
       setSaving(false);
+      setPendingConfirm(false);
     }
+  }
+
+  // ส่งฟอร์ม - ถ้าตั้ง crossFieldCheck.requireConfirmOnWarning ไว้และมีคำเตือนอยู่ตอนนี้ ให้โชว์กล่อง
+  // ยืนยันซ้อนก่อน (ไม่บันทึกทันที) ไม่งั้นบันทึกจริงเลย - performSave() ปิด modal + โหลดตารางใหม่เอง
+  function handleSave(e) {
+    e.preventDefault();
+    if (crossFieldCheck?.requireConfirmOnWarning && crossFieldWarning) {
+      setPendingConfirm(true);
+      return;
+    }
+    performSave();
   }
 
   // ลบแถว - ยืนยันด้วย window.confirm ก่อนเสมอ (การลบส่วนใหญ่ cascade ลบข้อมูลที่อ้างถึงด้วย ย้อนกลับ
@@ -339,7 +366,7 @@ export default function CrudManager({
           {rowsForTable.map((row) => (
             <tr key={row[idField]}>
               {columns.map((c) => (
-                <td key={c.key}>{displayValue(c, row)}</td>
+                <td key={c.key}>{c.renderCell ? c.renderCell(row) : displayValue(c, row)}</td>
               ))}
               <td>
                 {api.update && (
@@ -454,6 +481,25 @@ export default function CrudManager({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {pendingConfirm && (
+        <div className="crud-modal-backdrop" onClick={() => setPendingConfirm(false)}>
+          <div className="crud-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="crud-modal-header">
+              <h3>{crossFieldCheck?.confirmTitle || "ยืนยันการบันทึก"}</h3>
+            </div>
+            <p className="crud-cross-field-warning">{crossFieldWarning?.message}</p>
+            <div className="crud-form-actions">
+              <button type="button" disabled={saving} onClick={performSave}>
+                {saving ? "กำลังบันทึก..." : crossFieldCheck?.confirmLabel || "ยืนยัน"}
+              </button>
+              <button type="button" disabled={saving} onClick={() => setPendingConfirm(false)}>
+                {crossFieldCheck?.cancelLabel || "ยกเลิก"}
+              </button>
+            </div>
           </div>
         </div>
       )}

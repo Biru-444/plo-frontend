@@ -22,7 +22,13 @@
  *          เพื่อไม่ให้ตรรกะเทียบมีสองชุดที่อาจ drift ไม่ตรงกัน (ดู
  *          app/services/domain_category_check.py ฝั่ง backend - ฟังก์ชันเดียวกับที่ Phase 1 ของ
  *          มคอ.3 import ใช้เติม flag "domain_category_mismatch" ด้วย) - ไม่บล็อกการผูกไม่ว่าจะเตือน
- *          หรือไม่
+ *          หรือไม่ - ข้อความที่ประกอบเป็นภาษาไทยเอง (ใช้ CLO_DOMAIN_LABEL_TH แค่แปลชื่อ domain ให้อ่านง่าย
+ *          ในกล่องยืนยัน ไม่ใช่ตัวตัดสิน mismatch - ตัวตัดสินยังมาจาก result.mismatch ของ backend เท่านั้น)
+ *
+ *          ต่อยอดจากคำเตือน inline เดิม (Workstream 4) ด้วยกล่องยืนยันแบบ block (requireConfirmOnWarning
+ *          ของ CrudManager) ตามที่ผู้ใช้ขอ 2026-09-27 - ผูกได้ 1 คู่ CLO-PLO ต่อคำขอเท่านั้น (ฟอร์มนี้ไม่มี
+ *          multi-select PLO) จึงไม่ต้องรวมหลายคู่ไว้ในกล่องเดียว - คอลัมน์ "ตรวจสอบประเภท" ท้ายตาราง
+ *          แสดงป้ายเตือนของคู่ที่ผูกไว้แล้วที่ไม่ตรงกัน (เรียก domain-check ต่อแถวหลังโหลดตาราง)
  */
 import { useEffect, useState } from "react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
@@ -36,14 +42,31 @@ import {
   deleteCLOPLOMapping,
   checkCLOPLODomainMatch,
 } from "../../api/client.js";
+import { CLO_DOMAIN_LABEL_TH } from "../../utils/cloDomain.js";
 
-// ค่าคงที่ระดับโมดูล (ไม่ผูกกับ state/props ใดๆ ของ component) - ส่งเป็น object เดิมทุก render กัน
-// useEffect ของ CrudManager ที่ watch prop นี้อยู่ re-run เกินจำเป็นจาก reference ใหม่ทุกครั้ง
+// เก็บ CLO/PLO เต็มๆ (ไม่ใช่แค่ตัวเลือก dropdown) ไว้นอก component เพื่อให้ CLO_PLO_CROSS_FIELD_CHECK
+// (ค่าคงที่ระดับโมดูล - ต้อง reference เดิมทุก render กัน useEffect ของ CrudManager re-run เกินจำเป็น)
+// เข้าถึง domain/category ปัจจุบันได้ตอนประกอบข้อความกล่องยืนยัน - AdminCLOPLOMapping() เติมค่านี้เองตอน
+// โหลดหน้า
+let cloById = {};
+let ploById = {};
+
 const CLO_PLO_CROSS_FIELD_CHECK = {
   watchKeys: ["clo_id", "plo_id"],
+  requireConfirmOnWarning: true,
+  confirmTitle: "ประเภทไม่ตรงกัน",
+  confirmLabel: "เชื่อมต่อ",
+  cancelLabel: "ยกเลิก",
   async check(form) {
     const result = await checkCLOPLODomainMatch(form.clo_id, form.plo_id);
-    return result.mismatch ? { message: result.message } : null;
+    if (!result.mismatch) return null;
+    const clo = cloById[form.clo_id];
+    const plo = ploById[form.plo_id];
+    const cloLabel = clo ? `${clo.code} (${CLO_DOMAIN_LABEL_TH[clo.domain] || clo.domain})` : "CLO นี้";
+    const ploLabel = plo ? `${plo.code} (${plo.category})` : "PLO นี้";
+    return {
+      message: `${cloLabel} กำลังจะเชื่อมกับ ${ploLabel} ซึ่งเป็นคนละประเภท ต้องการเชื่อมต่อหรือไม่?`,
+    };
   },
 };
 
@@ -57,17 +80,34 @@ export default function AdminCLOPLOMapping() {
   useEffect(() => {
     listCourses().then((courses) => {
       const courseCodeById = Object.fromEntries(courses.map((c) => [c.id, c.course_code]));
-      listCLO().then((clos) =>
+      listCLO().then((clos) => {
+        cloById = Object.fromEntries(clos.map((c) => [c.id, c]));
         setCloOptions(
           clos.map((c) => ({
             value: c.id,
             label: `${courseCodeById[c.course_id] ?? "?"} ${c.code}: ${c.description}`,
           }))
-        )
-      );
+        );
+      });
     });
-    listPLO().then((data) => setPloOptions(data.map((p) => ({ value: p.id, label: p.code }))));
+    listPLO().then((data) => {
+      ploById = Object.fromEntries(data.map((p) => [p.id, p]));
+      setPloOptions(data.map((p) => ({ value: p.id, label: p.code })));
+    });
   }, []);
+
+  // แทน listCLOPLOMapping() ตรงๆ ด้วยตัวที่เรียก domain-check ต่อแถวเพิ่ม (จำนวนคู่ที่ผูกไว้ต่อหลักสูตร
+  // ไม่เยอะ - หน้านี้เป็นแอดมินเท่านั้น) เพื่อเติม mismatch: bool ต่อแถวสำหรับป้ายเตือนในตาราง โดยไม่เขียน
+  // ตรรกะเทียบเอง (เรียก endpoint เดิมของเพื่อนซ้ำต่อคู่แทน)
+  async function listCLOPLOMappingWithMismatch() {
+    const mappings = await listCLOPLOMapping();
+    const results = await Promise.all(
+      mappings.map((m) =>
+        checkCLOPLODomainMatch(m.clo_id, m.plo_id).catch(() => ({ mismatch: false }))
+      )
+    );
+    return mappings.map((m, i) => ({ ...m, mismatch: results[i].mismatch }));
+  }
 
   const columns = [
     {
@@ -96,6 +136,17 @@ export default function AdminCLOPLOMapping() {
       required: true,
       editOnly: true, // ไม่มีช่องกรอกตอน "เพิ่ม" เลย - backend auto-fill เกลี่ยเท่ากันเองเสมอ
     },
+    {
+      key: "mismatch",
+      label: "ตรวจสอบประเภท",
+      displayOnly: true,
+      renderCell: (row) =>
+        row.mismatch ? (
+          <span className="roster-badge roster-badge-orange">ประเภทไม่ตรงกัน</span>
+        ) : (
+          ""
+        ),
+    },
   ];
 
   return (
@@ -103,7 +154,7 @@ export default function AdminCLOPLOMapping() {
       title="เชื่อมโยง CLO กับ PLO"
       columns={columns}
       api={{
-        list: listCLOPLOMapping,
+        list: listCLOPLOMappingWithMismatch,
         create: createCLOPLOMapping,
         update: updateCLOPLOMapping,
         remove: deleteCLOPLOMapping,
