@@ -29,11 +29,21 @@
  *          ของ CrudManager) ตามที่ผู้ใช้ขอ 2026-09-27 - ผูกได้ 1 คู่ CLO-PLO ต่อคำขอเท่านั้น (ฟอร์มนี้ไม่มี
  *          multi-select PLO) จึงไม่ต้องรวมหลายคู่ไว้ในกล่องเดียว - คอลัมน์ "ตรวจสอบประเภท" ท้ายตาราง
  *          แสดงป้ายเตือนของคู่ที่ผูกไว้แล้วที่ไม่ตรงกัน (เรียก domain-check ต่อแถวหลังโหลดตาราง)
+ *
+ *          เลือกหลักสูตรก่อนเสมอ (2026-09-27) - CLO/PLO เดิมโหลดมาทั้งระบบแล้วกรองด้วย useMemo ฝั่ง
+ *          client (ไม่ยิง endpoint ใหม่ - PLO มี curriculum_id ตรงตัวอยู่แล้ว, CLO derive ผ่าน
+ *          course.curriculum_id) จำหลักสูตรที่เลือกไว้ใน URL (?curriculum=) แบบเดียวกับ PLODashboard.jsx
+ *          - <CrudManager key={selectedCurriculumId}> บังคับ remount ทุกครั้งที่เปลี่ยนหลักสูตร (โหลด
+ *          ตาราง/เคลียร์ฟอร์มค้างใหม่ทั้งหมด) แทนการแก้ CrudManager.jsx ให้รองรับ reload จาก prop
+ *          ภายนอก (ไฟล์นั้นใช้ร่วมกับหน้าแอดมินอื่นอีกหลายหน้า ไม่อยากแก้พฤติกรรมกลาง)
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import CrudManager from "../../components/admin/CrudManager.jsx";
 import {
   listCourses,
+  listCurricula,
   listCLO,
   listPLO,
   listCLOPLOMapping,
@@ -71,36 +81,86 @@ const CLO_PLO_CROSS_FIELD_CHECK = {
 };
 
 export default function AdminCLOPLOMapping() {
-  // ตัวเลือก CLO/PLO สำหรับ dropdown ในฟอร์ม
-  const [cloOptions, setCloOptions] = useState([]);
-  const [ploOptions, setPloOptions] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCurriculumId = searchParams.get("curriculum")
+    ? Number(searchParams.get("curriculum"))
+    : null;
 
-  // โหลดวิชา/CLO/PLO ครั้งเดียวตอนเปิดหน้า - ต้องมีรหัสวิชานำหน้าใน label ของ CLO ด้วย เพราะรหัส CLO
-  // (เช่น "CLO1") ซ้ำกันได้ข้ามวิชา ไม่งั้นเลือกผิดวิชากันได้ง่ายมาก
+  const [curricula, setCurricula] = useState([]);
+  // ข้อมูลดิบทั้งระบบ (ไม่กรองหลักสูตร) โหลดครั้งเดียวตอนเปิดหน้า - cloOptions/ploOptions ด้านล่างกรอง
+  // ด้วย useMemo จากชุดนี้อีกที ไม่ยิง endpoint ใหม่ทุกครั้งที่เปลี่ยนหลักสูตร
+  const [courses, setCourses] = useState([]);
+  const [clos, setClos] = useState([]);
+  const [plos, setPlos] = useState([]);
+
   useEffect(() => {
-    listCourses().then((courses) => {
-      const courseCodeById = Object.fromEntries(courses.map((c) => [c.id, c.course_code]));
-      listCLO().then((clos) => {
-        cloById = Object.fromEntries(clos.map((c) => [c.id, c]));
-        setCloOptions(
-          clos.map((c) => ({
-            value: c.id,
-            label: `${courseCodeById[c.course_id] ?? "?"} ${c.code}: ${c.description}`,
-          }))
-        );
-      });
+    listCurricula().then((data) => {
+      setCurricula(data);
+      // มีหลักสูตรเดียว - เลือกให้อัตโนมัติเลย (ไม่ต้องให้ผู้ใช้กดเอง)
+      if (data.length === 1 && !searchParams.get("curriculum")) {
+        setSearchParams({ curriculum: String(data[0].id) }, { replace: true });
+      }
+    });
+    listCourses().then(setCourses);
+    listCLO().then((data) => {
+      cloById = Object.fromEntries(data.map((c) => [c.id, c]));
+      setClos(data);
     });
     listPLO().then((data) => {
       ploById = Object.fromEntries(data.map((p) => [p.id, p]));
-      setPloOptions(data.map((p) => ({ value: p.id, label: p.code })));
+      setPlos(data);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // แทน listCLOPLOMapping() ตรงๆ ด้วยตัวที่เรียก domain-check ต่อแถวเพิ่ม (จำนวนคู่ที่ผูกไว้ต่อหลักสูตร
-  // ไม่เยอะ - หน้านี้เป็นแอดมินเท่านั้น) เพื่อเติม mismatch: bool ต่อแถวสำหรับป้ายเตือนในตาราง โดยไม่เขียน
-  // ตรรกะเทียบเอง (เรียก endpoint เดิมของเพื่อนซ้ำต่อคู่แทน)
+  function handleSelectCurriculum(curriculumId) {
+    setSearchParams({ curriculum: String(curriculumId) });
+  }
+
+  const courseCurriculumById = useMemo(
+    () => Object.fromEntries(courses.map((c) => [c.id, c.curriculum_id])),
+    [courses]
+  );
+  const courseCodeById = useMemo(
+    () => Object.fromEntries(courses.map((c) => [c.id, c.course_code])),
+    [courses]
+  );
+
+  // ตัวเลือก CLO/PLO สำหรับ dropdown ในฟอร์ม - กรองเฉพาะของหลักสูตรที่เลือกอยู่เท่านั้น (ยังต้องมีรหัสวิชา
+  // นำหน้าใน label ของ CLO เหมือนเดิม เพราะรหัส CLO เช่น "CLO1" ซ้ำกันได้ข้ามวิชา)
+  const cloOptions = useMemo(
+    () =>
+      clos
+        .filter((c) => courseCurriculumById[c.course_id] === selectedCurriculumId)
+        .map((c) => ({
+          value: c.id,
+          label: `${courseCodeById[c.course_id] ?? "?"} ${c.code}: ${c.description}`,
+        })),
+    [clos, courseCurriculumById, courseCodeById, selectedCurriculumId]
+  );
+  // "รหัส · คำอธิบายสั้น (ประเภท)" เช่น "PLO1 · ทดสอบ PLO1 (ความรู้)" ตามที่ผู้ใช้ระบุ - ใช้ label เดียวกัน
+  // ทั้งฟอร์มเพิ่ม/แก้, ตัวกรองด้านบนตาราง และคอลัมน์ในตาราง (ทั้ง 3 ที่ใช้ options ชุดนี้ร่วมกันใน CrudManager)
+  const ploOptions = useMemo(
+    () =>
+      plos
+        .filter((p) => p.curriculum_id === selectedCurriculumId)
+        .map((p) => ({ value: p.id, label: `${p.code} · ${p.description_th} (${p.category})` })),
+    [plos, selectedCurriculumId]
+  );
+
+  const selectedCurriculum = curricula.find((c) => c.id === selectedCurriculumId) ?? null;
+  const pageTitle = selectedCurriculum
+    ? `เชื่อมโยง CLO กับ PLO (${selectedCurriculum.name} (${selectedCurriculum.year}))`
+    : "เชื่อมโยง CLO กับ PLO";
+
+  // แทน listCLOPLOMapping() ตรงๆ ด้วยตัวที่กรองเฉพาะคู่ที่ PLO อยู่ในหลักสูตรที่เลือก แล้วเรียก
+  // domain-check ต่อแถวเพิ่ม (จำนวนคู่ที่ผูกไว้ต่อหลักสูตรไม่เยอะ - หน้านี้เป็นแอดมินเท่านั้น) เพื่อเติม
+  // mismatch: bool ต่อแถวสำหรับป้ายเตือนในตาราง โดยไม่เขียนตรรกะเทียบเอง (เรียก endpoint เดิมของเพื่อนซ้ำ
+  // ต่อคู่แทน)
   async function listCLOPLOMappingWithMismatch() {
-    const mappings = await listCLOPLOMapping();
+    const mappings = (await listCLOPLOMapping()).filter(
+      (m) => ploById[m.plo_id]?.curriculum_id === selectedCurriculumId
+    );
     const results = await Promise.all(
       mappings.map((m) =>
         checkCLOPLODomainMatch(m.clo_id, m.plo_id).catch(() => ({ mismatch: false }))
@@ -149,17 +209,58 @@ export default function AdminCLOPLOMapping() {
     },
   ];
 
+  const curriculumSelect = (
+    <div className="form-field">
+      <label htmlFor="clo-plo-curriculum-select">หลักสูตร</label>
+      <select
+        id="clo-plo-curriculum-select"
+        value={selectedCurriculumId ?? ""}
+        onChange={(e) => handleSelectCurriculum(e.target.value)}
+      >
+        <option value="" disabled>
+          -- เลือกหลักสูตร --
+        </option>
+        {curricula.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name} ({c.year})
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
+  if (!selectedCurriculumId) {
+    return (
+      <div className="crud-manager">
+        <Link to="/admin" className="crud-back-link">
+          <ArrowLeft size={14} strokeWidth={2} />
+          กลับหน้าจัดการระบบ
+        </Link>
+        <div className="crud-header">
+          <h2>เชื่อมโยง CLO กับ PLO</h2>
+          <button disabled>+ เพิ่ม</button>
+        </div>
+        {curriculumSelect}
+        <p>กรุณาเลือกหลักสูตรก่อน</p>
+      </div>
+    );
+  }
+
   return (
-    <CrudManager
-      title="เชื่อมโยง CLO กับ PLO"
-      columns={columns}
-      api={{
-        list: listCLOPLOMappingWithMismatch,
-        create: createCLOPLOMapping,
-        update: updateCLOPLOMapping,
-        remove: deleteCLOPLOMapping,
-      }}
-      crossFieldCheck={CLO_PLO_CROSS_FIELD_CHECK}
-    />
+    <>
+      {curriculumSelect}
+      <CrudManager
+        key={selectedCurriculumId}
+        title={pageTitle}
+        columns={columns}
+        api={{
+          list: listCLOPLOMappingWithMismatch,
+          create: createCLOPLOMapping,
+          update: updateCLOPLOMapping,
+          remove: deleteCLOPLOMapping,
+        }}
+        crossFieldCheck={CLO_PLO_CROSS_FIELD_CHECK}
+      />
+    </>
   );
 }
