@@ -1,6 +1,7 @@
 /**
- * ทำอะไร : หน้าจัดการการเปิดสอนรายวิชา (course offering — วิชาหนึ่งในปี/เทอม/หมู่หนึ่ง) config
- *          ตาราง+ฟอร์มให้ CrudManager รับผิดชอบ UI จัดกลุ่มแถวตามปีการศึกษา+ภาคเรียน (groupBy)
+ * ทำอะไร : หน้าจัดการกำหนดอาจารย์ผู้สอน (เดิมชื่อ "การเปิดสอน" - เปลี่ยนชื่อที่ผู้ใช้เห็น 2026-09-27,
+ *          route/API เดิม course-offering — วิชาหนึ่งในปี/เทอม/หมู่หนึ่ง) config ตาราง+ฟอร์มให้
+ *          CrudManager รับผิดชอบ UI จัดกลุ่มแถวตามปีการศึกษา+ภาคเรียน (groupBy)
  *
  * เชื่อมกับ : เรียก GET/POST/PUT/DELETE /course-offerings ผ่าน api/client.js — route มาจาก App.jsx
  *             เส้นทาง "/admin/course-offerings" (admin เท่านั้น) — instructor_id เว้นว่างได้ตั้งใจ
@@ -97,7 +98,7 @@ export default function AdminCourseOffering() {
 
   return (
     <CrudManager
-      title="จัดการการเปิดสอนรายวิชา (Course Offering)"
+      title="จัดการกำหนดอาจารย์ผู้สอน (Course Offering)"
       columns={columns}
       groupBy={groupBy}
       api={{
