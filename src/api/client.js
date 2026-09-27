@@ -732,10 +732,15 @@ export async function getStudentCourseCLOBreakdown(studentId, courseId) {
  * เรียกด้วย dryRun=true ก่อนเพื่อดูตัวอย่างผลลัพธ์ (ไม่บันทึกจริง) แล้วเรียกซ้ำด้วย dryRun=false
  * ด้วยไฟล์เดิมเพื่อบันทึกจริง
  */
-export async function importRoster(file, dryRun) {
+export async function importRoster(file, dryRun, curriculumId) {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("dry_run", dryRun ? "true" : "false");
+  // curriculumId จำเป็นเฉพาะตอนไม่พบวิชาในระบบ (ดู needs_curriculum_id ใน response) - ไม่มีผลอะไรถ้าพบ
+  // วิชา (backend ใช้ course.curriculum_id เสมอในกรณีนั้น)
+  if (curriculumId !== undefined && curriculumId !== null && curriculumId !== "") {
+    formData.append("curriculum_id", String(curriculumId));
+  }
   const { data } = await api.post("/roster-import", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

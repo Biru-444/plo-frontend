@@ -3,22 +3,29 @@
  *          บังคับ preview (dry-run) ก่อนบันทึกจริงเสมอ 2 ขั้นตอน: เลือกไฟล์ -> ดูตัวอย่างผลลัพธ์ที่
  *          "จะ" เกิดขึ้น -> กดยืนยันเพื่อบันทึกจริง (เรียก API เดิมซ้ำด้วยไฟล์เดิม แค่เปลี่ยน dryRun)
  *
- * เชื่อมกับ : เรียก importRoster(file, dryRun) จาก api/client.js — backend endpoint เดียวกันรองรับทั้ง
- *             โหมด preview และบันทึกจริงผ่าน form field เดียว (ดู POST /roster-import ฝั่ง backend)
+ * เชื่อมกับ : เรียก importRoster(file, dryRun, curriculumId) จาก api/client.js — backend endpoint
+ *             เดียวกันรองรับทั้งโหมด preview และบันทึกจริงผ่าน form field เดียว (ดู POST /roster-import
+ *             ฝั่ง backend)
  *
  * ถ้าแก้ : รหัสผ่านชั่วคราวของบัญชีอาจารย์ที่สร้างใหม่ (new_instructor_credentials) แสดงได้ครั้งเดียว
  *          ตอนนี้เท่านั้น (backend ไม่เก็บ plain text ไว้ให้ดูซ้ำ) — เตือนผู้ใช้ให้คัดลอกไว้ก่อนออกจากหน้า
+ *
+ *          ไม่พบวิชาในระบบ (2026-09-27) : ไม่ใช่ error ที่บล็อกทั้งหมดอีกต่อไป (ดู needs_curriculum_id/
+ *          offering_action == "skipped_no_course") - preview รายชื่อนักศึกษายังแสดงได้ปกติ ต้องเลือก
+ *          "หลักสูตรของนักศึกษา" ก่อนถึงจะกดยืนยันได้ (ปุ่มล็อกจนกว่า needs_curriculum_id จะเป็น false)
+ *          เลือกหลักสูตรแล้ว preview ซ้ำอัตโนมัติด้วย curriculum_id นั้น เพื่อให้ preview ตรงกับสิ่งที่จะ
+ *          บันทึกจริงเป๊ะๆ
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FileSpreadsheet, Upload, AlertTriangle, CheckCircle2, KeyRound } from "lucide-react";
-import { importRoster } from "../../api/client.js";
+import { importRoster, listCurricula } from "../../api/client.js";
 
 // ป้ายสถานะที่ backend ส่งกลับ (offering_action) แปลเป็นข้อความไทยที่ผู้ใช้เข้าใจง่ายกว่า
 const OFFERING_ACTION_LABEL = {
   matched_existing: "มีอยู่แล้ว - จะใช้อันเดิม",
   will_create: "ยังไม่มี - จะสร้างใหม่",
   created: "สร้างใหม่แล้ว",
-  error: "ไม่พบวิชา",
+  skipped_no_course: "ไม่พบวิชา - นำเข้าเฉพาะรายชื่อนักศึกษา",
 };
 
 const INSTRUCTOR_ACTION_LABEL = {
@@ -34,12 +41,17 @@ const STUDENT_ACTION_LABEL = {
   error: "ข้าม (ดูรายละเอียด)",
 };
 
-// สีป้ายสถานะ - เขียว = ไม่ต้องทำอะไร/เสร็จแล้ว, ส้ม = จะมีการเปลี่ยนแปลงเกิดขึ้น, แดง = มีปัญหาต้องดู
+// สีป้ายสถานะ - เขียว = ไม่ต้องทำอะไร/เสร็จแล้ว, ส้ม = จะมีการเปลี่ยนแปลงเกิดขึ้น/คำเตือน, แดง = มีปัญหาต้องดู
 function actionBadgeClass(action) {
   if (action === "created" || action === "unchanged" || action === "matched_existing") {
     return "roster-badge roster-badge-green";
   }
-  if (action === "will_create" || action === "create" || action === "update_info") {
+  if (
+    action === "will_create" ||
+    action === "create" ||
+    action === "update_info" ||
+    action === "skipped_no_course"
+  ) {
     return "roster-badge roster-badge-orange";
   }
   if (action === "error") {
@@ -58,32 +70,36 @@ function ResultPanel({ result }) {
           <FileSpreadsheet size={18} strokeWidth={2} />
           {result.course_found ? `${result.course_code} ${result.course_name_th || ""}` : result.course_code}
         </h2>
-        {result.course_found ? (
-          <div className="roster-info-grid">
-            <div>
-              <label>ปีการศึกษา / ภาคเรียน</label>
-              <span>
-                {result.academic_year} / {result.semester}
-              </span>
-            </div>
-            <div>
-              <label>Section</label>
-              <span>{result.section}</span>
-            </div>
-            <div>
-              <label>รุ่นนักศึกษา (cohort_year)</label>
-              <span>{result.cohort_year ?? "-"}</span>
-            </div>
-            <div>
-              <label>การเปิดสอน (course_offering)</label>
-              <span className={actionBadgeClass(result.offering_action)}>
-                {OFFERING_ACTION_LABEL[result.offering_action] || result.offering_action}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <p className="error-message">ไม่พบวิชานี้ในระบบ - ดูรายละเอียดด้านล่าง</p>
+
+        {!result.course_found && (
+          <p className="roster-warning-box">
+            <AlertTriangle size={16} strokeWidth={2} />
+            ไม่พบวิชา {result.course_code} ในระบบ จะนำเข้าเฉพาะรายชื่อนักศึกษา ไม่ลงทะเบียนวิชา
+          </p>
         )}
+
+        <div className="roster-info-grid">
+          <div>
+            <label>ปีการศึกษา / ภาคเรียน</label>
+            <span>
+              {result.academic_year} / {result.semester}
+            </span>
+          </div>
+          <div>
+            <label>Section</label>
+            <span>{result.section}</span>
+          </div>
+          <div>
+            <label>รุ่นนักศึกษา (cohort_year)</label>
+            <span>{result.cohort_year ?? "-"}</span>
+          </div>
+          <div>
+            <label>การเปิดสอน (course_offering)</label>
+            <span className={actionBadgeClass(result.offering_action)}>
+              {OFFERING_ACTION_LABEL[result.offering_action] || result.offering_action}
+            </span>
+          </div>
+        </div>
 
         {result.errors?.length > 0 && (
           <div className="roster-errors">
@@ -166,6 +182,9 @@ function ResultPanel({ result }) {
             นักศึกษาใหม่ {s.students_create ?? 0} คน · แก้ชื่อ/หมู่ {s.students_update_info ?? 0} คน · ตรงอยู่แล้ว{" "}
             {s.students_unchanged ?? 0} คน · ข้าม {s.students_error ?? 0} คน · ลงทะเบียนเพิ่ม{" "}
             {result.enrollments_added} คน · ลงทะเบียนอยู่แล้ว {result.enrollments_already} คน
+            {s.enrollments_skipped_no_course > 0 && (
+              <> · ไม่ได้ลงทะเบียนเพราะวิชาไม่มีในระบบ {s.enrollments_skipped_no_course} คน</>
+            )}
           </p>
           <table className="student-table">
             <thead>
@@ -213,7 +232,20 @@ export default function AdminRosterImport() {
   const [commitResult, setCommitResult] = useState(null);
   const [commitError, setCommitError] = useState("");
 
-  // เลือกไฟล์ใหม่ -> เคลียร์ผลลัพธ์เก่าทั้งหมด แล้วยิง dry-run ทันทีเพื่อแสดง preview
+  // หลักสูตรของนักศึกษา - ต้องระบุเองก่อนกดยืนยันได้ เฉพาะตอนไม่พบวิชาในระบบ (ดู
+  // preview.needs_curriculum_id) ปกติได้จาก course.curriculum_id อัตโนมัติ
+  const [curricula, setCurricula] = useState([]);
+  const [selectedCurriculumId, setSelectedCurriculumId] = useState("");
+
+  useEffect(() => {
+    listCurricula().then((data) => {
+      setCurricula(data);
+      if (data.length === 1) setSelectedCurriculumId(String(data[0].id));
+    });
+  }, []);
+
+  // เลือกไฟล์ใหม่ -> เคลียร์ผลลัพธ์เก่าทั้งหมด แล้วยิง dry-run ทันทีเพื่อแสดง preview (ยังไม่ส่ง
+  // curriculum_id รอบแรก - ถ้าเลือกไว้แล้วจากไฟล์ก่อนหน้า ก็ยังส่งไปด้วยเลย ไม่มีผลอะไรถ้าวิชานี้มีอยู่จริง)
   async function handleFileChange(e) {
     const f = e.target.files?.[0] ?? null;
     setFile(f);
@@ -224,10 +256,26 @@ export default function AdminRosterImport() {
     if (!f) return;
     setPreviewLoading(true);
     try {
-      const result = await importRoster(f, true);
+      const result = await importRoster(f, true, selectedCurriculumId);
       setPreview(result);
     } catch (err) {
       setPreviewError(err?.response?.data?.detail || "อ่านไฟล์ไม่สำเร็จ - ตรวจสอบว่าเป็นไฟล์รายชื่อจากมหาวิทยาลัยจริง");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  // เลือก/เปลี่ยนหลักสูตร -> พรีวิวซ้ำด้วยไฟล์เดิมทันที ให้ preview ตรงกับสิ่งที่จะบันทึกจริงเป๊ะๆ
+  // (ไม่งั้น needs_curriculum_id/offering_action ที่โชว์อยู่จะเป็นค่าเก่าจากตอนยังไม่ได้เลือก)
+  async function handleSelectCurriculum(value) {
+    setSelectedCurriculumId(value);
+    if (!file) return;
+    setPreviewLoading(true);
+    try {
+      const result = await importRoster(file, true, value);
+      setPreview(result);
+    } catch (err) {
+      setPreviewError(err?.response?.data?.detail || "พรีวิวไม่สำเร็จ");
     } finally {
       setPreviewLoading(false);
     }
@@ -239,7 +287,7 @@ export default function AdminRosterImport() {
     setCommitting(true);
     setCommitError("");
     try {
-      const result = await importRoster(file, false);
+      const result = await importRoster(file, false, selectedCurriculumId);
       setCommitResult(result);
     } catch (err) {
       setCommitError(err?.response?.data?.detail || "นำเข้าไม่สำเร็จ");
@@ -248,7 +296,8 @@ export default function AdminRosterImport() {
     }
   }
 
-  // ล้างสถานะทั้งหมดกลับไปเริ่มใหม่ (เลือกไฟล์อื่น)
+  // ล้างสถานะทั้งหมดกลับไปเริ่มใหม่ (เลือกไฟล์อื่น) - ไม่ล้าง selectedCurriculumId (ส่วนใหญ่นำเข้าไฟล์
+  // ต่อเนื่องของหลักสูตรเดียวกัน เลือกครั้งเดียวพอ)
   function handleReset() {
     setFile(null);
     setPreview(null);
@@ -258,10 +307,11 @@ export default function AdminRosterImport() {
     setFileInputKey((k) => k + 1);
   }
 
-  // แสดงผลบันทึกจริงถ้ามี (commitResult) ไม่งั้นแสดง preview - ปุ่ม "ยืนยันนำเข้าจริง" กดได้เฉพาะตอน
-  // เจอวิชาในระบบแล้ว (course_found) และยังไม่เคยบันทึกจริงไปแล้วรอบนี้
+  // แสดงผลบันทึกจริงถ้ามี (commitResult) ไม่งั้นแสดง preview - ปุ่ม "ยืนยันนำเข้าจริง" กดไม่ได้จนกว่า
+  // needs_curriculum_id จะเป็น false (ครอบคลุมทั้ง 2 กรณี: พบวิชา (เป็น false เสมอ) และไม่พบวิชาแต่เลือก
+  // หลักสูตรที่ถูกต้องแล้ว)
   const shown = commitResult || preview;
-  const canConfirm = preview && preview.course_found && !commitResult;
+  const canConfirm = preview && !preview.needs_curriculum_id && !commitResult;
 
   return (
     <div className="page">
@@ -290,12 +340,40 @@ export default function AdminRosterImport() {
 
       {shown && <ResultPanel result={shown} />}
 
-      {canConfirm && (
+      {preview && !preview.course_found && !commitResult && (
+        <div className="workspace-section">
+          <div className="form-field">
+            <label htmlFor="roster-curriculum-select">
+              หลักสูตรของนักศึกษา {!selectedCurriculumId && <span className="error-message">* จำเป็น</span>}
+            </label>
+            <select
+              id="roster-curriculum-select"
+              className={!selectedCurriculumId ? "roster-field-missing" : ""}
+              value={selectedCurriculumId}
+              onChange={(e) => handleSelectCurriculum(e.target.value)}
+            >
+              <option value="" disabled>
+                -- เลือกหลักสูตร --
+              </option>
+              {curricula.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.year})
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {preview && !commitResult && (
         <div className="workspace-section">
           {commitError && <p className="error-message">{commitError}</p>}
-          <button type="button" onClick={handleConfirmImport} disabled={committing}>
+          <button type="button" onClick={handleConfirmImport} disabled={committing || !canConfirm}>
             {committing ? "กำลังบันทึก..." : "ยืนยันนำเข้าจริง"}
           </button>
+          {!canConfirm && (
+            <p className="workspace-hint-inline">กรุณาเลือก "หลักสูตรของนักศึกษา" ด้านบนก่อนกดยืนยัน</p>
+          )}
         </div>
       )}
 

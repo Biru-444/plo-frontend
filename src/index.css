@@ -2587,6 +2587,22 @@ tr.student-table-row.link-row:focus-visible {
   font-size: 0.9rem;
 }
 
+.roster-warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-yellow-100);
+  border: 1px solid var(--color-yellow-200);
+  color: var(--color-gray-800);
+  margin: 8px 0;
+}
+
+.roster-field-missing {
+  border-color: var(--color-red-700) !important;
+}
+
 /* รายการ flag ของหน้านำเข้าวิชาจาก มคอ.3 (AdminCourseImportMCO3.jsx) - severe = duplicate_course_code/
    curriculum_mismatch (แดง เด่นกว่า), normal = flag อื่นทั้งหมด (ส้ม ข้อมูลประกอบ ไม่บล็อกอะไร) */
 .mco3-flag-list {
