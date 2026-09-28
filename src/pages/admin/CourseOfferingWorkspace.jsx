@@ -1,6 +1,7 @@
 /**
  * ทำอะไร : พื้นที่ทำงานหลักของอาจารย์ต่อวิชาที่เปิดสอนหนึ่งวิชา (route /course-workspace) — เลือกวิชา
- *          จาก dropdown แล้วสลับ 5 แท็บ: นักศึกษาลงทะเบียน / CLO / โครงสร้างการประเมิน (งานประเมิน +
+ *          จาก dropdown แล้วสลับ 6 แท็บ: ข้อมูลรายวิชา (PLO ที่วิชาเชื่อมอยู่) / นักศึกษาลงทะเบียน / CLO /
+ *          โครงสร้างการประเมิน (งานประเมิน +
  *          ผูกน้ำหนักกับ CLO) / กรอกคะแนน / ผลบรรลุ CLO เป็นไฟล์ที่ใหญ่ที่สุดของโปรเจกต์ เพราะรวมทุกงาน
  *          ประจำภาคเรียนของอาจารย์ไว้หน้าเดียว (ไม่ต้องสลับหน้าไปมาระหว่างทำงาน)
  *
@@ -35,6 +36,7 @@ import {
   Upload,
   CheckCircle2,
   Flag,
+  Info,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import SearchableSelect from "../../components/SearchableSelect.jsx";
@@ -82,8 +84,14 @@ const ASSESSMENT_TYPE_LABELS = {
   project: "โปรเจกต์ (Project)",
 };
 
-// นิยามแท็บทั้ง 5 ในที่เดียว - ใช้ทั้งวาดปุ่มแท็บและ empty-state (รายการ "จะมี 5 แท็บให้ใช้งาน")
+// นิยามแท็บทั้งหมดในที่เดียว - ใช้ทั้งวาดปุ่มแท็บและ empty-state (รายการ "จะมี N แท็บให้ใช้งาน")
 const TABS = [
+  {
+    key: "course-info",
+    label: "ข้อมูลรายวิชา",
+    icon: Info,
+    description: "ดูข้อมูลวิชา และ PLO ที่วิชานี้เชื่อมอยู่ (ผ่าน CLO) พร้อมประเภทของแต่ละ PLO",
+  },
   {
     key: "enrollment",
     label: "นักศึกษาลงทะเบียน",
@@ -124,7 +132,7 @@ export default function CourseOfferingWorkspace() {
   const [offerings, setOfferings] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedOfferingId, setSelectedOfferingId] = useState("");
-  const [activeTab, setActiveTab] = useState("enrollment");
+  const [activeTab, setActiveTab] = useState("course-info");
 
   // ข้อมูลเฉพาะของวิชาที่เลือกอยู่ในขณะนี้ - โหลดใหม่ทุกครั้งที่เปลี่ยนวิชา (ดู loadWorkspace)
   const [assessmentItems, setAssessmentItems] = useState([]);
@@ -356,7 +364,7 @@ export default function CourseOfferingWorkspace() {
 
       {!selectedOfferingId && offerings.length > 0 && (
         <div className="workspace-empty-state">
-          <p>👆 เลือกวิชาที่เปิดสอนด้านบนเพื่อเริ่มต้น จะมี 5 แท็บให้ใช้งาน:</p>
+          <p>👆 เลือกวิชาที่เปิดสอนด้านบนเพื่อเริ่มต้น จะมี {TABS.length} แท็บให้ใช้งาน:</p>
           <ul>
             {TABS.map((tab) => (
               <li key={tab.key}>
@@ -385,6 +393,15 @@ export default function CourseOfferingWorkspace() {
               </button>
             ))}
           </div>
+
+          {activeTab === "course-info" && (
+            <CourseInfoTab
+              course={courseById[courseId]}
+              courseCLOs={courseCLOs}
+              cloPloMappingsForCourse={cloPloMappingsForCourse}
+              allPLOs={allPLOs}
+            />
+          )}
 
           {activeTab === "enrollment" && (
             <EnrollmentTab
@@ -430,6 +447,95 @@ export default function CourseOfferingWorkspace() {
 
       {loadingWorkspace && <p>กำลังโหลด...</p>}
     </div>
+  );
+}
+
+/**
+ * ทำอะไร : แท็บ "ข้อมูลรายวิชา" — ข้อมูลวิชา (รหัส/ชื่อ/หน่วยกิต/หมวดหมู่) + PLO ที่วิชานี้เชื่อมอยู่ พร้อม
+ *          ประเภทของ PLO และ CLO ที่ผูกกับ PLO นั้น (อ่านอย่างเดียว - แก้การผูกได้ที่แท็บ "CLO")
+ *
+ * เชื่อมกับ : PLO ของวิชาได้มาจาก clo_plo_mapping ของ CLO วิชานี้ (แหล่งเดียวกับที่ใช้คำนวณผลบรรลุ PLO)
+ *             ไม่ใช่ course_plo - ใช้ข้อมูลที่ parent โหลดไว้แล้วทั้งหมด ไม่ยิง API เพิ่ม
+ */
+function CourseInfoTab({ course, courseCLOs, cloPloMappingsForCourse, allPLOs }) {
+  const linkedPlos = useMemo(() => {
+    const ploById = Object.fromEntries(allPLOs.map((p) => [p.id, p]));
+    const cloById = Object.fromEntries(courseCLOs.map((c) => [c.id, c]));
+    const byPloId = {};
+    cloPloMappingsForCourse.forEach((m) => {
+      const plo = ploById[m.plo_id];
+      const clo = cloById[m.clo_id];
+      if (!plo || !clo) return;
+      (byPloId[plo.id] ??= { plo, clos: [] }).clos.push({ code: clo.code, weight: Number(m.weight_percent) });
+    });
+    return Object.values(byPloId)
+      .map((entry) => ({
+        ...entry,
+        clos: entry.clos.sort((a, b) => a.code.localeCompare(b.code, undefined, { numeric: true })),
+      }))
+      .sort((a, b) => a.plo.code.localeCompare(b.plo.code, undefined, { numeric: true }));
+  }, [allPLOs, courseCLOs, cloPloMappingsForCourse]);
+
+  if (!course) return null;
+
+  return (
+    <>
+      <div className="workspace-section">
+        <h2>
+          <Info size={18} strokeWidth={2} /> ข้อมูลรายวิชา
+        </h2>
+        <dl className="course-info-list">
+          <dt>รหัสวิชา</dt>
+          <dd>{course.course_code}</dd>
+          <dt>ชื่อวิชา</dt>
+          <dd>
+            {course.name_th}
+            {course.name_en && <span className="course-info-sub"> ({course.name_en})</span>}
+          </dd>
+          <dt>หน่วยกิต</dt>
+          <dd>{course.credit}</dd>
+          <dt>หมวดหมู่วิชา</dt>
+          <dd>{course.category || <span className="badge-muted">ยังไม่ระบุ</span>}</dd>
+        </dl>
+      </div>
+
+      <div className="workspace-section">
+        <h2>PLO ที่วิชานี้เชื่อมอยู่</h2>
+        <p className="workspace-hint-inline">
+          คิดจากการผูก CLO ของวิชานี้กับ PLO - แก้ไขการผูกได้ที่แท็บ "CLO"
+        </p>
+        {linkedPlos.length === 0 ? (
+          <p className="student-list-empty">
+            วิชานี้ยังไม่ได้เชื่อมกับ PLO ใดเลย - ไปผูก CLO กับ PLO ที่แท็บ "CLO" ก่อน
+          </p>
+        ) : (
+          <table className="student-table">
+            <thead>
+              <tr>
+                <th>รหัส PLO</th>
+                <th>คำอธิบาย</th>
+                <th>ประเภท</th>
+                <th>CLO ที่ผูก (น้ำหนัก)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linkedPlos.map(({ plo, clos }) => (
+                <tr key={plo.id} className="student-table-row">
+                  <td className="student-table-cell">{plo.code}</td>
+                  <td className="student-table-cell">{plo.description_th}</td>
+                  <td className="student-table-cell">
+                    {plo.category || <span className="badge-muted">ยังไม่ระบุ</span>}
+                  </td>
+                  <td className="student-table-cell">
+                    {clos.map((c) => `${c.code} (${c.weight}%)`).join(", ")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -1462,6 +1568,7 @@ function StructureTab({
   // สถานะของฟอร์ม "เพิ่มงานประเมิน"
   const [name, setName] = useState("");
   const [type, setType] = useState(ASSESSMENT_TYPE_OPTIONS[0]);
+  const [domain, setDomain] = useState("");
   const [totalScore, setTotalScore] = useState("");
   const [itemError, setItemError] = useState("");
 
@@ -1503,6 +1610,10 @@ function StructureTab({
     e.preventDefault();
     setItemError("");
     if (!name.trim() || totalScore === "") return;
+    if (!domain) {
+      setItemError('กรุณาเลือก "ด้านการเรียนรู้" ก่อนเพิ่มงานประเมิน');
+      return;
+    }
     const parsedTotal = Number(totalScore);
     if (!Number.isInteger(parsedTotal) || parsedTotal <= 0) {
       setItemError('"คะแนนเต็ม" ต้องเป็นจำนวนเต็มมากกว่า 0');
@@ -1513,9 +1624,11 @@ function StructureTab({
         offering_id: offeringId,
         name: name.trim(),
         type,
+        domain,
         total_score: parsedTotal,
       });
       setName("");
+      setDomain("");
       setTotalScore("");
       await onStructureChanged();
     } catch (err) {
@@ -1620,6 +1733,7 @@ function StructureTab({
             <tr>
               <th>ชื่องาน</th>
               <th>ประเภท</th>
+              <th>ด้านการเรียนรู้</th>
               <th>คะแนนเต็ม</th>
               <th></th>
             </tr>
@@ -1629,6 +1743,13 @@ function StructureTab({
               <tr key={item.id} className="student-table-row">
                 <td className="student-table-cell">{item.name}</td>
                 <td className="student-table-cell">{item.type}</td>
+                <td className="student-table-cell">
+                  {item.domain ? (
+                    CLO_DOMAIN_LABEL_TH[item.domain] || item.domain
+                  ) : (
+                    <span className="badge-muted">ยังไม่ระบุ</span>
+                  )}
+                </td>
                 <td className="student-table-cell">{item.total_score}</td>
                 <td className="student-table-cell">
                   <button
@@ -1668,6 +1789,10 @@ function StructureTab({
                 </option>
               ))}
             </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="new-item-domain">ด้านการเรียนรู้ (ประเภทเดียวกับ CLO/PLO)</label>
+            <CLODomainField value={domain} onChange={setDomain} />
           </div>
           <div className="form-field">
             <label htmlFor="new-item-total">คะแนนเต็ม</label>

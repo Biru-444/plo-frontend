@@ -823,3 +823,25 @@ export async function saveCurriculumFromMco2(payload) {
   const { data } = await api.post("/curricula/import-from-mco2/save", payload);
   return data;
 }
+
+// --- Export Excel รายวิชา / รายบุคคล (ส่งออกไฟล์ .xlsx) ---
+
+/**
+ * ส่งออก Excel ของรายวิชา 1 วิชา (ชีทข้อมูลรายวิชา/CLO/PLO + ชีทผลผ่าน CLO รายนักศึกษาทุกกลุ่มเรียน)
+ * Backend: GET /export/course/{course_id}
+ */
+export async function exportCourseExcel(courseId, courseCode) {
+  return _downloadBlob(`/export/course/${courseId}`, undefined, `course_${courseCode}.xlsx`);
+}
+
+/**
+ * ส่งออก Excel รายบุคคลของนักศึกษา 1 คน (ชีทข้อมูลนักศึกษา+ผลบรรลุ PLO + ชีทรายวิชาตามชั้นปี + ชีทผล CLO รายวิชา)
+ * Backend: GET /export/student/{student_id}
+ */
+export async function exportStudentExcel(studentId) {
+  return _downloadBlob(
+    `/export/student/${encodeURIComponent(studentId)}`,
+    undefined,
+    `student_${studentId}.xlsx`
+  );
+}

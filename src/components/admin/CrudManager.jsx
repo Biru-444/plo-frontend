@@ -59,6 +59,7 @@ import SearchableSelect from "../SearchableSelect.jsx";
  *   - ใช้ตัวอย่างจริงที่ AdminCLOPLOMapping.jsx (เตือน+ยืนยัน domain ของ CLO ไม่ตรงกับ category ของ
  *   PLO ก่อนผูก)
  * api: { list, create, update?(ไม่ใส่ = ไม่มีปุ่มแก้ไข), remove }
+ * allowDelete?: bool | (row) => bool - ฟังก์ชัน = ซ่อนปุ่มลบเฉพาะบางแถว (เช่น บัญชีของตัวเองใน AdminUsers.jsx)
  */
 export default function CrudManager({
   title,
@@ -374,7 +375,7 @@ export default function CrudManager({
                     แก้ไข
                   </button>
                 )}
-                {allowDelete && (
+                {(typeof allowDelete === "function" ? allowDelete(row) : allowDelete) && (
                   <button
                     className="icon-btn-delete"
                     title="ลบ"
