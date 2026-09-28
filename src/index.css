@@ -2407,6 +2407,28 @@ tr.student-table-row.link-row:focus-visible {
   margin: 4px 0 16px;
 }
 
+.course-info-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 24px;
+  margin: 0;
+}
+
+.course-info-list dt {
+  color: var(--color-gray-500);
+  font-size: 0.85rem;
+}
+
+.course-info-list dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.course-info-sub {
+  color: var(--color-gray-500);
+  font-weight: 400;
+}
+
 .workspace-empty-state {
   background: var(--color-surface-soft);
   border: 1px dashed var(--color-gray-300);
