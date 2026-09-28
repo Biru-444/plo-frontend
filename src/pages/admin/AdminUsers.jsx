@@ -8,8 +8,11 @@
  *
  * ถ้าแก้ : field password ใช้ omitIfEmptyOnUpdate เพื่อให้ตอนแก้ไขผู้ใช้ ถ้าเว้นช่องรหัสผ่านว่างไว้ =
  *          ไม่ส่งไปเปลี่ยนรหัสผ่านเดิม (ไม่ใช่ตั้งรหัสผ่านเป็นค่าว่าง)
+ *          แถวของบัญชีที่ล็อกอินอยู่ไม่มีปุ่มลบ (backend กันลบ/ลดสิทธิ์ตัวเองซ้ำอีกชั้น ตอบ 400 - ดู
+ *          app/routes/users.py) กันระบบไม่เหลือแอดมิน
  */
 import CrudManager from "../../components/admin/CrudManager.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { listUsers, createUser, updateUser, deleteUser } from "../../api/client.js";
 
 const ROLE_OPTIONS = [
@@ -18,8 +21,20 @@ const ROLE_OPTIONS = [
 ];
 
 export default function AdminUsers() {
+  const { user } = useAuth();
   const columns = [
-    { key: "username", label: "Username", type: "text", required: true },
+    {
+      key: "username",
+      label: "Username",
+      type: "text",
+      required: true,
+      renderCell: (row) => (
+        <>
+          {row.username}
+          {row.id === user?.id && <span className="badge-muted"> บัญชีของคุณ</span>}
+        </>
+      ),
+    },
     {
       key: "password",
       label: "รหัสผ่าน (เว้นว่างถ้าไม่เปลี่ยน)",
@@ -39,6 +54,7 @@ export default function AdminUsers() {
       title="จัดการผู้ใช้งาน (Admin/Instructor)"
       columns={columns}
       api={{ list: listUsers, create: createUser, update: updateUser, remove: deleteUser }}
+      allowDelete={(row) => row.id !== user?.id}
     />
   );
 }
