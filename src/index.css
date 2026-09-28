@@ -1520,19 +1520,33 @@ tr.student-table-row.link-row:focus-visible {
   transform: translateY(-2px);
 }
 
-.export-pdf-button {
+.export-excel-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 9px 18px;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-sm);
   background: white;
-  color: var(--color-purple-700);
+  color: var(--color-green-700);
   font-weight: 600;
   cursor: pointer;
-  margin-bottom: 20px;
+  white-space: nowrap;
 }
 
-.export-pdf-button:hover {
-  background: var(--color-surface-soft);
+.export-excel-button:hover:not(:disabled) {
+  background: var(--color-green-100);
+}
+
+.export-excel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ปุ่มเล็กในแถวตาราง (หน้า /curriculum) */
+.export-excel-button.compact {
+  padding: 4px 10px;
+  font-size: 0.8rem;
 }
 
 .student-profile-card {
@@ -1771,32 +1785,6 @@ tr.student-table-row.link-row:focus-visible {
 
 .button-secondary:hover {
   background: var(--color-surface-soft);
-}
-
-@media print {
-  .app-header,
-  .search-form,
-  .plo-admin-actions,
-  .export-pdf-button {
-    display: none !important;
-  }
-
-  /* split-screen ฝั่งขวามี max-height + overflow-y:auto สำหรับ one-screen dashboard บนจอ - ถ้าไม่รีเซ็ต
-     ตอนพิมพ์ เนื้อหาที่ scroll พ้นกรอบไปจะถูกตัดหายจาก PDF (เบราว์เซอร์พิมพ์เฉพาะส่วนที่มองเห็นในกรอบ
-     overflow ไม่ใช่เนื้อหาทั้งหมด) - รีเซ็ตกลับเป็นคอลัมน์เดียว สูงเท่าเนื้อหาจริง ให้ Export PDF เห็นครบ */
-  .student-plo-split {
-    display: block;
-  }
-
-  .student-plo-left {
-    position: static;
-    margin-bottom: 16px;
-  }
-
-  .student-plo-right {
-    max-height: none;
-    overflow: visible;
-  }
 }
 
 .year-progress-list {

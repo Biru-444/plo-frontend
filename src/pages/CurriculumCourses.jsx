@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { FileSpreadsheet, Pencil } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import QuickFormModal from "../components/QuickFormModal.jsx";
 import {
@@ -9,7 +9,21 @@ import {
   updateCurriculum,
   createCourse,
   updateCourse,
+  exportCourseExcel,
 } from "../api/client.js";
+
+// สร้าง <a> ชั่วคราวกดดาวน์โหลดเอง (เปิดเป็นลิงก์ตรงไม่ได้เพราะต้องแนบ Authorization header ผ่าน axios)
+// ตั้งชื่อไฟล์ตามที่ backend ส่งมาใน Content-Disposition - เหมือนกับที่ CLOAchievementPanel.jsx ใช้
+function _triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 const CURRICULUM_FIELDS = [
   { key: "name", label: "ชื่อหลักสูตร", type: "text", required: true },
@@ -110,7 +124,8 @@ const COURSE_FIELDS = [
 /**
  * ทำอะไร : หน้า "หลักสูตร/รายวิชา" (route /curriculum) — sidebar เลือกหลักสูตร + ตารางรายวิชาของ
  *          หลักสูตรนั้น พร้อมค้นหา — admin เพิ่ม/แก้ไขหลักสูตรและรายวิชาได้ผ่าน modal (QuickFormModal)
- *          ในหน้านี้เลย ไม่ต้องไปหน้า admin/* แยก instructor ดูได้อย่างเดียว
+ *          ในหน้านี้เลย ไม่ต้องไปหน้า admin/* แยก instructor ดูได้อย่างเดียว — ทุก role กดปุ่ม "Excel"
+ *          ท้ายแถวเพื่อส่งออกข้อมูลรายวิชา + ผลผ่าน CLO รายนักศึกษาได้ (GET /export/course/{id})
  *
  * เชื่อมกับ : โหลด listCurricula() + listCourses() ครั้งเดียวตอนเปิดหน้า แล้ว filter/group ฝั่ง
  *             frontend ทั้งหมด — สร้าง/แก้ไขเรียก createCurriculum/updateCurriculum/createCourse/
@@ -127,6 +142,9 @@ export default function CurriculumCourses() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // วิชาที่กำลังดาวน์โหลด Excel อยู่ (กันกดซ้ำ) - null = ไม่มี
+  const [exportingCourseId, setExportingCourseId] = useState(null);
+  const [exportError, setExportError] = useState("");
 
   // Modal เพิ่ม/แก้ไขหลักสูตร - เฉพาะ admin (ดู isAdmin ด้านบน)
   const [curriculumModal, setCurriculumModal] = useState(null); // null | { mode: "new" } | { mode: "edit", curriculum }
@@ -237,6 +255,21 @@ export default function CurriculumCourses() {
       setCurriculumFormError("บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง หรือแจ้งผู้ดูแลระบบถ้ายังไม่ได้");
     } finally {
       setCurriculumSaving(false);
+    }
+  }
+
+  async function handleExportCourse(course) {
+    setExportError("");
+    setExportingCourseId(course.id);
+    try {
+      const { blob, filename } = await exportCourseExcel(course.id, course.course_code);
+      _triggerBlobDownload(blob, filename);
+    } catch (err) {
+      setExportError(
+        err?.response?.data?.detail || `ส่งออก Excel วิชา ${course.course_code} ไม่สำเร็จ ลองใหม่อีกครั้ง`
+      );
+    } finally {
+      setExportingCourseId(null);
     }
   }
 
@@ -368,6 +401,8 @@ export default function CurriculumCourses() {
               )}
             </div>
 
+            {exportError && <p className="error-message">{exportError}</p>}
+
             <table className="student-table">
               <thead>
                 <tr>
@@ -376,6 +411,7 @@ export default function CurriculumCourses() {
                   <th>ชื่อวิชา (อังกฤษ)</th>
                   <th>หน่วยกิต</th>
                   <th>หมวดหมู่</th>
+                  <th>ส่งออก</th>
                   {isAdmin && <th></th>}
                 </tr>
               </thead>
@@ -387,6 +423,18 @@ export default function CurriculumCourses() {
                     <td className="student-table-cell">{course.name_en ?? "-"}</td>
                     <td className="student-table-cell">{course.credit}</td>
                     <td className="student-table-cell">{course.category ?? "-"}</td>
+                    <td className="student-table-cell">
+                      <button
+                        type="button"
+                        className="export-excel-button compact"
+                        title="ส่งออกข้อมูลรายวิชาและผลผ่าน CLO เป็นไฟล์ Excel"
+                        disabled={exportingCourseId === course.id}
+                        onClick={() => handleExportCourse(course)}
+                      >
+                        <FileSpreadsheet size={14} />
+                        {exportingCourseId === course.id ? "กำลังสร้าง..." : "Excel"}
+                      </button>
+                    </td>
                     {isAdmin && (
                       <td className="student-table-cell">
                         <button

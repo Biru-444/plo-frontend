@@ -55,7 +55,7 @@ src/
 │   └── ...                     # PLOBar, PLOCohortBar, PLORadarChart, StudentProfileCard ฯลฯ
 ├── context/AuthContext.jsx     # เก็บ session/JWT, isAdmin
 ├── pages/
-│   ├── PLOAchievement.jsx      # ผลบรรลุ PLO รายบุคคล (พร้อม radar chart, export PDF)
+│   ├── PLOAchievement.jsx      # ผลบรรลุ PLO รายบุคคล (พร้อม radar chart, ส่งออก Excel)
 │   ├── StudentList.jsx         # รายชื่อนักศึกษา แยกแท็บตามรุ่น
 │   ├── CurriculumCourses.jsx   # เรียกดูหลักสูตร/รายวิชา
 │   ├── PLODashboard.jsx        # ภาพรวม PLO ทั้งรุ่น พร้อม drill-down รายคน
@@ -69,9 +69,10 @@ src/
 ## ฟีเจอร์หลัก
 
 - **ผลการบรรลุ PLO รายบุคคล** (`/`) — ค้นหานักศึกษา แสดงโปรไฟล์, สรุปภาพรวม, radar chart,
-  รายละเอียดรายข้อ, export เป็น PDF (ผ่าน print ของเบราว์เซอร์)
+  รายละเอียดรายข้อ, ส่งออก Excel (ข้อมูลนักศึกษา + ผลบรรลุ PLO + รายวิชาที่เรียน)
 - **รายชื่อนักศึกษา** (`/students`) — แยกแท็บตามรุ่น พร้อมสถานะการศึกษา
-- **หลักสูตร/รายวิชา** (`/curriculum`) — เรียกดูรายวิชาตามหลักสูตร
+- **หลักสูตร/รายวิชา** (`/curriculum`) — เรียกดูรายวิชาตามหลักสูตร, ส่งออก Excel ต่อวิชา
+  (ข้อมูลรายวิชา/อาจารย์/CLO/PLO + ผลผ่าน CLO รายนักศึกษา)
 - **ภาพรวม PLO** (`/dashboard`) — ค่าเฉลี่ยทั้งรุ่นต่อ PLO พร้อม drill-down รายชื่อนักศึกษา
 - **PLO ตามชั้นปี** (`/plo-by-year`) — ผลบรรลุ PLO แยกตามชั้นปี เทียบกับเป้าหมาย YLO ของปีนั้น
 - **จัดการคะแนน** (`/scores`) — กรอก/แก้ไขคะแนนต่อชิ้นงาน

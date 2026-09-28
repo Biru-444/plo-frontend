@@ -1,7 +1,8 @@
 /**
  * ทำอะไร : หน้า "ผลบรรลุ PLO รายบุคคล" (route /student-plo) — ค้นหานักศึกษาด้วยรหัส แล้วแสดงผลบรรลุ
  *          PLO แบบ split-screen (ซ้าย = สรุป+chip grid PLO, ขวา = รายวิชา->YLO ตามชั้นปี) กดที่ PLO
- *          chip เพื่อกรองรายวิชาฝั่งขวาให้เหลือเฉพาะวิชาที่เกี่ยวกับ PLO นั้นได้
+ *          chip เพื่อกรองรายวิชาฝั่งขวาให้เหลือเฉพาะวิชาที่เกี่ยวกับ PLO นั้นได้ ปุ่ม "ส่งออก Excel"
+ *          ดาวน์โหลดข้อมูลนักศึกษา + ผลบรรลุ PLO + รายวิชาที่เรียน (GET /export/student/{id})
  *
  * เชื่อมกับ : เรียก 4 endpoint พร้อมกัน (บาง endpoint ไม่ block การแสดงผลหลัก ดูคอมเมนต์ในโค้ด) —
  *             ถ้ามาจาก URL query param ?student_id=... (เช่น คลิกชื่อนักศึกษาจากหน้ารายชื่อ) จะค้นหา
@@ -16,7 +17,9 @@
  */
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { FileSpreadsheet } from "lucide-react";
 import {
+  exportStudentExcel,
   getCurriculum,
   getStudent,
   getStudentPLOAchievement,
@@ -29,6 +32,19 @@ import StudentProfileCard from "../components/StudentProfileCard.jsx";
 import PLOSummaryStats from "../components/PLOSummaryStats.jsx";
 import PLOChipGrid from "../components/PLOChipGrid.jsx";
 import StudentYearBreakdown from "../components/StudentYearBreakdown.jsx";
+
+// สร้าง <a> ชั่วคราวกดดาวน์โหลดเอง (เปิดเป็นลิงก์ตรงไม่ได้เพราะต้องแนบ Authorization header ผ่าน axios)
+// ตั้งชื่อไฟล์ตามที่ backend ส่งมาใน Content-Disposition - เหมือนกับที่ CLOAchievementPanel.jsx ใช้
+function _triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
 
 export default function PLOAchievement() {
   const [searchParams] = useSearchParams();
@@ -46,6 +62,8 @@ export default function PLOAchievement() {
   const [selectedPloFilter, setSelectedPloFilter] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
 
   // ค้นหานักศึกษาแล้วโหลดข้อมูลทุกส่วนของหน้า (ผลบรรลุ PLO, ข้อมูลนักศึกษา, ชื่อหลักสูตร, ผลบรรลุ YLO
   // รายปี, mapping วิชา->PLO) - ผลบรรลุ PLO + ข้อมูลนักศึกษาต้องรอให้เสร็จก่อน (Promise.all) เพราะเป็น
@@ -126,6 +144,19 @@ export default function PLOAchievement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  async function handleExportExcel() {
+    setExportError("");
+    setExporting(true);
+    try {
+      const { blob, filename } = await exportStudentExcel(student.id);
+      _triggerBlobDownload(blob, filename);
+    } catch (err) {
+      setExportError(err?.response?.data?.detail || "ส่งออก Excel ไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     fetchPLOAchievement(studentId);
@@ -156,9 +187,16 @@ export default function PLOAchievement() {
           <div className="student-plo-topbar">
             <StudentProfileCard student={student} curriculumName={curriculumName} />
             <div className="student-plo-topbar-actions">
-              <button type="button" className="export-pdf-button" onClick={() => window.print()}>
-                Export PDF
+              <button
+                type="button"
+                className="export-excel-button"
+                disabled={exporting || !student}
+                onClick={handleExportExcel}
+              >
+                <FileSpreadsheet size={16} />
+                {exporting ? "กำลังสร้างไฟล์..." : "ส่งออก Excel"}
               </button>
+              {exportError && <p className="error-message">{exportError}</p>}
               {(user?.role === "admin" || user?.role === "instructor") && (
                 <div className="plo-admin-actions">
                   <Link to={`/scores?student_id=${studentId}`} className="button-secondary">
