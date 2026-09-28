@@ -23,3 +23,11 @@ export const CLO_DOMAIN_LABEL_TH = {
   ethics: "จริยธรรม",
   character: "ลักษณะบุคคล",
 };
+
+// ข้อความกล่องยืนยันตอนผูก CLO-PLO ที่ประเภทไม่ตรงกัน - ใช้ทั้ง AdminCLOPLOMapping.jsx และ
+// CourseOfferingWorkspace.jsx (แท็บ CLO ของอาจารย์) ให้เป็นข้อความเดียวกันเป๊ะๆ (2026-09-28) - รับ label
+// ที่ประกอบมาแล้ว (เช่น "CLO1 (ทักษะ)") ไม่ใช่ raw code/domain เพราะแต่ละหน้ามี fallback ตอนหา CLO/PLO
+// ไม่เจอต่างกันเล็กน้อย (เช่น "CLO นี้"/"PLO นี้")
+export function buildDomainMismatchMessage(cloLabel, ploLabel) {
+  return `${cloLabel} กำลังจะเชื่อมกับ ${ploLabel} ซึ่งเป็นคนละประเภท ต้องการเชื่อมต่อหรือไม่?`;
+}

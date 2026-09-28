@@ -1,8 +1,8 @@
 /**
  * ทำอะไร : พื้นที่ทำงานหลักของอาจารย์ต่อวิชาที่เปิดสอนหนึ่งวิชา (route /course-workspace) — เลือกวิชา
- *          จาก dropdown แล้วสลับ 4 แท็บ: นักศึกษาลงทะเบียน / โครงสร้างการประเมิน (งานประเมิน + ผูกน้ำหนัก
- *          กับ CLO ที่แอดมินสร้างไว้แล้ว) / กรอกคะแนน / ผลบรรลุ CLO เป็นไฟล์ที่ใหญ่ที่สุดของโปรเจกต์
- *          เพราะรวมทุกงานประจำภาคเรียนของอาจารย์ไว้หน้าเดียว (ไม่ต้องสลับหน้าไปมาระหว่างทำงาน)
+ *          จาก dropdown แล้วสลับ 5 แท็บ: นักศึกษาลงทะเบียน / CLO / โครงสร้างการประเมิน (งานประเมิน +
+ *          ผูกน้ำหนักกับ CLO) / กรอกคะแนน / ผลบรรลุ CLO เป็นไฟล์ที่ใหญ่ที่สุดของโปรเจกต์ เพราะรวมทุกงาน
+ *          ประจำภาคเรียนของอาจารย์ไว้หน้าเดียว (ไม่ต้องสลับหน้าไปมาระหว่างทำงาน)
  *
  * เชื่อมกับ : แท็บ "กรอกคะแนน" และ "ผลบรรลุ CLO" ใช้ ScoresPanel/CLOAchievementPanel component ที่ถูก
  *             แยกออกมาให้ AdminCourseGrading.jsx (เวอร์ชันสำหรับ admin) ใช้ร่วมด้วย ส่วนแท็บ
@@ -10,9 +10,13 @@
  *             แท็บ "โครงสร้างการประเมิน" (StructureTab ด้านล่าง) ที่ยังเป็นโค้ดเฉพาะของไฟล์นี้ เพราะไม่
  *             มีหน้าอื่นต้องการ workflow แบบเดียวกัน (สร้างงานประเมิน + ผูกน้ำหนักกับ CLO ในหน้าเดียว)
  *
- *             CLO ของวิชา (สร้าง/แก้ไข/ลบ) ย้ายไปเป็นหน้าที่ของแอดมินทั้งหมดแล้ว (ดู AdminCourse.jsx และ
- *             แผนการแก้ไขครั้งใหญ่-PLO-CLO.md Workstream 1 ข้อ 2) — StructureTab ด้านล่างแสดง CLO ของ
- *             วิชาแบบอ่านอย่างเดียว (อ้างอิงตอนผูกงานประเมิน) ไม่มีฟอร์มสร้าง/ปุ่มลบ CLO ในหน้านี้แล้ว
+ *             แท็บ "CLO" (CLOManageTab ด้านล่าง, 2026-09-28) - อาจารย์เจ้าของวิชาจัดการ CLO ของวิชาตัวเอง
+ *             ได้แล้ว (สร้าง/แก้/ลบ + ผูก/แก้น้ำหนัก/ถอด PLO) ย้อนกลับจากเดิมที่ให้แอดมินทำทุกอย่าง
+ *             (AdminCourse.jsx/AdminCLO.jsx ยังใช้งานได้เหมือนเดิมสำหรับแอดมิน) สิทธิ์เช็คฝั่ง backend
+ *             ล้วนๆ (ownership check ที่มีอยู่แล้วใน POST/PUT/DELETE /clo และ /clo-plo-mapping - ไม่ต้อง
+ *             เพิ่มเช็คฝั่ง frontend) ใช้ CLODomainField (export จาก AdminCLO.jsx) และข้อความกล่องยืนยัน
+ *             ประเภทไม่ตรงกัน (buildDomainMismatchMessage ใน utils/cloDomain.js) แบบเดียวกับหน้าแอดมิน -
+ *             StructureTab ด้านล่างยังแสดง CLO แบบอ่านอย่างเดียวเหมือนเดิม (อ้างอิงตอนผูกงานประเมิน)
  *
  * ถ้าแก้ : เข้าหน้านี้พร้อม query param ?offering_id=...&tab=... ได้ (เช่นจากปุ่ม "จัดการ CLO และ
  *          เกณฑ์ผ่าน" ในหน้าหลักอาจารย์) เพื่อเปิดตรงวิชา/แท็บที่ต้องการทันที — เพิ่ม tab ใหม่ต้องเพิ่ม
@@ -30,6 +34,7 @@ import {
   Users,
   Upload,
   CheckCircle2,
+  Flag,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import SearchableSelect from "../../components/SearchableSelect.jsx";
@@ -37,6 +42,8 @@ import BulkEnrollPanel from "../../components/BulkEnrollPanel.jsx";
 import ScoresPanel from "../../components/ScoresPanel.jsx";
 import CLOAchievementPanel from "../../components/CLOAchievementPanel.jsx";
 import { ResultPanel as RosterResultPanel } from "./AdminRosterImport.jsx";
+import { CLODomainField } from "./AdminCLO.jsx";
+import { CLO_DOMAIN_LABEL_TH, buildDomainMismatchMessage } from "../../utils/cloDomain.js";
 import {
   listCourseOfferings,
   listCourses,
@@ -47,6 +54,15 @@ import {
   createItemCLO,
   deleteItemCLO,
   listCLO,
+  createCLO,
+  updateCLO,
+  deleteCLO,
+  listPLO,
+  listCLOPLOMapping,
+  createCLOPLOMapping,
+  updateCLOPLOMapping,
+  deleteCLOPLOMapping,
+  checkCLOPLODomainMatch,
   listEnrollments,
   createEnrollment,
   deleteEnrollment,
@@ -66,7 +82,7 @@ const ASSESSMENT_TYPE_LABELS = {
   project: "โปรเจกต์ (Project)",
 };
 
-// นิยามแท็บทั้ง 4 ในที่เดียว - ใช้ทั้งวาดปุ่มแท็บและ empty-state (รายการ "จะมี 4 แท็บให้ใช้งาน")
+// นิยามแท็บทั้ง 5 ในที่เดียว - ใช้ทั้งวาดปุ่มแท็บและ empty-state (รายการ "จะมี 5 แท็บให้ใช้งาน")
 const TABS = [
   {
     key: "enrollment",
@@ -75,10 +91,16 @@ const TABS = [
     description: "ดู/เพิ่ม/ลบนักศึกษาที่ลงทะเบียนเรียนวิชานี้",
   },
   {
+    key: "clo-manage",
+    label: "CLO",
+    icon: Flag,
+    description: "สร้าง/แก้ไข/ลบ CLO ของวิชานี้ และผูก/แก้น้ำหนัก/ถอด PLO",
+  },
+  {
     key: "structure",
     label: "โครงสร้างการประเมิน",
     icon: ListChecks,
-    description: "สร้างงานประเมิน (เช่น สอบกลางภาค, ควิซ) แล้วผูกน้ำหนักกับ CLO ของวิชา (CLO สร้างโดยแอดมินไว้ล่วงหน้าแล้ว)",
+    description: "สร้างงานประเมิน (เช่น สอบกลางภาค, ควิซ) แล้วผูกน้ำหนักกับ CLO ของวิชา (สร้าง CLO ก่อนได้ที่แท็บ \"CLO\")",
   },
   {
     key: "scores",
@@ -108,17 +130,25 @@ export default function CourseOfferingWorkspace() {
   const [assessmentItems, setAssessmentItems] = useState([]);
   const [allCLOs, setAllCLOs] = useState([]);
   const [itemCLOs, setItemCLOs] = useState([]);
+  // เหมือน itemCLOs แต่กรองด้วย clo_id ของ CLO ทั้งหมดของ "วิชา" นี้ (ไม่ใช่แค่ offering/section ที่เลือก
+  // อยู่ - CLO ใช้ร่วมกันทุก section) ใช้เช็คว่า CLO ไหน "ถูกใช้แล้ว" (ผูกงานประเมิน) บ้างสำหรับปิดปุ่มลบ
+  // ในแท็บ "CLO" - backend เช็คแบบเดียวกันนี้อีกชั้นตอน DELETE /clo จริง (ดู CLOManageTab)
+  const [itemCLOsForCourse, setItemCLOsForCourse] = useState([]);
+  const [cloPloMappingsForCourse, setCloPloMappingsForCourse] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   // รายชื่อนักศึกษาทั้งระบบ (ไม่ใช่แค่ของวิชานี้) - โหลดครั้งเดียวตอนเปิดหน้า ใช้ทั้งประกอบชื่อคนที่
   // ลงทะเบียนแล้วและเป็นตัวเลือกตอนเพิ่มคนใหม่ (ดู EnrollmentTab)
   const [allStudents, setAllStudents] = useState([]);
+  // PLO ทั้งระบบ - โหลดครั้งเดียวตอนเปิดหน้า ใช้กรองเหลือเฉพาะของหลักสูตรวิชานี้ในแท็บ "CLO" (ดู
+  // CLOManageTab)
+  const [allPLOs, setAllPLOs] = useState([]);
 
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
   const [workspaceError, setWorkspaceError] = useState("");
 
-  // โหลดรายการวิชาที่เปิดสอน + รายวิชาทั้งระบบ + นักศึกษาทั้งระบบ ครั้งเดียวตอนเปิดหน้า (หรือเมื่อ
-  // user/isAdmin เปลี่ยน เช่น เพิ่ง login เสร็จ) - instructor เห็นเฉพาะวิชาที่ตัวเองสอน (กรองด้วย
-  // user.id) ส่วน admin เห็นทุกวิชา
+  // โหลดรายการวิชาที่เปิดสอน + รายวิชาทั้งระบบ + นักศึกษาทั้งระบบ + PLO ทั้งระบบ ครั้งเดียวตอนเปิดหน้า
+  // (หรือเมื่อ user/isAdmin เปลี่ยน เช่น เพิ่ง login เสร็จ) - instructor เห็นเฉพาะวิชาที่ตัวเองสอน
+  // (กรองด้วย user.id) ส่วน admin เห็นทุกวิชา
   useEffect(() => {
     if (!user) return;
     (isAdmin ? listCourseOfferings() : listCourseOfferings(user.id))
@@ -126,6 +156,7 @@ export default function CourseOfferingWorkspace() {
       .catch(() => {});
     listCourses().then(setCourses).catch(() => {});
     listStudents().then(setAllStudents).catch(() => {});
+    listPLO().then(setAllPLOs).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isAdmin]);
 
@@ -197,21 +228,33 @@ export default function CourseOfferingWorkspace() {
   );
 
   // โหลดข้อมูลทั้งหมดของ offering หนึ่ง (งานประเมิน, CLO ทั้งระบบ, mapping ชิ้นงาน<->CLO กรองเหลือ
-  // เฉพาะของ offering นี้, รายชื่อลงทะเบียน) - เรียกทุกครั้งที่เปลี่ยนวิชาที่เลือก
+  // เฉพาะของ offering นี้, mapping ชิ้นงาน<->CLO และ CLO-PLO กรองเหลือเฉพาะของ "วิชา" นี้ (ทุก section -
+  // ใช้เช็ค CLO ที่ถูกใช้แล้วในแท็บ "CLO"), รายชื่อลงทะเบียน) - เรียกทุกครั้งที่เปลี่ยนวิชาที่เลือก
   async function loadWorkspace(offeringId) {
     setLoadingWorkspace(true);
     setWorkspaceError("");
     try {
-      const [items, clos, allItemClo, offeringEnrollments] = await Promise.all([
+      const [items, clos, allItemClo, allCloPloMappings, offeringEnrollments] = await Promise.all([
         listAssessmentItems(offeringId),
         listCLO(),
         listItemCLO(),
+        listCLOPLOMapping(),
         listEnrollments(offeringId),
       ]);
       setAssessmentItems(items);
       setAllCLOs(clos);
       const itemIds = new Set(items.map((i) => i.id));
       setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
+
+      // targetCourseId มาจาก offeringId ตรงๆ (ไม่ใช้ courseId จาก closure ด้านนอก) กัน race กับ state
+      // selectedOfferingId ที่อาจยังไม่อัปเดตทันตอนเรียกฟังก์ชันนี้
+      const targetOffering = offerings.find((o) => o.id === offeringId);
+      const courseCloIds = new Set(
+        clos.filter((c) => c.course_id === targetOffering?.course_id).map((c) => c.id)
+      );
+      setItemCLOsForCourse(allItemClo.filter((ic) => courseCloIds.has(ic.clo_id)));
+      setCloPloMappingsForCourse(allCloPloMappings.filter((m) => courseCloIds.has(m.clo_id)));
+
       setEnrollments(offeringEnrollments);
     } catch (err) {
       // 403 = ไม่ใช่ offering ของอาจารย์คนนี้ (เช่น URL เก่า/แชร์มาจากอาจารย์คนอื่น หรือถูกถอดออกจาก
@@ -235,8 +278,28 @@ export default function CourseOfferingWorkspace() {
       setAssessmentItems([]);
       setAllCLOs([]);
       setItemCLOs([]);
+      setItemCLOsForCourse([]);
+      setCloPloMappingsForCourse([]);
       setEnrollments([]);
     }
+  }
+
+  // โหลด CLO + mapping ชิ้นงาน<->CLO และ CLO-PLO ของ "วิชา" นี้ใหม่ทั้งหมด (เรียกหลังสร้าง/แก้/ลบ CLO
+  // หรือผูก/แก้/ถอด PLO สำเร็จ ในแท็บ "CLO")
+  async function refreshCLOData() {
+    const [clos, allItemClo, allCloPloMappings] = await Promise.all([
+      listCLO(),
+      listItemCLO(),
+      listCLOPLOMapping(),
+    ]);
+    setAllCLOs(clos);
+    const courseCloIds = new Set(clos.filter((c) => c.course_id === courseId).map((c) => c.id));
+    setItemCLOsForCourse(allItemClo.filter((ic) => courseCloIds.has(ic.clo_id)));
+    setCloPloMappingsForCourse(allCloPloMappings.filter((m) => courseCloIds.has(m.clo_id)));
+    // itemCLOs (scoped เฉพาะ offering นี้) ก็อาจเปลี่ยนได้เหมือนกัน (เช่น ลบ CLO ที่ถูกผูกกับงานประเมิน
+    // ของ offering นี้พอดี) - รีเฟรชให้ตรงกันด้วย เพื่อไม่ให้แท็บ "โครงสร้างการประเมิน" ค้างข้อมูลเก่า
+    const itemIds = new Set(assessmentItems.map((i) => i.id));
+    setItemCLOs(allItemClo.filter((ic) => itemIds.has(ic.item_id)));
   }
 
   // โหลดงานประเมิน + mapping ชิ้นงาน<->CLO ของวิชานี้ใหม่ (เรียกหลังเพิ่ม/ลบงานประเมินสำเร็จ)
@@ -293,7 +356,7 @@ export default function CourseOfferingWorkspace() {
 
       {!selectedOfferingId && offerings.length > 0 && (
         <div className="workspace-empty-state">
-          <p>👆 เลือกวิชาที่เปิดสอนด้านบนเพื่อเริ่มต้น จะมี 4 แท็บให้ใช้งาน:</p>
+          <p>👆 เลือกวิชาที่เปิดสอนด้านบนเพื่อเริ่มต้น จะมี 5 แท็บให้ใช้งาน:</p>
           <ul>
             {TABS.map((tab) => (
               <li key={tab.key}>
@@ -331,6 +394,18 @@ export default function CourseOfferingWorkspace() {
               studentById={studentById}
               allStudents={allStudents}
               onChanged={refreshEnrollments}
+            />
+          )}
+
+          {activeTab === "clo-manage" && (
+            <CLOManageTab
+              courseId={courseId}
+              curriculumId={curriculumId}
+              courseCLOs={courseCLOs}
+              itemCLOsForCourse={itemCLOsForCourse}
+              cloPloMappingsForCourse={cloPloMappingsForCourse}
+              allPLOs={allPLOs}
+              onChanged={refreshCLOData}
             />
           )}
 
@@ -872,13 +947,504 @@ function EnrollmentTab({ offeringId, curriculumId, enrollments, studentById, all
 }
 
 /**
- * ทำอะไร : แท็บ "โครงสร้างการประเมิน" — 3 ส่วนเรียงกันตามลำดับงานจริง: (1) สร้าง CLO ของวิชา (หลาย
- *          แถวพร้อมกันได้ในฟอร์มเดียว) (2) สร้างงานประเมิน (ควิซ/สอบ/การบ้าน ฯลฯ) (3) ผูกงานประเมิน
- *          แต่ละชิ้นเข้ากับ CLO พร้อมกำหนดน้ำหนัก (%)
+ * ทำอะไร : แท็บ "CLO" (2026-09-28) — สร้าง/แก้ไข/ลบ CLO ของวิชานี้ (ใช้ร่วมกันทุก section) + ผูก/แก้
+ *          น้ำหนัก/ถอด PLO เอง ไม่ต้องพึ่งแอดมินอีกต่อไป
  *
- * เชื่อมกับ : ไม่มีการผูก PLO ในหน้านี้อีกต่อไป (ย้ายไปทำที่ระดับวิชาผ่านหน้า "เชื่อมโยงรายวิชากับ PLO"
- *             แยกต่างหาก) - โค้ดส่วนนี้เป็นโค้ดเฉพาะของ workspace ไฟล์นี้ ไม่ได้แยกเป็น component ร่วม
- *             กับหน้าไหน เพราะไม่มีหน้าอื่นต้องการ workflow สร้าง CLO หลายแถว + ผูกน้ำหนักในหน้าเดียว
+ * เชื่อมกับ : สิทธิ์เช็คฝั่ง backend ล้วนๆ (ownership check ที่มีอยู่แล้วใน POST/PUT/DELETE /clo และ
+ *             /clo-plo-mapping - instructor ทำได้เฉพาะวิชาที่ตัวเองสอน, admin ทำได้ทุกวิชา) หน้านี้ไม่
+ *             เช็คซ้ำฝั่ง frontend เลย ปล่อยให้ 403 ไหลมาแสดงตรงๆ - ปุ่มลบถูก disable ไว้ล่วงหน้าถ้า CLO
+ *             ถูกใช้แล้ว (ผูกงานประเมินหรือ PLO อยู่) โดยเช็คจาก itemCLOsForCourse/cloPloMappingsForCourse
+ *             ที่ส่งมาจาก parent (ดู loadWorkspace/refreshCLOData) - backend เช็คซ้ำอีกชั้นตอน DELETE
+ *             จริงเสมอ (409 พร้อมเหตุผลภาษาไทย ถ้าปุ่มหลุด disable ไปได้ด้วยเหตุผลใดก็ตาม)
+ *
+ *             ใช้ CLODomainField (export จาก AdminCLO.jsx) และ buildDomainMismatchMessage (utils/
+ *             cloDomain.js) แบบเดียวกับหน้าแอดมิน - กล่องยืนยันประเภทไม่ตรงกันเป็น modal ธรรมดา (คลาส
+ *             .crud-modal เดียวกับที่ CrudManager.jsx ใช้) ไม่ใช่ window.confirm ตัวเองผูกได้ครั้งละ 1 คู่
+ *             เท่านั้น (ไม่มี multi-select PLO) จึงไม่ต้องรวมหลายคู่ไว้ในกล่องเดียว
+ *
+ * ถ้าแก้ : PLO ที่เลือกได้ต้องกรองด้วย curriculumId ของวิชานี้เสมอ (backend ตอบ 422 ถ้าข้ามหลักสูตร - ดู
+ *          require_same_curriculum ฝั่ง backend - หน้านี้กรองไว้ล่วงหน้าไม่ให้เลือกผิดได้ตั้งแต่ต้น)
+ */
+function CLOManageTab({
+  courseId,
+  curriculumId,
+  courseCLOs,
+  itemCLOsForCourse,
+  cloPloMappingsForCourse,
+  allPLOs,
+  onChanged,
+}) {
+  // ฟอร์มสร้าง/แก้ไข CLO - editingCloId: null=ปิดฟอร์ม, "new"=กำลังเพิ่ม, id=กำลังแก้ไข CLO นั้น
+  const [editingCloId, setEditingCloId] = useState(null);
+  const [form, setForm] = useState({ code: "", description: "", pass_threshold_percent: "60", domain: "" });
+  const [formError, setFormError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  // ฟอร์มผูก CLO กับ PLO (แยกต่างหากจากฟอร์ม CLO ด้านบน)
+  const [mappingCloId, setMappingCloId] = useState("");
+  const [mappingPloId, setMappingPloId] = useState("");
+  const [mappingWarning, setMappingWarning] = useState(null);
+  const [mappingError, setMappingError] = useState("");
+  const [mappingSaving, setMappingSaving] = useState(false);
+  const [pendingMappingConfirm, setPendingMappingConfirm] = useState(false);
+  const [editingMappingId, setEditingMappingId] = useState(null);
+  const [editingWeight, setEditingWeight] = useState("");
+
+  const ploById = useMemo(() => Object.fromEntries(allPLOs.map((p) => [p.id, p])), [allPLOs]);
+  // เฉพาะ PLO ของหลักสูตรที่วิชานี้อยู่เท่านั้น (กันเลือกข้ามหลักสูตรตั้งแต่ต้น - backend ตอบ 422 ซ้ำ
+  // อีกชั้นถ้าหลุดมาได้) - รูปแบบ label เดียวกับหน้า /admin/clo-plo-mapping ("รหัส · คำอธิบาย (ประเภท)")
+  const ploOptions = useMemo(
+    () =>
+      allPLOs
+        .filter((p) => p.curriculum_id === curriculumId)
+        .map((p) => ({ value: p.id, label: `${p.code} · ${p.description_th} (${p.category})` })),
+    [allPLOs, curriculumId]
+  );
+  const cloOptionsForMapping = useMemo(
+    () => courseCLOs.map((c) => ({ value: c.id, label: `${c.code}: ${c.description}` })),
+    [courseCLOs]
+  );
+
+  const itemCLOCountByCloId = useMemo(() => {
+    const counts = {};
+    itemCLOsForCourse.forEach((ic) => {
+      counts[ic.clo_id] = (counts[ic.clo_id] || 0) + 1;
+    });
+    return counts;
+  }, [itemCLOsForCourse]);
+
+  const ploMappingsByCloId = useMemo(() => {
+    const map = {};
+    cloPloMappingsForCourse.forEach((m) => {
+      (map[m.clo_id] ??= []).push(m);
+    });
+    return map;
+  }, [cloPloMappingsForCourse]);
+
+  function usageReason(cloId) {
+    const parts = [];
+    if (itemCLOCountByCloId[cloId]) parts.push(`งานประเมิน ${itemCLOCountByCloId[cloId]} รายการ`);
+    const mappingCount = ploMappingsByCloId[cloId]?.length || 0;
+    if (mappingCount) parts.push(`PLO ${mappingCount} รายการ`);
+    return parts;
+  }
+
+  // 403 = ไม่ใช่ผู้สอนวิชานี้ (ownership check ฝั่ง backend) - ใช้ข้อความเดียวกับที่หน้านี้ใช้ที่อื่น
+  function describeCloError(err, fallback) {
+    if (err?.response?.status === 403) return "คุณไม่มีสิทธิ์เข้าถึงรายวิชานี้";
+    return err?.response?.data?.detail || fallback;
+  }
+
+  function startCreate() {
+    setForm({ code: "", description: "", pass_threshold_percent: "60", domain: "" });
+    setFormError("");
+    setEditingCloId("new");
+  }
+
+  function startEdit(clo) {
+    setForm({
+      code: clo.code,
+      description: clo.description,
+      pass_threshold_percent: String(clo.pass_threshold_percent),
+      domain: clo.domain || "",
+    });
+    setFormError("");
+    setEditingCloId(clo.id);
+  }
+
+  function cancelCloForm() {
+    setEditingCloId(null);
+    setFormError("");
+  }
+
+  async function handleSaveCLO(e) {
+    e.preventDefault();
+    if (!form.domain) {
+      setFormError('กรุณาเลือก "ประเภท" ก่อนบันทึก');
+      return;
+    }
+    setSaving(true);
+    setFormError("");
+    try {
+      const payload = {
+        code: form.code.trim(),
+        description: form.description.trim(),
+        pass_threshold_percent: Number(form.pass_threshold_percent),
+        domain: form.domain,
+      };
+      if (editingCloId === "new") {
+        await createCLO({ course_id: courseId, ...payload });
+      } else {
+        await updateCLO(editingCloId, payload);
+      }
+      setEditingCloId(null);
+      await onChanged();
+    } catch (err) {
+      setFormError(describeCloError(err, "บันทึกไม่สำเร็จ"));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteCLO(clo) {
+    if (usageReason(clo.id).length > 0) return; // ปุ่มถูก disable ไว้แล้ว - กันเผื่อเรียกตรงๆ
+    if (!window.confirm(`ยืนยันการลบ CLO "${clo.code}"? การกระทำนี้ย้อนกลับไม่ได้`)) return;
+    setDeleteError("");
+    try {
+      await deleteCLO(clo.id);
+      await onChanged();
+    } catch (err) {
+      setDeleteError(describeCloError(err, "ลบไม่สำเร็จ"));
+    }
+  }
+
+  // เช็ค domain/category ไม่ตรงกัน real-time ตอนเลือกครบทั้ง CLO และ PLO (เหมือน AdminCLOPLOMapping.jsx
+  // ทุกประการ - เรียก endpoint เดิม ไม่เขียนตรรกะเทียบใหม่ แค่ประกอบข้อความเองให้ตรงฟอร์แมตเดียวกัน)
+  useEffect(() => {
+    if (!mappingCloId || !mappingPloId) {
+      setMappingWarning(null);
+      return;
+    }
+    let cancelled = false;
+    checkCLOPLODomainMatch(mappingCloId, mappingPloId)
+      .then((result) => {
+        if (cancelled) return;
+        if (!result.mismatch) {
+          setMappingWarning(null);
+          return;
+        }
+        const clo = courseCLOs.find((c) => c.id === Number(mappingCloId));
+        const plo = ploById[Number(mappingPloId)];
+        const cloLabel = clo ? `${clo.code} (${CLO_DOMAIN_LABEL_TH[clo.domain] || clo.domain})` : "CLO นี้";
+        const ploLabel = plo ? `${plo.code} (${plo.category})` : "PLO นี้";
+        setMappingWarning({ message: buildDomainMismatchMessage(cloLabel, ploLabel) });
+      })
+      .catch(() => {
+        if (!cancelled) setMappingWarning(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mappingCloId, mappingPloId, courseCLOs, ploById]);
+
+  async function performCreateMapping() {
+    setMappingSaving(true);
+    setMappingError("");
+    try {
+      await createCLOPLOMapping({ clo_id: Number(mappingCloId), plo_id: Number(mappingPloId) });
+      setMappingCloId("");
+      setMappingPloId("");
+      setMappingWarning(null);
+      setPendingMappingConfirm(false);
+      await onChanged();
+    } catch (err) {
+      setMappingError(describeCloError(err, "ผูกไม่สำเร็จ"));
+      setPendingMappingConfirm(false);
+    } finally {
+      setMappingSaving(false);
+    }
+  }
+
+  // มีคำเตือนอยู่ -> โชว์กล่องยืนยันก่อน (requireConfirmOnWarning แบบเดียวกับ CrudManager.jsx) ไม่มี ->
+  // ผูกเลย
+  function handleSubmitMapping(e) {
+    e.preventDefault();
+    if (!mappingCloId || !mappingPloId) return;
+    if (mappingWarning) {
+      setPendingMappingConfirm(true);
+      return;
+    }
+    performCreateMapping();
+  }
+
+  function startEditWeight(mapping) {
+    setEditingMappingId(mapping.id);
+    setEditingWeight(String(mapping.weight_percent));
+  }
+
+  async function handleSaveWeight(mapping) {
+    setMappingError("");
+    try {
+      await updateCLOPLOMapping(mapping.id, { weight_percent: Number(editingWeight) });
+      setEditingMappingId(null);
+      await onChanged();
+    } catch (err) {
+      setMappingError(describeCloError(err, "แก้น้ำหนักไม่สำเร็จ"));
+    }
+  }
+
+  async function handleDeleteMapping(mappingId) {
+    if (!window.confirm("ยืนยันการถอด PLO นี้ออก?")) return;
+    setMappingError("");
+    try {
+      await deleteCLOPLOMapping(mappingId);
+      await onChanged();
+    } catch (err) {
+      setMappingError(describeCloError(err, "ถอดไม่สำเร็จ"));
+    }
+  }
+
+  return (
+    <>
+      <div className="workspace-section">
+        <h2>
+          <Flag size={18} strokeWidth={2} /> CLO ของวิชานี้
+        </h2>
+        <p className="workspace-hint-inline">
+          CLO ใช้ร่วมกันทุก section ของวิชานี้ การแก้ไขจะมีผลกับทุก section
+        </p>
+        {deleteError && <p className="error-message">{deleteError}</p>}
+
+        <table className="student-table">
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>คำอธิบาย</th>
+              <th>ประเภท</th>
+              <th>เกณฑ์ผ่าน (%)</th>
+              <th>PLO ที่ผูก</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {courseCLOs.map((clo) => {
+              const reasons = usageReason(clo.id);
+              const used = reasons.length > 0;
+              const mappings = ploMappingsByCloId[clo.id] || [];
+              return (
+                <tr key={clo.id} className="student-table-row">
+                  <td className="student-table-cell">{clo.code}</td>
+                  <td className="student-table-cell">{clo.description}</td>
+                  <td className="student-table-cell">
+                    {clo.domain ? (
+                      CLO_DOMAIN_LABEL_TH[clo.domain] || clo.domain
+                    ) : (
+                      <span className="badge-muted">ยังไม่ระบุ</span>
+                    )}
+                  </td>
+                  <td className="student-table-cell">{clo.pass_threshold_percent}</td>
+                  <td className="student-table-cell">
+                    {mappings.length > 0
+                      ? mappings.map((m) => ploById[m.plo_id]?.code ?? m.plo_id).join(", ")
+                      : "-"}
+                  </td>
+                  <td className="student-table-cell">
+                    <button type="button" onClick={() => startEdit(clo)} disabled={editingCloId !== null}>
+                      แก้ไข
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-btn-delete"
+                      title={used ? `ลบไม่ได้ - ผูกกับ${reasons.join(" และ ")}อยู่` : "ลบ"}
+                      onClick={() => handleDeleteCLO(clo)}
+                      disabled={used || editingCloId !== null}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {courseCLOs.length === 0 && (
+          <p className="student-list-empty">วิชานี้ยังไม่มี CLO - เพิ่มข้อแรกด้านล่างได้เลย</p>
+        )}
+
+        {editingCloId !== null ? (
+          <form onSubmit={handleSaveCLO} className="workspace-inline-form">
+            <div className="form-field">
+              <label htmlFor="clo-manage-code">รหัส CLO (เช่น CLO1)</label>
+              <input
+                id="clo-manage-code"
+                type="text"
+                value={form.code}
+                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="clo-manage-desc">คำอธิบาย</label>
+              <input
+                id="clo-manage-desc"
+                type="text"
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                required
+              />
+            </div>
+            <div className="form-field">
+              <label htmlFor="clo-manage-domain">ประเภท</label>
+              <CLODomainField value={form.domain} onChange={(v) => setForm((f) => ({ ...f, domain: v }))} />
+            </div>
+            <div className="form-field">
+              <label htmlFor="clo-manage-threshold">เกณฑ์ผ่าน (%)</label>
+              <input
+                id="clo-manage-threshold"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={form.pass_threshold_percent}
+                onChange={(e) => setForm((f) => ({ ...f, pass_threshold_percent: e.target.value }))}
+                required
+              />
+            </div>
+            {formError && <p className="error-message">{formError}</p>}
+            <div className="workspace-inline-form">
+              <button type="submit" disabled={saving}>
+                {saving ? "กำลังบันทึก..." : "บันทึก"}
+              </button>
+              <button type="button" onClick={cancelCloForm} disabled={saving}>
+                ยกเลิก
+              </button>
+            </div>
+          </form>
+        ) : (
+          <button type="button" onClick={startCreate}>
+            + เพิ่ม CLO
+          </button>
+        )}
+      </div>
+
+      <div className="workspace-section">
+        <h2>ผูก CLO กับ PLO</h2>
+        {mappingError && <p className="error-message">{mappingError}</p>}
+        <form onSubmit={handleSubmitMapping} className="workspace-inline-form">
+          <div className="form-field">
+            <label htmlFor="clo-manage-mapping-clo">CLO</label>
+            <select
+              id="clo-manage-mapping-clo"
+              value={mappingCloId}
+              onChange={(e) => setMappingCloId(e.target.value)}
+              required
+            >
+              <option value="">-- เลือก CLO --</option>
+              {cloOptionsForMapping.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field">
+            <label htmlFor="clo-manage-mapping-plo">PLO</label>
+            <select
+              id="clo-manage-mapping-plo"
+              value={mappingPloId}
+              onChange={(e) => setMappingPloId(e.target.value)}
+              required
+            >
+              <option value="">-- เลือก PLO --</option>
+              {ploOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="submit" disabled={mappingSaving || !mappingCloId || !mappingPloId}>
+            {mappingSaving ? "กำลังผูก..." : "ผูก"}
+          </button>
+        </form>
+        {mappingWarning && <p className="crud-cross-field-warning">{mappingWarning.message}</p>}
+        {courseCLOs.length === 0 && (
+          <p className="workspace-hint-inline">วิชานี้ยังไม่มี CLO เลย - เพิ่ม CLO ก่อนถึงจะเลือกผูกที่นี่ได้</p>
+        )}
+
+        <table className="student-table">
+          <thead>
+            <tr>
+              <th>CLO</th>
+              <th>PLO</th>
+              <th>น้ำหนัก (%)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {cloPloMappingsForCourse.map((m) => (
+              <tr key={m.id} className="student-table-row">
+                <td className="student-table-cell">
+                  {courseCLOs.find((c) => c.id === m.clo_id)?.code ?? m.clo_id}
+                </td>
+                <td className="student-table-cell">{ploById[m.plo_id]?.code ?? m.plo_id}</td>
+                <td className="student-table-cell">
+                  {editingMappingId === m.id ? (
+                    <span className="workspace-inline-form">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max="100"
+                        value={editingWeight}
+                        onChange={(e) => setEditingWeight(e.target.value)}
+                      />
+                      <button type="button" onClick={() => handleSaveWeight(m)}>
+                        บันทึก
+                      </button>
+                      <button type="button" onClick={() => setEditingMappingId(null)}>
+                        ยกเลิก
+                      </button>
+                    </span>
+                  ) : (
+                    <>
+                      {m.weight_percent}{" "}
+                      <button type="button" onClick={() => startEditWeight(m)}>
+                        แก้ไข
+                      </button>
+                    </>
+                  )}
+                </td>
+                <td className="student-table-cell">
+                  <button
+                    type="button"
+                    className="icon-btn-delete"
+                    title="ถอด"
+                    onClick={() => handleDeleteMapping(m.id)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {cloPloMappingsForCourse.length === 0 && (
+          <p className="student-list-empty">วิชานี้ยังไม่มีการผูก CLO กับ PLO</p>
+        )}
+      </div>
+
+      {pendingMappingConfirm && (
+        <div className="crud-modal-backdrop" onClick={() => setPendingMappingConfirm(false)}>
+          <div className="crud-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="crud-modal-header">
+              <h3>ประเภทไม่ตรงกัน</h3>
+            </div>
+            <p className="crud-cross-field-warning">{mappingWarning?.message}</p>
+            <div className="crud-form-actions">
+              <button type="button" disabled={mappingSaving} onClick={performCreateMapping}>
+                {mappingSaving ? "กำลังบันทึก..." : "เชื่อมต่อ"}
+              </button>
+              <button type="button" disabled={mappingSaving} onClick={() => setPendingMappingConfirm(false)}>
+                ยกเลิก
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * ทำอะไร : แท็บ "โครงสร้างการประเมิน" — 2 ส่วนเรียงกันตามลำดับงานจริง: (1) สร้างงานประเมิน (ควิซ/สอบ/
+ *          การบ้าน ฯลฯ) (2) ผูกงานประเมินแต่ละชิ้นเข้ากับ CLO พร้อมกำหนดน้ำหนัก (%) - สร้าง/แก้ไข/ลบ CLO
+ *          เอง ย้ายไปแท็บ "CLO" (CLOManageTab) แยกต่างหากแล้ว (2026-09-28) ส่วนนี้เหลือแค่ตารางอ้างอิง
+ *          CLO แบบอ่านอย่างเดียวไว้เลือกตอนผูกงานประเมิน
+ *
+ * เชื่อมกับ : ไม่มีการผูก PLO ในหน้านี้ (ย้ายไปแท็บ "CLO" แล้ว) - โค้ดส่วนนี้เป็นโค้ดเฉพาะของ workspace
+ *             ไฟล์นี้ ไม่ได้แยกเป็น component ร่วมกับหน้าไหน
  *
  * ถ้าแก้ : น้ำหนักรวมต่อ CLO ต้องไม่เกิน 100% - เช็คทั้งฝั่งนี้ (ก่อนยิง API เพื่อ UX ที่เร็วกว่า) และ
  *          ฝั่ง backend (item_clo.py) ซ้ำอีกชั้น (แหล่งความจริงที่แท้จริง)
@@ -1019,8 +1585,8 @@ function StructureTab({
       <div className="workspace-section">
         <h2>CLO ของวิชานี้ (Course Learning Outcome)</h2>
         <p className="workspace-hint-inline">
-          แอดมินเป็นผู้สร้าง/แก้ไข/ลบ CLO ของวิชา (ดู "จัดการรายวิชา" ในหน้าแอดมิน) หน้านี้แสดงไว้ให้
-          อ้างอิงเลือกตอนสร้างงานประเมิน+ผูกน้ำหนักด้านล่างเท่านั้น หาก CLO ไม่ครบ/ไม่ถูกต้อง ให้แจ้งแอดมิน
+          สร้าง/แก้ไข/ลบ CLO ได้ที่แท็บ "CLO" - ตารางนี้แสดงไว้ให้อ้างอิงเลือกตอนสร้างงานประเมิน+ผูกน้ำหนัก
+          ด้านล่างเท่านั้น
         </p>
 
         <table className="student-table">
@@ -1158,7 +1724,7 @@ function StructureTab({
         )}
         {courseCLOs.length === 0 && (
           <p className="workspace-hint-inline">
-            วิชานี้ยังไม่มี CLO เลย - แจ้งแอดมินให้สร้าง CLO ของวิชานี้ก่อน ถึงจะเลือกผูกที่นี่ได้
+            วิชานี้ยังไม่มี CLO เลย - ไปสร้างที่แท็บ "CLO" ก่อน ถึงจะเลือกผูกที่นี่ได้
           </p>
         )}
 

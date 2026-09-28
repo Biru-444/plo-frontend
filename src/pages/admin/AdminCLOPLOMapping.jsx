@@ -52,7 +52,7 @@ import {
   deleteCLOPLOMapping,
   checkCLOPLODomainMatch,
 } from "../../api/client.js";
-import { CLO_DOMAIN_LABEL_TH } from "../../utils/cloDomain.js";
+import { CLO_DOMAIN_LABEL_TH, buildDomainMismatchMessage } from "../../utils/cloDomain.js";
 
 // เก็บ CLO/PLO เต็มๆ (ไม่ใช่แค่ตัวเลือก dropdown) ไว้นอก component เพื่อให้ CLO_PLO_CROSS_FIELD_CHECK
 // (ค่าคงที่ระดับโมดูล - ต้อง reference เดิมทุก render กัน useEffect ของ CrudManager re-run เกินจำเป็น)
@@ -75,7 +75,7 @@ const CLO_PLO_CROSS_FIELD_CHECK = {
     const cloLabel = clo ? `${clo.code} (${CLO_DOMAIN_LABEL_TH[clo.domain] || clo.domain})` : "CLO นี้";
     const ploLabel = plo ? `${plo.code} (${plo.category})` : "PLO นี้";
     return {
-      message: `${cloLabel} กำลังจะเชื่อมกับ ${ploLabel} ซึ่งเป็นคนละประเภท ต้องการเชื่อมต่อหรือไม่?`,
+      message: buildDomainMismatchMessage(cloLabel, ploLabel),
     };
   },
 };

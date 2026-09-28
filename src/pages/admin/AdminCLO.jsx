@@ -32,8 +32,9 @@ import { CLO_DOMAIN_OPTIONS, CLO_DOMAIN_LABEL_TH } from "../../utils/cloDomain.j
 
 // ช่อง "ประเภท" ของฟอร์ม CLO - เหมือน PLOCategoryField ของ AdminPLO.jsx แต่จำกัดแค่ 4 ตัวเลือกตายตัว
 // เท่านั้น ไม่มี "อื่นๆ" พิมพ์เอง (ตามที่ผู้ใช้ยืนยัน 2026-09-27 - domain เก็บเป็น Literal ปิดตายฝั่ง
-// backend ไม่รองรับข้อความอิสระ)
-function CLODomainField({ value, onChange }) {
+// backend ไม่รองรับข้อความอิสระ) - export ไว้ให้ CourseOfferingWorkspace.jsx ใช้ซ้ำด้วย (2026-09-28 -
+// อาจารย์จัดการ CLO ของวิชาตัวเองได้แล้ว ใช้ฟอร์มแบบเดียวกัน)
+export function CLODomainField({ value, onChange }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} required>
       <option value="" disabled>

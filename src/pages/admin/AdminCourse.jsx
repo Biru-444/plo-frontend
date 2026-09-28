@@ -169,10 +169,7 @@ function CLOManagerPanel() {
   }
 
   async function handleDeleteClo(id) {
-    if (
-      !window.confirm("ยืนยันการลบ CLO นี้? การลบจะลบการผูกกับ PLO/งานประเมินที่มีอยู่ทั้งหมดของ CLO นี้ไปด้วย")
-    )
-      return;
+    if (!window.confirm("ยืนยันการลบ CLO นี้?")) return;
     try {
       await deleteCLO(id);
       await loadClos();
